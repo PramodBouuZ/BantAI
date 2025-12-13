@@ -11,6 +11,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Features from './pages/Features';
 import ProductDetails from './pages/ProductDetails';
+import VendorRegister from './pages/VendorRegister';
 import { User, UserRole } from './types';
 import { Construction, Briefcase, FileText, Newspaper, MessageCircle } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
@@ -98,6 +99,7 @@ const AppLayout: React.FC = () => {
             <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
             <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
             <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
+            <Route path="/vendor-register" element={<VendorRegister />} />
             
             {/* Rich Content Pages */}
             <Route path="/about" element={<About />} />

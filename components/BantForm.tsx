@@ -68,7 +68,7 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
       email: formData.email,
       mobile: formData.mobile,
       location: formData.location,
-      company: formData.company,
+      company: formData.company || 'Not Provided',
       service: productId ? `Product ID: ${productId}` : (type === 'consult' ? 'General Consulting' : 'Custom Requirement'),
       requirement: formData.need,
       budget: formData.budget,
@@ -156,8 +156,8 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
                  </div>
               </div>
               <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center"><Building2 size={16} className="mr-2"/> Company Name</label>
-                  <input type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 outline-none" 
+                  <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center"><Building2 size={16} className="mr-2"/> Company Name <span className="text-slate-400 font-normal ml-1">(Optional)</span></label>
+                  <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-200 outline-none" 
                     value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} placeholder="Your Company Ltd" />
               </div>
               <div>
@@ -271,8 +271,8 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
               <button 
                 type="button" 
                 onClick={nextStep}
-                // Simple validation check
-                disabled={step === 1 && (!formData.name || !formData.mobile || !formData.company)}
+                // Simple validation check: Removed company from required check
+                disabled={step === 1 && (!formData.name || !formData.mobile || !formData.location)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-bold text-lg flex items-center shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next Step <ChevronRight size={20} className="ml-2" />

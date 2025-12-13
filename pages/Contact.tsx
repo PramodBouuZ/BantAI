@@ -1,8 +1,11 @@
 import React from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO';
 
 const Contact: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white min-h-screen">
       <SEO 
@@ -64,7 +67,12 @@ const Contact: React.FC = () => {
               <p className="text-slate-600 mb-4">
                 Interested in listing your services on BantConfirm? We are looking for top-tier IT service providers.
               </p>
-              <button className="text-blue-600 font-bold hover:underline">Join as a Vendor &rarr;</button>
+              <button 
+                onClick={() => navigate('/vendor-register')} 
+                className="text-blue-600 font-bold hover:underline flex items-center"
+              >
+                Join as a Vendor &rarr;
+              </button>
             </div>
           </div>
 

@@ -84,7 +84,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500">
-          <p>© 2024 BantConfirm India Pvt Ltd. All rights reserved.</p>
+          <p>© 2025 BantConfirm India Pvt Ltd. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-white">Terms of Service</Link>
