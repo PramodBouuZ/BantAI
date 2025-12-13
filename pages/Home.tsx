@@ -260,8 +260,9 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
   return (
     <div className="overflow-hidden">
       <SEO 
-        title={siteConfig.bannerTitle || "BantConfirm - India's #1 B2B AI Marketplace for IT & Telecom"}
-        description="Connect with verified vendors for CRM, VoIP, Cloud Hosting, and more. BANT-verified leads and guaranteed low prices for Indian MSMEs."
+        title={siteConfig.bannerTitle || "BantConfirm - B2B Marketplace for Tata, Airtel, Zoho & IT Services"}
+        description="India's trusted marketplace to buy Tata/Airtel Leased Lines, Zoho/Salesforce CRM, and Cloud Telephony (IVR, MyOperator). Verified software developers and digital agencies in Noida, Delhi, Mumbai."
+        keywords="BantConfirm, Tata Teleservices, Airtel Business, Jio Lease Line, Zoho CRM, Salesforce, LeadSquared, Cloud Telephony, IVR, Auto Dialer, Software Developer India, Digital Marketing Agency Delhi"
       />
       
       <NewsTicker />

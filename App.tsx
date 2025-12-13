@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Features from './pages/Features';
+import ProductDetails from './pages/ProductDetails';
 import { User, UserRole } from './types';
 import { Construction, Briefcase, FileText, Newspaper, MessageCircle } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
@@ -93,7 +94,7 @@ const AppLayout: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
             <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
-            <Route path="/products/:id" element={<div className="p-20 text-center text-slate-500">Product Details Page Placeholder</div>} />
+            <Route path="/products/:id" element={<ProductDetails />} />
             <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
             <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
             <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
