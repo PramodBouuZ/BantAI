@@ -124,7 +124,7 @@ const VendorTicker = () => {
   return (
     <div className="py-10 bg-slate-50 border-b border-gray-100 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 mb-6">
-        <p className="text-center text-sm font-bold text-slate-400 uppercase tracking-widest">Trusted by leading companies</p>
+        <p className="text-center text-sm font-bold text-slate-400 uppercase tracking-widest">Trusted Leading Companies</p>
       </div>
       <div className="relative w-full overflow-hidden">
         <div className="flex animate-scroll whitespace-nowrap gap-16 items-center w-max">
@@ -157,6 +157,10 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
   const [activeFeature, setActiveFeature] = useState<any>(null);
   const navigate = useNavigate();
 
+  // New Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
   useEffect(() => {
     const interval = setInterval(() => {
       setChartData(prev => {
@@ -188,6 +192,16 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
       navigate('/login', { state: { from: { pathname: target } } });
     }
   };
+
+  // Filter Logic
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          product.features.some(f => f.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const featuredSoftware = products.filter(p => ['Software', 'Security', 'Infrastructure'].includes(p.category)).slice(0, 4);
   const featuredTelecom = products.filter(p => ['Telecom', 'Connectivity'].includes(p.category)).slice(0, 4);
@@ -371,7 +385,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
       <VendorTicker />
 
       {/* Marketplace Browser Section */}
-      <section className="py-20 bg-slate-50 border-t border-gray-100">
+      <section className="py-20 bg-slate-50 border-t border-gray-100" id="marketplace">
         <div className="max-w-7xl mx-auto px-4">
            {/* Header */}
            <div className="mb-12">
@@ -381,53 +395,99 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
            
            {/* Search Bar */}
            <div className="mb-8 max-w-3xl">
-              <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-4 shadow-sm">
+              <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                   <Search size={22} className="text-gray-400 mr-3" />
-                  <input type="text" placeholder="Search for CRM, VoIP, Cloud Hosting..." className="bg-transparent border-none outline-none w-full text-lg text-slate-700 placeholder-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search for CRM, VoIP, Cloud Hosting..." 
+                    className="bg-transparent border-none outline-none w-full text-lg text-slate-700 placeholder-slate-400" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                        <X size={20} />
+                    </button>
+                  )}
               </div>
            </div>
 
            {/* Categories */}
            <div className="flex items-center space-x-3 overflow-x-auto pb-4 scrollbar-hide mb-10">
-               {categories.map((cat, i) => (
-                 <button key={cat} className={`px-6 py-2.5 rounded-full text-base font-medium whitespace-nowrap transition ${i === 0 ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 border border-gray-200 hover:bg-gray-50'}`}>
+               <button 
+                 onClick={() => setSelectedCategory('All')}
+                 className={`px-6 py-2.5 rounded-full text-base font-medium whitespace-nowrap transition ${selectedCategory === 'All' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 border border-gray-200 hover:bg-gray-50'}`}
+               >
+                 All
+               </button>
+               {categories.map((cat) => (
+                 <button key={cat} 
+                   onClick={() => setSelectedCategory(cat)}
+                   className={`px-6 py-2.5 rounded-full text-base font-medium whitespace-nowrap transition ${selectedCategory === cat ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 border border-gray-200 hover:bg-gray-50'}`}
+                 >
                    {cat}
                  </button>
                ))}
-               <button className="px-4 py-2.5 rounded-full bg-white text-slate-600 border border-gray-200 hover:bg-gray-50">
+               <button onClick={() => navigate('/products')} className="px-4 py-2.5 rounded-full bg-white text-slate-600 border border-gray-200 hover:bg-gray-50">
                  <Filter size={20} />
                </button>
            </div>
 
-           {/* Product Grid - Software */}
-           <div className="mb-16">
-               <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-2xl font-bold text-slate-900 flex items-center">
-                   <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-3"><Server size={24} /></span>
-                   Enterprise Software
-                 </h3>
-                 <Link to="/products" className="text-blue-600 font-bold hover:underline flex items-center">View All <ArrowRight size={18} className="ml-1" /></Link>
+           {/* Content Logic: Filtered vs Default */}
+           {(searchQuery || selectedCategory !== 'All') ? (
+               <div className="min-h-[400px]">
+                   <div className="flex items-center justify-between mb-8">
+                     <h3 className="text-2xl font-bold text-slate-900 flex items-center">
+                       {filteredProducts.length} Results Found
+                     </h3>
+                   </div>
+                   
+                   {filteredProducts.length > 0 ? (
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                          {filteredProducts.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
+                       </div>
+                   ) : (
+                       <div className="text-center py-20">
+                           <div className="text-6xl mb-4">🔍</div>
+                           <h3 className="text-2xl font-bold text-slate-900">No services found</h3>
+                           <p className="text-slate-500 mt-2">Try adjusting your search criteria.</p>
+                           <button onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }} className="mt-6 text-blue-600 font-bold hover:underline">Clear Filters</button>
+                       </div>
+                   )}
                </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {featuredSoftware.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
+           ) : (
+             <>
+               {/* Default View: Software */}
+               <div className="mb-16">
+                   <div className="flex items-center justify-between mb-8">
+                     <h3 className="text-2xl font-bold text-slate-900 flex items-center">
+                       <span className="bg-indigo-100 text-indigo-600 p-2 rounded-lg mr-3"><Server size={24} /></span>
+                       Enterprise Software
+                     </h3>
+                     <Link to="/products" className="text-blue-600 font-bold hover:underline flex items-center">View All <ArrowRight size={18} className="ml-1" /></Link>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {featuredSoftware.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
+                   </div>
                </div>
-           </div>
 
-           {/* Product Grid - Telco Services */}
-           <div className="mb-12">
-               <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-2xl font-bold text-slate-900 flex items-center">
-                   <span className="bg-purple-100 text-purple-600 p-2 rounded-lg mr-3"><Phone size={24} /></span>
-                   Telecom & Connectivity
-                 </h3>
-                 <Link to="/products" className="text-blue-600 font-bold hover:underline flex items-center">View All <ArrowRight size={18} className="ml-1" /></Link>
+               {/* Default View: Telecom */}
+               <div className="mb-12">
+                   <div className="flex items-center justify-between mb-8">
+                     <h3 className="text-2xl font-bold text-slate-900 flex items-center">
+                       <span className="bg-purple-100 text-purple-600 p-2 rounded-lg mr-3"><Phone size={24} /></span>
+                       Telecom & Connectivity
+                     </h3>
+                     <Link to="/products" className="text-blue-600 font-bold hover:underline flex items-center">View All <ArrowRight size={18} className="ml-1" /></Link>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {featuredTelecom.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
+                   </div>
                </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {featuredTelecom.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
-               </div>
-           </div>
+             </>
+           )}
         </div>
       </section>
 

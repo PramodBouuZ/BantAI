@@ -47,14 +47,9 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentUser }) => {
                 className="h-12 w-auto object-contain transition-transform transform group-hover:scale-105" 
               />
             ) : (
-              <>
-                <div className="bg-gradient-to-br from-yellow-400 to-amber-500 text-white p-2.5 rounded-xl shadow-md group-hover:shadow-lg transition-all transform group-hover:scale-105">
-                  <Zap size={28} fill="currentColor" />
-                </div>
-                <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 tracking-tight">
-                  {siteConfig.siteName}
-                </span>
-              </>
+              <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 tracking-tight">
+                {siteConfig.siteName}
+              </span>
             )}
           </Link>
 

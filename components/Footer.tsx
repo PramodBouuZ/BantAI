@@ -1,19 +1,33 @@
 import React from 'react';
 import { Zap, Twitter, Linkedin, Facebook, Instagram, Phone, Mail, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useData } from '../context/DataContext';
 
 const Footer: React.FC = () => {
+  const { siteConfig } = useData();
+
   return (
     <footer className="bg-slate-900 text-white pt-16 pb-8 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="bg-yellow-500 text-white p-1.5 rounded-md">
-                <Zap size={20} fill="currentColor" />
-              </div>
-              <span className="text-xl font-bold">BantConfirm</span>
-            </div>
+            <Link to="/" className="inline-block mb-4">
+              {siteConfig.logoUrl ? (
+                <img 
+                  src={siteConfig.logoUrl} 
+                  alt={siteConfig.siteName} 
+                  className="h-10 w-auto object-contain" 
+                />
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <div className="bg-yellow-500 text-white p-1.5 rounded-md">
+                    <Zap size={20} fill="currentColor" />
+                  </div>
+                  <span className="text-xl font-bold">{siteConfig.siteName}</span>
+                </div>
+              )}
+            </Link>
+            
             <p className="text-slate-400 text-sm leading-relaxed mb-6">
               India's #1 B2B AI Marketplace. Transform your unused leads into revenue and find verified service providers.
             </p>
