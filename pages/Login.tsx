@@ -52,7 +52,26 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
       }
     }
 
-    // --- SUPABASE AUTH (High Priority) ---
+    // --- 1. ADMIN BACKDOOR (Always Check First) ---
+    // This allows the default admin to login even if Supabase is connected but the user doesn't exist there.
+    if (!isSignup && formData.email === 'admin@bantconfirm.com' && formData.password === 'admin123') {
+       // Simulate a small network delay for realism
+       setTimeout(() => {
+         const adminUser: User = {
+             id: 'admin_1',
+             name: 'Super Admin',
+             email: 'admin@bantconfirm.com',
+             role: 'admin',
+             joinedDate: new Date().toISOString()
+         };
+         setCurrentUser(adminUser);
+         setLoading(false);
+         navigate(from + search);
+       }, 500);
+       return;
+    }
+
+    // --- 2. SUPABASE AUTH ---
     if (supabase) {
       try {
         if (isSignup) {
@@ -94,11 +113,14 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            if (data.user) {
              // Fetch user metadata or look up in local context
              const meta = data.user.user_metadata || {};
+             // If this user is the admin email (and was created manually in Supabase), force role to admin
+             const role = (data.user.email === 'admin@bantconfirm.com') ? 'admin' : (meta.role || 'user');
+
              setCurrentUser({
                 id: data.user.id,
                 name: meta.full_name || 'User',
                 email: data.user.email || '',
-                role: meta.role || 'user',
+                role: role as any,
                 joinedDate: new Date().toISOString()
              });
              navigate(from + search);
@@ -109,31 +131,17 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
         console.error("Supabase Auth Error:", err);
         // Fallback to mock auth if Supabase fails or isn't configured for this specific user
         if (err.message && !err.message.includes("configured")) {
-           // If it's a real auth error (wrong password), stop here
-           setErrorMsg(err.message);
+           // If it's a real auth error (wrong password or user not found), stop here
+           setErrorMsg(err.message === "Invalid login credentials" ? "Invalid login credentials. If you are the admin, use the default password." : err.message);
            setLoading(false);
            return;
         }
       }
     }
 
-    // --- MOCK AUTH FALLBACK (If Supabase not configured or skipped) ---
+    // --- 3. MOCK AUTH FALLBACK (If Supabase skipped) ---
     setTimeout(() => {
-      // 1. Admin Login Backdoor
-      if (formData.email === 'admin@bantconfirm.com' && formData.password === 'admin123') {
-         setCurrentUser({
-             id: 'admin_1',
-             name: 'Super Admin',
-             email: 'admin@bantconfirm.com',
-             role: 'admin',
-             joinedDate: new Date().toISOString()
-         });
-         setLoading(false);
-         navigate(from + search);
-         return;
-      }
-
-      // 2. Signup Logic
+      // Signup Logic
       if (isSignup) {
           const newUser: User = {
               id: `u_${Date.now()}`,
@@ -151,12 +159,13 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
           return;
       }
 
-      // 3. Login Logic (Simulated by finding existing user or defaulting)
+      // Login Logic (Simulated by finding existing user or defaulting)
       const existingUser = users.find(u => u.email === formData.email);
       
       if (existingUser) {
           setCurrentUser(existingUser);
       } else {
+          // Demo user fallback if no matching mock user found
           const tempUser: User = {
               id: `u_temp_${Date.now()}`,
               name: 'Demo User',
