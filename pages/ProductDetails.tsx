@@ -32,10 +32,10 @@ const ProductDetails: React.FC = () => {
     );
   }
 
-  // Dynamic SEO Generator based on product data
-  const seoTitle = `${product.title} - Best Price in India | BantConfirm`;
-  const seoDesc = `Buy ${product.title} from verified vendors on BantConfirm. ${product.description}. Compare prices for ${product.category} in Delhi, Mumbai, Bangalore, and across India.`;
-  const seoKeywords = `${product.title}, ${product.category}, Buy ${product.title} India, ${product.title} Pricing, ${product.category} Vendors India, BantConfirm`;
+  // Dynamic SEO Generator based on product data including price range
+  const seoTitle = `${product.title} Pricing & Reviews - Starts ${product.priceRange} | BantConfirm`;
+  const seoDesc = `Get best quotes for ${product.title}. Pricing starts from ${product.priceRange}. ${product.description}. Compare top ${product.category} vendors in India.`;
+  const seoKeywords = `${product.title}, ${product.title} Price, ${product.title} Cost, ${product.category}, Buy ${product.title} India, ${product.priceRange}, BantConfirm, Verified Vendors`;
 
   return (
     <div className="bg-white min-h-screen pb-20">

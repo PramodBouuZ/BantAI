@@ -282,16 +282,30 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
       <NewsTicker />
       
       {/* Hero Section */}
-      <section className="relative pt-20 pb-40 bg-gradient-to-b from-blue-50 via-white to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center animate-slide-up">
-          <div className="inline-flex items-center space-x-3 bg-yellow-100 text-yellow-800 px-6 py-2.5 rounded-full text-base font-semibold mb-10 shadow-sm border border-yellow-200">
+      <section className="relative pt-20 pb-40 overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 -z-10 animate-gradient-xy bg-gradient-to-br from-blue-50 via-white to-blue-100 opacity-70"></div>
+        
+        {/* Pattern Overlay */}
+        <div className="absolute inset-0 -z-10 opacity-[0.4]" style={{
+            backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
+            backgroundSize: '30px 30px'
+        }}></div>
+
+        {/* Floating animated blobs */}
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-32 left-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center animate-slide-up relative z-10">
+          <div className="inline-flex items-center space-x-3 bg-white/60 backdrop-blur-md text-yellow-800 px-6 py-2.5 rounded-full text-base font-semibold mb-10 shadow-sm border border-yellow-200/50">
             <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse"></span>
             <span>Empowering Indian Businesses</span>
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 mb-8 leading-[1.1]">
             {siteConfig.bannerTitle || "The Premier IT Marketplace for"} <br />
-            <span className="text-blue-600">MSMEs & Enterprises</span>
+            <span className="text-blue-600 bg-clip-text">MSMEs & Enterprises</span>
           </h1>
           
           <p className="max-w-3xl mx-auto text-xl md:text-2xl text-slate-600 mb-12 leading-relaxed">
@@ -302,7 +316,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
             <Link to="/products" className="px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xl shadow-xl hover:shadow-blue-500/30 transition-all transform hover:-translate-y-1">
               Find IT Solutions
             </Link>
-            <button onClick={() => handleAuthAction()} className="px-10 py-5 bg-white hover:bg-gray-50 text-slate-700 border border-gray-200 rounded-2xl font-bold text-xl shadow-sm transition-all hover:border-gray-300">
+            <button onClick={() => handleAuthAction()} className="px-10 py-5 bg-white/80 backdrop-blur-sm hover:bg-white text-slate-700 border border-white/50 hover:border-gray-200 rounded-2xl font-bold text-xl shadow-sm transition-all">
               Post Business Requirement
             </button>
           </div>
@@ -332,7 +346,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                <TrendingUp size={48} />
             </div>
 
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 md:p-12 transition-all hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)]">
+            <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-white/50 p-8 md:p-12 transition-all hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)]">
                <div className="flex items-center justify-between mb-10">
                  <h3 className="font-bold text-2xl text-slate-800">Your Business Growth Dashboard</h3>
                  <span className="flex items-center text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, ScrollRestoration, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -12,7 +12,7 @@ import Contact from './pages/Contact';
 import Features from './pages/Features';
 import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
-import { User, UserRole } from './types';
+import { User } from './types';
 import { Construction, Briefcase, FileText, Newspaper, MessageCircle } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { HelmetProvider } from 'react-helmet-async';
