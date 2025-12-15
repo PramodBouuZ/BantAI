@@ -113,6 +113,8 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
              email: formData.email,
              password: formData.password,
              options: {
+               // CRITICAL: Redirect back to the live site after email confirmation
+               emailRedirectTo: window.location.origin, 
                data: {
                  full_name: formData.name,
                  role: selectedRole,
