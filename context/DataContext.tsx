@@ -109,17 +109,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
              return [...newLeads, ...prev];
           });
         }
-      } catch (err) {
-        // Silent fail if table missing
-      }
+      } catch (err) { /* silent */ }
 
       // 2. Fetch Site Config
       try {
-        const { data: configData, error: configError } = await supabase
-          .from('site_config')
-          .select('*')
-          .single();
-
+        const { data: configData, error: configError } = await supabase.from('site_config').select('*').single();
         if (configData && !configError) {
            const newConfig: SiteConfig = {
                siteName: configData.site_name || defaultSiteConfig.siteName,
@@ -129,31 +123,112 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                faviconUrl: configData.favicon_url || undefined,
                whatsappNumber: configData.whatsapp_number || undefined,
                socialLinks: configData.social_links || defaultSiteConfig.socialLinks,
-               bannerImage: undefined // Not syncing heavy banner image for now
+               bannerImage: undefined
            };
-           // Update state and local storage
            setSiteConfig(newConfig);
            localStorage.setItem('siteConfig', JSON.stringify(newConfig));
         }
-      } catch (err) {
-         console.log("Config fetch error:", err);
-      }
+      } catch (err) { /* silent */ }
+
+      // 3. Fetch Products
+      try {
+        const { data: prodData, error: prodError } = await supabase.from('products').select('*');
+        if (prodData && !prodError && prodData.length > 0) {
+           const mappedProducts: Product[] = prodData.map((p: any) => ({
+             id: p.id,
+             title: p.title,
+             description: p.description,
+             category: p.category,
+             priceRange: p.price_range,
+             features: p.features || [],
+             icon: p.icon || 'globe',
+             rating: Number(p.rating),
+             image: p.image
+           }));
+           setProducts(mappedProducts);
+           localStorage.setItem('products', JSON.stringify(mappedProducts));
+        }
+      } catch (err) { console.error("Error fetching products", err); }
+
+      // 4. Fetch Categories
+      try {
+        const { data: catData, error: catError } = await supabase.from('categories').select('*');
+        if (catData && !catError && catData.length > 0) {
+           const mappedCats = catData.map((c: any) => c.name);
+           // Merge with defaults to ensure we always have base categories
+           const uniqueCats = Array.from(new Set([...mappedCats, 'Software', 'Telecom', 'Connectivity']));
+           setCategories(uniqueCats);
+           localStorage.setItem('categories', JSON.stringify(uniqueCats));
+        }
+      } catch (err) { /* silent */ }
+
+      // 5. Fetch Vendor Assets
+      try {
+        const { data: vendorData, error: vendorError } = await supabase.from('vendor_assets').select('*');
+        if (vendorData && !vendorError && vendorData.length > 0) {
+           const mappedVendors: VendorAsset[] = vendorData.map((v: any) => ({
+             id: v.id,
+             name: v.name,
+             logoUrl: v.logo_url
+           }));
+           setVendorLogos(mappedVendors);
+           localStorage.setItem('vendorLogos', JSON.stringify(mappedVendors));
+        }
+      } catch (err) { /* silent */ }
     };
+    
     syncData();
   }, []);
 
-  // --- PERSISTENCE ---
-  useEffect(() => { localStorage.setItem('products', JSON.stringify(products)); }, [products]);
-  useEffect(() => { localStorage.setItem('leads', JSON.stringify(leads)); }, [leads]);
-  useEffect(() => { localStorage.setItem('categories', JSON.stringify(categories)); }, [categories]);
-  // We handle siteConfig persistence manually in updateSiteConfig for DB sync
-  useEffect(() => { localStorage.setItem('users', JSON.stringify(users)); }, [users]);
-  useEffect(() => { localStorage.setItem('vendorLogos', JSON.stringify(vendorLogos)); }, [vendorLogos]);
+  // --- ACTIONS (With Supabase Write) ---
 
-  // --- ACTIONS ---
-  const addProduct = (product: Product) => setProducts([...products, product]);
-  const updateProduct = (id: string, updatedProduct: Product) => setProducts(products.map(p => p.id === id ? updatedProduct : p));
-  const deleteProduct = (id: string) => setProducts(products.filter(p => p.id !== id));
+  const addProduct = async (product: Product) => {
+    setProducts([...products, product]);
+    localStorage.setItem('products', JSON.stringify([...products, product]));
+    
+    if (supabase) {
+      await supabase.from('products').insert({
+         id: product.id,
+         title: product.title,
+         description: product.description,
+         category: product.category,
+         price_range: product.priceRange,
+         features: product.features,
+         icon: product.icon,
+         rating: product.rating,
+         image: product.image
+      });
+    }
+  };
+
+  const updateProduct = async (id: string, updatedProduct: Product) => {
+    const newProducts = products.map(p => p.id === id ? updatedProduct : p);
+    setProducts(newProducts);
+    localStorage.setItem('products', JSON.stringify(newProducts));
+
+    if (supabase) {
+      await supabase.from('products').update({
+         title: updatedProduct.title,
+         description: updatedProduct.description,
+         category: updatedProduct.category,
+         price_range: updatedProduct.priceRange,
+         features: updatedProduct.features,
+         icon: updatedProduct.icon,
+         rating: updatedProduct.rating,
+         image: updatedProduct.image
+      }).eq('id', id);
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    const newProducts = products.filter(p => p.id !== id);
+    setProducts(newProducts);
+    localStorage.setItem('products', JSON.stringify(newProducts));
+
+    if (supabase) {
+      await supabase.from('products').delete().eq('id', id);
+    }
+  };
 
   const addLead = async (lead: Lead) => {
     setLeads([lead, ...leads]);
@@ -170,9 +245,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
            status: lead.status,
            date: lead.date
         });
-      } catch (err) {
-        console.error("Failed to sync lead to Supabase:", err);
-      }
+      } catch (err) { console.error("Failed to sync lead", err); }
     }
   };
 
@@ -182,15 +255,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteLead = (id: string) => setLeads(leads.filter(l => l.id !== id));
 
   const updateSiteConfig = async (config: SiteConfig) => {
-    // 1. Optimistic Update (UI)
     setSiteConfig(config);
     localStorage.setItem('siteConfig', JSON.stringify(config));
-
-    // 2. Database Update
     if (supabase) {
-      try {
-        await supabase.from('site_config').upsert({
-          id: 1, // Singleton row for global config
+      await supabase.from('site_config').upsert({
+          id: 1,
           site_name: config.siteName,
           logo_url: config.logoUrl,
           favicon_url: config.faviconUrl,
@@ -199,23 +268,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           whatsapp_number: config.whatsappNumber,
           social_links: config.socialLinks,
           updated_at: new Date().toISOString()
-        });
-      } catch (err) {
-        console.error("Failed to sync config to Supabase:", err);
+      });
+    }
+  };
+
+  const addCategory = async (category: string) => {
+    if (!categories.includes(category)) {
+      const newCats = [...categories, category];
+      setCategories(newCats);
+      localStorage.setItem('categories', JSON.stringify(newCats));
+      if (supabase) {
+        await supabase.from('categories').insert({ name: category });
       }
     }
   };
 
-  const addCategory = (category: string) => {
-    if (!categories.includes(category)) setCategories([...categories, category]);
+  const deleteCategory = async (category: string) => {
+    const newCats = categories.filter(c => c !== category);
+    setCategories(newCats);
+    localStorage.setItem('categories', JSON.stringify(newCats));
+    if (supabase) {
+      await supabase.from('categories').delete().eq('name', category);
+    }
   };
-  const deleteCategory = (category: string) => setCategories(categories.filter(c => c !== category));
 
   const addUser = (user: User) => setUsers([...users, user]);
   const deleteUser = (id: string) => setUsers(users.filter(u => u.id !== id));
 
-  const addVendorLogo = (asset: VendorAsset) => setVendorLogos([...vendorLogos, asset]);
-  const deleteVendorLogo = (id: string) => setVendorLogos(vendorLogos.filter(v => v.id !== id));
+  const addVendorLogo = async (asset: VendorAsset) => {
+    const newLogos = [...vendorLogos, asset];
+    setVendorLogos(newLogos);
+    localStorage.setItem('vendorLogos', JSON.stringify(newLogos));
+    if (supabase) {
+      await supabase.from('vendor_assets').insert({
+        id: asset.id,
+        name: asset.name,
+        logo_url: asset.logoUrl
+      });
+    }
+  };
+
+  const deleteVendorLogo = async (id: string) => {
+    const newLogos = vendorLogos.filter(v => v.id !== id);
+    setVendorLogos(newLogos);
+    localStorage.setItem('vendorLogos', JSON.stringify(newLogos));
+    if (supabase) {
+      await supabase.from('vendor_assets').delete().eq('id', id);
+    }
+  };
 
   return (
     <DataContext.Provider value={{
