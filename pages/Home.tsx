@@ -34,10 +34,10 @@ const getIcon = (iconName: string) => {
 };
 
 const ProductCard: React.FC<{ product: any, onAction: (id?: string) => void }> = ({ product, onAction }) => (
-  <div className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group flex flex-col h-full">
+  <article className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group flex flex-col h-full">
       <div className="relative h-48 overflow-hidden">
           {product.image ? (
-            <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+            <img src={product.image} alt={product.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
           ) : (
             <div className="w-full h-full bg-slate-100 flex items-center justify-center">
               <Server size={48} className="text-slate-300" />
@@ -82,7 +82,7 @@ const ProductCard: React.FC<{ product: any, onAction: (id?: string) => void }> =
            </div>
         </div>
       </div>
-   </div>
+   </article>
 );
 
 const NewsTicker = () => {
@@ -102,7 +102,7 @@ const NewsTicker = () => {
   }, []);
 
   return (
-    <div className="bg-indigo-900 text-white py-3 overflow-hidden relative">
+    <div className="bg-indigo-900 text-white py-3 overflow-hidden relative" role="alert" aria-live="polite">
       <div className="max-w-7xl mx-auto px-4 text-center">
          <p className="text-sm md:text-base font-medium flex items-center justify-center animate-fade-in key={index}">
             <Megaphone size={16} className="mr-2 text-yellow-400" />
@@ -131,7 +131,7 @@ const VendorTicker = () => {
            {/* Duplicate list to create seamless loop */}
            {[...vendorLogos, ...vendorLogos, ...vendorLogos].map((logo, i) => (
              <div key={`${logo.id}-${i}`} className="flex-shrink-0 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-               <img src={logo.logoUrl} alt={logo.name} className="h-10 md:h-12 w-auto object-contain" />
+               <img src={logo.logoUrl} alt={`${logo.name} logo`} loading="lazy" className="h-10 md:h-12 w-auto object-contain" />
              </div>
            ))}
         </div>
@@ -271,18 +271,41 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
     }
   };
 
+  // Structured Data (Organization)
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "BantConfirm",
+    "url": "https://bantconfirm.com",
+    "logo": "https://bantconfirm.com/logo.png",
+    "sameAs": [
+      siteConfig.socialLinks.twitter,
+      siteConfig.socialLinks.linkedin,
+      siteConfig.socialLinks.facebook,
+      siteConfig.socialLinks.instagram
+    ].filter(Boolean),
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+91-9999999999",
+      "contactType": "customer service",
+      "areaServed": "IN",
+      "availableLanguage": ["en", "hi"]
+    }
+  };
+
   return (
     <div className="overflow-hidden">
       <SEO 
         title={siteConfig.bannerTitle || "BantConfirm - B2B Marketplace for Tata, Airtel, Zoho & IT Services"}
         description="India's trusted marketplace to buy Tata/Airtel Leased Lines, Zoho/Salesforce CRM, and Cloud Telephony (IVR, MyOperator). Verified software developers and digital agencies in Noida, Delhi, Mumbai."
         keywords="BantConfirm, Tata Teleservices, Airtel Business, Jio Lease Line, Zoho CRM, Salesforce, LeadSquared, Cloud Telephony, IVR, Auto Dialer, Software Developer India, Digital Marketing Agency Delhi"
+        schema={organizationSchema}
       />
       
       <NewsTicker />
       
       {/* Hero Section */}
-      <section className="relative pt-20 pb-40 overflow-hidden">
+      <section className="relative pt-20 pb-40 overflow-hidden" aria-labelledby="hero-title">
         {/* Animated Background */}
         <div className="absolute inset-0 -z-10 animate-gradient-xy bg-gradient-to-br from-blue-50 via-white to-blue-100 opacity-70"></div>
         
@@ -303,7 +326,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
             <span>Empowering Indian Businesses</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 mb-8 leading-[1.1]">
+          <h1 id="hero-title" className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 mb-8 leading-[1.1]">
             {siteConfig.bannerTitle || "The Premier IT Marketplace for"} <br />
             <span className="text-blue-600 bg-clip-text">MSMEs & Enterprises</span>
           </h1>
@@ -417,6 +440,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                     className="bg-transparent border-none outline-none w-full text-lg text-slate-700 placeholder-slate-400" 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Search for services"
                   />
                   {searchQuery && (
                     <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
@@ -427,7 +451,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
            </div>
 
            {/* Categories */}
-           <div className="flex items-center space-x-3 overflow-x-auto pb-4 scrollbar-hide mb-10">
+           <nav className="flex items-center space-x-3 overflow-x-auto pb-4 scrollbar-hide mb-10">
                <button 
                  onClick={() => setSelectedCategory('All')}
                  className={`px-6 py-2.5 rounded-full text-base font-medium whitespace-nowrap transition ${selectedCategory === 'All' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 border border-gray-200 hover:bg-gray-50'}`}
@@ -442,10 +466,10 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                    {cat}
                  </button>
                ))}
-               <button onClick={() => navigate('/products')} className="px-4 py-2.5 rounded-full bg-white text-slate-600 border border-gray-200 hover:bg-gray-50">
+               <button onClick={() => navigate('/products')} className="px-4 py-2.5 rounded-full bg-white text-slate-600 border border-gray-200 hover:bg-gray-50" aria-label="More Filters">
                  <Filter size={20} />
                </button>
-           </div>
+           </nav>
 
            {/* Content Logic: Filtered vs Default */}
            {(searchQuery || selectedCategory !== 'All') ? (
@@ -552,7 +576,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                  <p className="text-slate-600 mb-8 italic text-lg leading-relaxed">"{t.text}"</p>
                  <div className="inline-block bg-green-100 text-green-700 text-sm font-bold px-3 py-1.5 rounded-lg mb-8">{t.earnings}</div>
                  <div className="flex items-center space-x-4">
-                    <img src={t.image} alt={t.author} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" />
+                    <img src={t.image} alt={t.author} loading="lazy" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md" />
                     <div>
                        <h4 className="font-bold text-slate-900 text-base">{t.author}</h4>
                        <p className="text-sm text-slate-500 font-medium">{t.role}, {t.company}</p>

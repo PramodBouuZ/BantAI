@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, ErrorInfo, Component, ReactNode } from 'react';
+import { HashRouter as Router, Routes, Route, useLocation, Outlet } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -13,10 +13,48 @@ import Features from './pages/Features';
 import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
 import { User } from './types';
-import { Construction, Briefcase, FileText, Newspaper, MessageCircle } from 'lucide-react';
+import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { HelmetProvider } from 'react-helmet-async';
 
+// --- Error Boundary to catch runtime crashes ---
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+          <div className="bg-white p-8 rounded-xl shadow-xl text-center max-w-md">
+            <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
+            <h1 className="text-xl font-bold text-slate-900 mb-2">Something went wrong.</h1>
+            <p className="text-slate-600 mb-4">The application encountered an error. Please try refreshing the page.</p>
+            <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">Refresh Page</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// --- Placeholder Page Component ---
 const PlaceholderPage = ({ title, type }: { title: string, type: 'careers' | 'blog' | 'legal' | 'press' }) => {
   const getContent = () => {
     switch(type) {
@@ -64,15 +102,44 @@ const PlaceholderPage = ({ title, type }: { title: string, type: 'careers' | 'bl
   );
 };
 
-// Main Layout Component
-const AppLayout: React.FC = () => {
+// --- Layout Component ---
+// Handles the structure for pages that need Navbar and Footer
+const MainLayout = ({ currentUser, setCurrentUser }: { currentUser: User | null, setCurrentUser: (u: User | null) => void }) => {
+  const { siteConfig } = useData();
+
+  return (
+    <div className="flex flex-col min-h-screen bg-slate-50 font-sans text-slate-900 relative">
+      <Navbar currentUser={currentUser} setCurrentUser={setCurrentUser} />
+      <div className="flex-grow">
+        <Outlet />
+      </div>
+      <Footer />
+      
+      {/* WhatsApp Notification Floating Button */}
+      {siteConfig.whatsappNumber && (
+        <a 
+          href={`https://wa.me/${siteConfig.whatsappNumber.replace(/[^0-9]/g, '')}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl z-50 transition-transform hover:scale-110 flex items-center justify-center"
+          title="Chat with us"
+        >
+          <MessageCircle size={32} fill="white" />
+        </a>
+      )}
+    </div>
+  );
+};
+
+// --- Main App Component ---
+const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const isLoggedIn = currentUser !== null;
   const { siteConfig } = useData();
 
   // Apply Site Config (Title & Favicon)
   useEffect(() => {
-    if (siteConfig.faviconUrl) {
+    if (siteConfig?.faviconUrl) {
       const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
       if (link) {
         link.href = siteConfig.faviconUrl;
@@ -87,67 +154,60 @@ const AppLayout: React.FC = () => {
 
   return (
     <Router>
-      <div className="flex flex-col min-h-screen bg-slate-50 font-sans text-slate-900 relative">
-        <ScrollToTop />
-        <Navbar currentUser={currentUser} setCurrentUser={setCurrentUser} />
-        
-        <div className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
-            <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
-            <Route path="/products/:id" element={<ProductDetails />} />
-            <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
-            <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
-            <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
-            <Route path="/vendor-register" element={<VendorRegister />} />
-            
-            {/* Rich Content Pages */}
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/features" element={<Features />} />
-            
-            {/* Placeholder Routes */}
-            <Route path="/privacy" element={<PlaceholderPage title="Privacy Policy" type="legal" />} />
-            <Route path="/terms" element={<PlaceholderPage title="Terms of Service" type="legal" />} />
-            <Route path="/blog" element={<PlaceholderPage title="Blog" type="blog" />} />
-            <Route path="/careers" element={<PlaceholderPage title="Careers" type="careers" />} />
-            <Route path="/press" element={<PlaceholderPage title="Press Kit" type="press" />} />
-            <Route path="/help" element={<PlaceholderPage title="Help Center" type="legal" />} />
-            <Route path="/api" element={<PlaceholderPage title="API Reference" type="legal" />} />
-            <Route path="/community" element={<PlaceholderPage title="Vendor Community" type="blog" />} />
-            <Route path="/security" element={<PlaceholderPage title="Security (ISO 27001)" type="legal" />} />
-            <Route path="/cookies" element={<PlaceholderPage title="Cookie Settings" type="legal" />} />
-            
-            <Route path="*" element={<div className="p-20 text-center"><h2 className="text-2xl font-bold">404 - Page Not Found</h2></div>} />
-          </Routes>
-        </div>
-        
-        <Footer />
+      <ScrollToTop />
+      <Routes>
+        {/* Routes with Navbar & Footer */}
+        <Route element={<MainLayout currentUser={currentUser} setCurrentUser={setCurrentUser} />}>
+          <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
+          <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
+          <Route path="/products/:id" element={<ProductDetails />} />
+          <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
+          <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
+          <Route path="/vendor-register" element={<VendorRegister />} />
+          
+          {/* Rich Content Pages */}
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/features" element={<Features />} />
+          
+          {/* Placeholder Routes */}
+          <Route path="/privacy" element={<PlaceholderPage title="Privacy Policy" type="legal" />} />
+          <Route path="/terms" element={<PlaceholderPage title="Terms of Service" type="legal" />} />
+          <Route path="/blog" element={<PlaceholderPage title="Blog" type="blog" />} />
+          <Route path="/careers" element={<PlaceholderPage title="Careers" type="careers" />} />
+          <Route path="/press" element={<PlaceholderPage title="Press Kit" type="press" />} />
+          <Route path="/help" element={<PlaceholderPage title="Help Center" type="legal" />} />
+          <Route path="/api" element={<PlaceholderPage title="API Reference" type="legal" />} />
+          <Route path="/community" element={<PlaceholderPage title="Vendor Community" type="blog" />} />
+          <Route path="/security" element={<PlaceholderPage title="Security (ISO 27001)" type="legal" />} />
+          <Route path="/cookies" element={<PlaceholderPage title="Cookie Settings" type="legal" />} />
+          
+          {/* 404 Route */}
+          <Route path="*" element={
+            <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
+              <h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2>
+              <h3 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h3>
+              <p className="text-slate-500">The page you are looking for doesn't exist or has been moved.</p>
+            </div>
+          } />
+        </Route>
 
-        {/* WhatsApp Notification Floating Button */}
-        {siteConfig.whatsappNumber && (
-          <a 
-            href={`https://wa.me/${siteConfig.whatsappNumber.replace(/[^0-9]/g, '')}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl z-50 transition-transform hover:scale-110 flex items-center justify-center"
-            title="Chat with us"
-          >
-            <MessageCircle size={32} fill="white" />
-          </a>
-        )}
-      </div>
+        {/* Routes WITHOUT Navbar/Footer (e.g. Login) */}
+        <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
+      </Routes>
     </Router>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <HelmetProvider>
-      <DataProvider>
-        <AppLayout />
-      </DataProvider>
-    </HelmetProvider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <DataProvider>
+          <AppContent />
+        </DataProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
   );
 };
 

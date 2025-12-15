@@ -6,13 +6,15 @@ interface SEOProps {
   description?: string;
   keywords?: string;
   canonicalUrl?: string;
+  schema?: Record<string, any>;
 }
 
 const SEO: React.FC<SEOProps> = ({ 
   title = "BantConfirm - India's #1 B2B AI Marketplace", 
   description = "Transform your IT procurement with BantConfirm. Connect with verified vendors for Software, Telecom, and Cloud services. BANT-qualified leads for Indian MSMEs.",
   keywords = "B2B Marketplace, IT Procurement, Software India, Telecom Services, BANT Verification, MSME Business, Verified Vendors",
-  canonicalUrl = window.location.href
+  canonicalUrl = window.location.href,
+  schema
 }) => {
   const siteTitle = "BantConfirm";
 
@@ -35,6 +37,13 @@ const SEO: React.FC<SEOProps> = ({
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
+
+      {/* Schema.org Structured Data */}
+      {schema && (
+        <script type="application/ld+json">
+          {JSON.stringify(schema)}
+        </script>
+      )}
     </Helmet>
   );
 };

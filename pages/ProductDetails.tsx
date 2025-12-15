@@ -37,12 +37,38 @@ const ProductDetails: React.FC = () => {
   const seoDesc = `Get best quotes for ${product.title}. Pricing starts from ${product.priceRange}. ${product.description}. Compare top ${product.category} vendors in India.`;
   const seoKeywords = `${product.title}, ${product.title} Price, ${product.title} Cost, ${product.category}, Buy ${product.title} India, ${product.priceRange}, BantConfirm, Verified Vendors`;
 
+  // Product Schema for Google Rich Snippets
+  const productSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": product.title,
+    "image": product.image || "https://bantconfirm.com/logo.png",
+    "description": product.description,
+    "brand": {
+      "@type": "Brand",
+      "name": "BantConfirm"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": product.rating,
+      "bestRating": "5",
+      "ratingCount": "120" // Mock count for SEO example
+    },
+    "offers": {
+      "@type": "AggregateOffer",
+      "priceCurrency": "INR",
+      "lowPrice": "1000", // Needs to be numeric, extracted from range ideally
+      "offerCount": "5"
+    }
+  };
+
   return (
     <div className="bg-white min-h-screen pb-20">
       <SEO 
         title={seoTitle}
         description={seoDesc}
         keywords={seoKeywords}
+        schema={productSchema}
       />
 
       {/* Header */}
@@ -132,7 +158,7 @@ const ProductDetails: React.FC = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit sticky top-28">
+            <aside className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit sticky top-28">
                <h3 className="text-xl font-bold text-slate-900 mb-4">Need help choosing?</h3>
                <p className="text-slate-600 mb-6">Our experts can help you define your requirements and find the perfect match.</p>
                
@@ -151,7 +177,7 @@ const ProductDetails: React.FC = () => {
                <button onClick={() => navigate('/contact')} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition">
                   Contact Support
                </button>
-            </div>
+            </aside>
          </div>
       </div>
     </div>

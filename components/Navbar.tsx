@@ -17,9 +17,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentUser }) => {
 
   const isActive = (path: string) => location.pathname === path ? 'text-blue-600 font-bold' : 'text-slate-600 hover:text-blue-600 font-medium';
 
-  // Don't show navbar on login page
-  if (location.pathname === '/login') return null;
-
   const handlePostEnquiry = (e: React.MouseEvent) => {
     e.preventDefault();
     if (currentUser) {
