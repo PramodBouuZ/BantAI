@@ -149,6 +149,63 @@ const VendorTicker = () => {
   );
 }
 
+// SEO Text Component for City/Service Ranking
+const SEOFooterLinks = () => {
+  return (
+    <section className="bg-white border-t border-gray-100 py-16">
+      <div className="max-w-7xl mx-auto px-4 text-sm text-slate-500">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <h5 className="font-bold text-slate-800 mb-3 uppercase tracking-wider">Top Cities in India</h5>
+            <ul className="space-y-1.5 leading-relaxed">
+              <li><Link to="/products" className="hover:text-blue-600">Software Company in Delhi</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">IT Services in Mumbai</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Cloud Telephony in Bangalore</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">CRM Vendors in Noida</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Leased Line in Gurgaon</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Web Development in Hyderabad</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Digital Marketing in Pune</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">IT Support in Chennai</Link></li>
+            </ul>
+          </div>
+          <div>
+             <h5 className="font-bold text-slate-800 mb-3 uppercase tracking-wider">Popular Searches</h5>
+             <ul className="space-y-1.5 leading-relaxed">
+              <li><Link to="/products" className="hover:text-blue-600">Zoho CRM Price India</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Tata Leased Line Plans</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Salesforce Implementation Partner</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">IVR Service Provider Near Me</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Airtel Business Internet</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Custom Software Developer</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Toll Free Number India</Link></li>
+            </ul>
+          </div>
+          <div>
+             <h5 className="font-bold text-slate-800 mb-3 uppercase tracking-wider">IT Services Near Me</h5>
+             <ul className="space-y-1.5 leading-relaxed">
+              <li><Link to="/products" className="hover:text-blue-600">Software Company Near Me</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Computer Networking Services Nearby</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Cybersecurity Consultants Nearby</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Bulk SMS Service Provider</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">App Development Agency</Link></li>
+              <li><Link to="/products" className="hover:text-blue-600">Cloud Hosting Providers India</Link></li>
+            </ul>
+          </div>
+          <div className="text-xs text-slate-400">
+             <h5 className="font-bold text-slate-800 mb-3 uppercase tracking-wider">About BantConfirm</h5>
+             <p className="mb-2">
+               BantConfirm is India's premier B2B software and IT marketplace. We help MSMEs and Enterprises find verified vendors using our proprietary BANT methodology (Budget, Authority, Need, Timing).
+             </p>
+             <p>
+               Whether you need a CRM in Delhi, a Leased Line in Mumbai, or Cloud Telephony in Bangalore, we connect you with the best providers near you.
+             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
   const { products, siteConfig, categories } = useData();
   const [chartData, setChartData] = useState(initialChartData);
@@ -298,7 +355,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
       <SEO 
         title={siteConfig.bannerTitle || "BantConfirm - B2B Marketplace for Tata, Airtel, Zoho & IT Services"}
         description="India's trusted marketplace to buy Tata/Airtel Leased Lines, Zoho/Salesforce CRM, and Cloud Telephony (IVR, MyOperator). Verified software developers and digital agencies in Noida, Delhi, Mumbai."
-        keywords="BantConfirm, Tata Teleservices, Airtel Business, Jio Lease Line, Zoho CRM, Salesforce, LeadSquared, Cloud Telephony, IVR, Auto Dialer, Software Developer India, Digital Marketing Agency Delhi"
+        keywords="BantConfirm, Tata Teleservices, Airtel Business, Jio Lease Line, Zoho CRM, Salesforce, LeadSquared, Cloud Telephony, IVR, Auto Dialer, Software Developer India, Digital Marketing Agency Delhi, IT Company near me"
         schema={organizationSchema}
       />
       
@@ -587,6 +644,9 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
           </div>
         </div>
       </section>
+
+      {/* SEO Footer Links */}
+      <SEOFooterLinks />
 
       {/* CTA Section */}
       <section className="py-24">

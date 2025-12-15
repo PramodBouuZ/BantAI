@@ -48,9 +48,9 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
   return (
     <div className="bg-white min-h-screen pb-24">
       <SEO 
-        title="IT & Telecom Marketplace - Buy Software & Services | BantConfirm" 
-        description="Explore India's largest B2B marketplace for IT services. Compare prices for CRM, Cloud Telephony, Leased Lines, and Security solutions from verified vendors."
-        keywords="Buy CRM Software, Cloud Telephony India, Internet Leased Line, IT Services Marketplace, Software Pricing, Vendor Comparison"
+        title="IT Services Marketplace India - Buy Software, Telecom & Cloud Solutions" 
+        description="India's largest B2B marketplace for IT services. Compare prices for Zoho CRM, Tata Leased Line, Cloud Telephony, and IT Security. Verified Vendors in Delhi, Mumbai, Bangalore."
+        keywords="Buy CRM Software, Cloud Telephony India, Internet Leased Line Price, IT Services Marketplace, Software Company near me, Verified IT Vendors, BantConfirm Services"
       />
 
       <div className="bg-slate-50 py-20 border-b border-gray-100">

@@ -10,32 +10,38 @@ interface SEOProps {
 }
 
 const SEO: React.FC<SEOProps> = ({ 
-  title = "BantConfirm - India's #1 B2B AI Marketplace", 
-  description = "Transform your IT procurement with BantConfirm. Connect with verified vendors for Software, Telecom, and Cloud services. BANT-qualified leads for Indian MSMEs.",
-  keywords = "B2B Marketplace, IT Procurement, Software India, Telecom Services, BANT Verification, MSME Business, Verified Vendors",
+  title, 
+  description = "Transform your IT procurement with BantConfirm. Connect with verified vendors for Software, Telecom, and Cloud services in Delhi, Mumbai, Bangalore and Pan India.",
+  keywords = "B2B Marketplace, IT Procurement, Software India, Telecom Services, BANT Verification, MSME Business, Verified Vendors, IT Company near me",
   canonicalUrl = window.location.href,
   schema
 }) => {
   const siteTitle = "BantConfirm";
+  const fullTitle = title ? `${title} | ${siteTitle}` : `${siteTitle} - B2B Marketplace for IT & Software`;
 
   return (
     <Helmet>
       {/* Standard Metadata */}
-      <title>{title}</title>
+      <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
       <link rel="canonical" href={canonicalUrl} />
 
+      {/* Geo Tags for Local SEO - Defaulting to India */}
+      <meta name="geo.region" content="IN" />
+      <meta name="geo.placename" content="India" />
+
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
-      <meta property="og:title" content={title} />
+      <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:site_name" content={siteTitle} />
       <meta property="og:url" content={canonicalUrl} />
+      <meta property="og:locale" content="en_IN" />
       
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content={title} />
+      <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
 
       {/* Schema.org Structured Data */}
