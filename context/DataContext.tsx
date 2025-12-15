@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Lead, SiteConfig, User, VendorAsset } from '../types';
+import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration } from '../types';
 import { PRODUCTS, RECENT_LEADS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
 
@@ -9,6 +9,7 @@ interface DataContextType {
   categories: string[];
   users: User[];
   vendorLogos: VendorAsset[];
+  vendorRegistrations: VendorRegistration[];
   siteConfig: SiteConfig;
   
   // Product Actions
@@ -33,6 +34,7 @@ interface DataContextType {
   deleteUser: (id: string) => void;
   addVendorLogo: (asset: VendorAsset) => void;
   deleteVendorLogo: (id: string) => void;
+  addVendorRegistration: (reg: VendorRegistration) => void;
 }
 
 const defaultSiteConfig: SiteConfig = {
@@ -94,28 +96,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : initialVendorLogos;
   });
 
-  // --- SUPABASE SYNC ---
+  const [vendorRegistrations, setVendorRegistrations] = useState<VendorRegistration[]>(() => {
+    const saved = localStorage.getItem('vendorRegistrations');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // --- SUPABASE SYNC & REALTIME ---
   useEffect(() => {
-    const syncData = async () => {
-      if (!supabase) return;
+    if (!supabase) return;
 
-      // 1. Fetch Leads
-      try {
-        const { data, error } = await supabase.from('leads').select('*');
-        if (data && !error) {
-          setLeads(prev => {
-             const existingIds = new Set(prev.map(l => l.id));
-             const newLeads = data.filter((l: any) => !existingIds.has(l.id)) as Lead[];
-             return [...newLeads, ...prev];
-          });
-        }
-      } catch (err) { /* silent */ }
+    // 1. Initial Data Fetch
+    const fetchData = async () => {
+      // Leads
+      const { data: leadData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+      if (leadData) {
+         setLeads(leadData.map((l: any) => ({
+             id: l.id, name: l.name, email: l.email, mobile: l.mobile, location: l.location,
+             company: l.company, service: l.service, budget: l.budget, requirement: l.requirement,
+             status: l.status, assignedTo: l.assigned_to, remarks: l.remarks, date: l.date
+         })));
+      }
 
-      // 2. Fetch Site Config
-      try {
-        const { data: configData, error: configError } = await supabase.from('site_config').select('*').single();
-        if (configData && !configError) {
-           const newConfig: SiteConfig = {
+      // Vendor Registrations
+      const { data: vendorRegData } = await supabase.from('vendor_registrations').select('*').order('created_at', { ascending: false });
+      if (vendorRegData) {
+         setVendorRegistrations(vendorRegData.map((r: any) => ({
+             id: r.id, name: r.name, companyName: r.company_name, email: r.email, mobile: r.mobile,
+             location: r.location, productName: r.product_name, message: r.message, date: r.date
+         })));
+      }
+
+      // Products
+      const { data: prodData } = await supabase.from('products').select('*');
+      if (prodData && prodData.length > 0) {
+           setProducts(prodData.map((p: any) => ({
+             id: p.id, title: p.title, description: p.description, category: p.category,
+             priceRange: p.price_range, features: p.features || [], icon: p.icon || 'globe',
+             rating: Number(p.rating), image: p.image
+           })));
+      }
+
+      // Site Config
+      const { data: configData } = await supabase.from('site_config').select('*').single();
+      if (configData) {
+           setSiteConfig({
                siteName: configData.site_name || defaultSiteConfig.siteName,
                bannerTitle: configData.banner_title || defaultSiteConfig.bannerTitle,
                bannerSubtitle: configData.banner_subtitle || defaultSiteConfig.bannerSubtitle,
@@ -124,206 +148,190 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                whatsappNumber: configData.whatsapp_number || undefined,
                socialLinks: configData.social_links || defaultSiteConfig.socialLinks,
                bannerImage: undefined
-           };
-           setSiteConfig(newConfig);
-           localStorage.setItem('siteConfig', JSON.stringify(newConfig));
-        }
-      } catch (err) { /* silent */ }
+           });
+      }
+      
+      // Categories
+      const { data: catData } = await supabase.from('categories').select('*');
+      if (catData && catData.length > 0) {
+         const mappedCats = catData.map((c: any) => c.name);
+         setCategories(Array.from(new Set([...mappedCats, 'Software', 'Telecom', 'Connectivity'])));
+      }
 
-      // 3. Fetch Products
-      try {
-        const { data: prodData, error: prodError } = await supabase.from('products').select('*');
-        if (prodData && !prodError && prodData.length > 0) {
-           const mappedProducts: Product[] = prodData.map((p: any) => ({
-             id: p.id,
-             title: p.title,
-             description: p.description,
-             category: p.category,
-             priceRange: p.price_range,
-             features: p.features || [],
-             icon: p.icon || 'globe',
-             rating: Number(p.rating),
-             image: p.image
-           }));
-           setProducts(mappedProducts);
-           localStorage.setItem('products', JSON.stringify(mappedProducts));
-        }
-      } catch (err) { console.error("Error fetching products", err); }
-
-      // 4. Fetch Categories
-      try {
-        const { data: catData, error: catError } = await supabase.from('categories').select('*');
-        if (catData && !catError && catData.length > 0) {
-           const mappedCats = catData.map((c: any) => c.name);
-           // Merge with defaults to ensure we always have base categories
-           const uniqueCats = Array.from(new Set([...mappedCats, 'Software', 'Telecom', 'Connectivity']));
-           setCategories(uniqueCats);
-           localStorage.setItem('categories', JSON.stringify(uniqueCats));
-        }
-      } catch (err) { /* silent */ }
-
-      // 5. Fetch Vendor Assets
-      try {
-        const { data: vendorData, error: vendorError } = await supabase.from('vendor_assets').select('*');
-        if (vendorData && !vendorError && vendorData.length > 0) {
-           const mappedVendors: VendorAsset[] = vendorData.map((v: any) => ({
-             id: v.id,
-             name: v.name,
-             logoUrl: v.logo_url
-           }));
-           setVendorLogos(mappedVendors);
-           localStorage.setItem('vendorLogos', JSON.stringify(mappedVendors));
-        }
-      } catch (err) { /* silent */ }
+      // Vendor Logos
+      const { data: vendorData } = await supabase.from('vendor_assets').select('*');
+      if (vendorData && vendorData.length > 0) {
+           setVendorLogos(vendorData.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
+      }
     };
-    
-    syncData();
+
+    fetchData();
+
+    // 2. Realtime Subscriptions
+    const channel = supabase.channel('realtime_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
+         const { eventType, new: newRecord, old: oldRecord } = payload;
+         
+         if (eventType === 'INSERT') {
+            const mapped: Lead = {
+                id: newRecord.id, name: newRecord.name, email: newRecord.email, mobile: newRecord.mobile,
+                location: newRecord.location, company: newRecord.company, service: newRecord.service,
+                budget: newRecord.budget, requirement: newRecord.requirement, status: newRecord.status,
+                assignedTo: newRecord.assigned_to, remarks: newRecord.remarks, date: newRecord.date
+            };
+            setLeads(prev => [mapped, ...prev.filter(l => l.id !== mapped.id)]);
+         } else if (eventType === 'UPDATE') {
+             setLeads(prev => prev.map(l => l.id === newRecord.id ? {
+                ...l,
+                status: newRecord.status,
+                assignedTo: newRecord.assigned_to,
+                remarks: newRecord.remarks
+             } : l));
+         } else if (eventType === 'DELETE') {
+             setLeads(prev => prev.filter(l => l.id !== oldRecord.id));
+         }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vendor_registrations' }, (payload) => {
+         const newReg = payload.new;
+         const mapped: VendorRegistration = {
+             id: newReg.id, name: newReg.name, companyName: newReg.company_name, email: newReg.email,
+             mobile: newReg.mobile, location: newReg.location, productName: newReg.product_name,
+             message: newReg.message, date: newReg.date
+         };
+         setVendorRegistrations(prev => [mapped, ...prev.filter(r => r.id !== mapped.id)]);
+      })
+      .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
   }, []);
 
-  // --- ACTIONS (With Supabase Write) ---
+  // --- ACTIONS ---
 
   const addProduct = async (product: Product) => {
     setProducts([...products, product]);
-    localStorage.setItem('products', JSON.stringify([...products, product]));
-    
     if (supabase) {
       await supabase.from('products').insert({
-         id: product.id,
-         title: product.title,
-         description: product.description,
-         category: product.category,
-         price_range: product.priceRange,
-         features: product.features,
-         icon: product.icon,
-         rating: product.rating,
-         image: product.image
+         id: product.id, title: product.title, description: product.description, category: product.category,
+         price_range: product.priceRange, features: product.features, icon: product.icon, rating: product.rating, image: product.image
       });
     }
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    const newProducts = products.map(p => p.id === id ? updatedProduct : p);
-    setProducts(newProducts);
-    localStorage.setItem('products', JSON.stringify(newProducts));
-
+    setProducts(products.map(p => p.id === id ? updatedProduct : p));
     if (supabase) {
       await supabase.from('products').update({
-         title: updatedProduct.title,
-         description: updatedProduct.description,
-         category: updatedProduct.category,
-         price_range: updatedProduct.priceRange,
-         features: updatedProduct.features,
-         icon: updatedProduct.icon,
-         rating: updatedProduct.rating,
-         image: updatedProduct.image
+         title: updatedProduct.title, description: updatedProduct.description, category: updatedProduct.category,
+         price_range: updatedProduct.priceRange, features: updatedProduct.features, icon: updatedProduct.icon,
+         rating: updatedProduct.rating, image: updatedProduct.image
       }).eq('id', id);
     }
   };
 
   const deleteProduct = async (id: string) => {
-    const newProducts = products.filter(p => p.id !== id);
-    setProducts(newProducts);
-    localStorage.setItem('products', JSON.stringify(newProducts));
-
+    setProducts(products.filter(p => p.id !== id));
     if (supabase) {
       await supabase.from('products').delete().eq('id', id);
     }
   };
 
   const addLead = async (lead: Lead) => {
+    // Optimistic update
     setLeads([lead, ...leads]);
     if (supabase) {
       try {
-        await supabase.from('leads').insert({
-           id: lead.id,
-           name: lead.name,
-           email: lead.email,
-           mobile: lead.mobile,
-           company: lead.company,
-           service: lead.service,
-           budget: lead.budget,
-           status: lead.status,
-           date: lead.date
+        const { error } = await supabase.from('leads').insert({
+           id: lead.id, name: lead.name, email: lead.email, mobile: lead.mobile, company: lead.company,
+           location: lead.location, service: lead.service, budget: lead.budget, requirement: lead.requirement,
+           status: lead.status, date: lead.date
         });
+        if (error) console.error("Supabase Lead Insert Error:", error);
       } catch (err) { console.error("Failed to sync lead", err); }
+    } else {
+       console.warn("Supabase not configured. Lead saved locally only.");
     }
   };
 
-  const updateLeadStatus = (id: string, status: Lead['status']) => setLeads(leads.map(l => l.id === id ? { ...l, status } : l));
-  const assignLead = (id: string, vendor: string) => setLeads(leads.map(l => l.id === id ? { ...l, assignedTo: vendor } : l));
-  const updateLeadRemarks = (id: string, remarks: string) => setLeads(leads.map(l => l.id === id ? { ...l, remarks } : l));
-  const deleteLead = (id: string) => setLeads(leads.filter(l => l.id !== id));
+  const updateLeadStatus = async (id: string, status: Lead['status']) => {
+    setLeads(leads.map(l => l.id === id ? { ...l, status } : l));
+    if (supabase) await supabase.from('leads').update({ status }).eq('id', id);
+  };
+
+  const assignLead = async (id: string, vendor: string) => {
+    setLeads(leads.map(l => l.id === id ? { ...l, assignedTo: vendor } : l));
+    if (supabase) await supabase.from('leads').update({ assigned_to: vendor }).eq('id', id);
+  };
+
+  const updateLeadRemarks = async (id: string, remarks: string) => {
+    setLeads(leads.map(l => l.id === id ? { ...l, remarks } : l));
+    if (supabase) await supabase.from('leads').update({ remarks }).eq('id', id);
+  };
+
+  const deleteLead = async (id: string) => {
+    setLeads(leads.filter(l => l.id !== id));
+    if (supabase) await supabase.from('leads').delete().eq('id', id);
+  };
+
+  const addVendorRegistration = async (reg: VendorRegistration) => {
+    setVendorRegistrations([reg, ...vendorRegistrations]);
+    if (supabase) {
+      const { error } = await supabase.from('vendor_registrations').insert({
+        id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
+        mobile: reg.mobile, location: reg.location, product_name: reg.productName,
+        message: reg.message, date: reg.date
+      });
+      if (error) console.error("Supabase Vendor Reg Error:", error);
+    }
+  };
 
   const updateSiteConfig = async (config: SiteConfig) => {
     setSiteConfig(config);
-    localStorage.setItem('siteConfig', JSON.stringify(config));
     if (supabase) {
       await supabase.from('site_config').upsert({
-          id: 1,
-          site_name: config.siteName,
-          logo_url: config.logoUrl,
-          favicon_url: config.faviconUrl,
-          banner_title: config.bannerTitle,
-          banner_subtitle: config.bannerSubtitle,
-          whatsapp_number: config.whatsappNumber,
-          social_links: config.socialLinks,
-          updated_at: new Date().toISOString()
+          id: 1, site_name: config.siteName, logo_url: config.logoUrl, favicon_url: config.faviconUrl,
+          banner_title: config.bannerTitle, banner_subtitle: config.bannerSubtitle,
+          whatsapp_number: config.whatsappNumber, social_links: config.socialLinks, updated_at: new Date().toISOString()
       });
     }
   };
 
   const addCategory = async (category: string) => {
     if (!categories.includes(category)) {
-      const newCats = [...categories, category];
-      setCategories(newCats);
-      localStorage.setItem('categories', JSON.stringify(newCats));
-      if (supabase) {
-        await supabase.from('categories').insert({ name: category });
-      }
+      setCategories([...categories, category]);
+      if (supabase) await supabase.from('categories').insert({ name: category });
     }
   };
 
   const deleteCategory = async (category: string) => {
-    const newCats = categories.filter(c => c !== category);
-    setCategories(newCats);
-    localStorage.setItem('categories', JSON.stringify(newCats));
-    if (supabase) {
-      await supabase.from('categories').delete().eq('name', category);
-    }
+    setCategories(categories.filter(c => c !== category));
+    if (supabase) await supabase.from('categories').delete().eq('name', category);
   };
 
   const addUser = (user: User) => setUsers([...users, user]);
   const deleteUser = (id: string) => setUsers(users.filter(u => u.id !== id));
 
   const addVendorLogo = async (asset: VendorAsset) => {
-    const newLogos = [...vendorLogos, asset];
-    setVendorLogos(newLogos);
-    localStorage.setItem('vendorLogos', JSON.stringify(newLogos));
+    setVendorLogos([...vendorLogos, asset]);
     if (supabase) {
-      await supabase.from('vendor_assets').insert({
-        id: asset.id,
-        name: asset.name,
-        logo_url: asset.logoUrl
-      });
+      await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
     }
   };
 
   const deleteVendorLogo = async (id: string) => {
-    const newLogos = vendorLogos.filter(v => v.id !== id);
-    setVendorLogos(newLogos);
-    localStorage.setItem('vendorLogos', JSON.stringify(newLogos));
-    if (supabase) {
-      await supabase.from('vendor_assets').delete().eq('id', id);
-    }
+    setVendorLogos(vendorLogos.filter(v => v.id !== id));
+    if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
   };
 
   return (
     <DataContext.Provider value={{
-      products, leads, categories, siteConfig, users, vendorLogos,
+      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations,
       addProduct, updateProduct, deleteProduct,
       addLead, updateLeadStatus, assignLead, updateLeadRemarks, deleteLead,
       updateSiteConfig, addCategory, deleteCategory,
-      addUser, deleteUser, addVendorLogo, deleteVendorLogo
+      addUser, deleteUser, addVendorLogo, deleteVendorLogo,
+      addVendorRegistration
     }}>
       {children}
     </DataContext.Provider>

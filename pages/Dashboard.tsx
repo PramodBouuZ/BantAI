@@ -8,7 +8,7 @@ import {
 import { 
   Download, Search, Filter, Star, CheckCircle2, Server, Phone, Wifi, Database, Shield, Globe, Zap, IndianRupee,
   Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, UserPlus, Briefcase, FileText, Upload,
-  Twitter, Linkedin, Facebook, Instagram, Tag
+  Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -19,14 +19,14 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const { 
-    products, leads, categories, siteConfig, users, vendorLogos,
+    products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations,
     addProduct, updateProduct, deleteProduct, 
     updateLeadStatus, assignLead, updateLeadRemarks, deleteLead, updateSiteConfig,
     addCategory, deleteCategory,
     addUser, deleteUser, addVendorLogo, deleteVendorLogo
   } = useData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'categories' | 'users' | 'settings' | 'logos'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'categories' | 'users' | 'requests' | 'settings' | 'logos'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Redirect if not logged in
@@ -159,7 +159,8 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               {[
                   { id: 'overview', icon: Layout, label: 'Overview' },
                   { id: 'leads', icon: FileText, label: 'Manage Leads' },
-                  { id: 'users', icon: Users, label: 'Users & Vendors' },
+                  { id: 'requests', icon: MessageSquare, label: 'Vendor Requests' },
+                  { id: 'users', icon: Users, label: 'Users' },
                   { id: 'logos', icon: ImageIcon, label: 'Vendor Logos' },
                   { id: 'products', icon: ShoppingBag, label: 'Products' },
                   { id: 'categories', icon: Tag, label: 'Categories' },
@@ -264,9 +265,48 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
       </div>
   );
 
+  const renderVendorRequests = () => (
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+          <h2 className="text-xl font-bold text-slate-800 mb-6">Vendor Registration Requests</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+               <thead>
+                 <tr className="border-b border-gray-100 text-sm font-bold text-slate-500">
+                    <th className="pb-4">Vendor</th>
+                    <th className="pb-4">Contact Info</th>
+                    <th className="pb-4">Product/Service</th>
+                    <th className="pb-4">Message</th>
+                    <th className="pb-4">Date</th>
+                 </tr>
+               </thead>
+               <tbody>
+                  {vendorRegistrations.length === 0 ? (
+                    <tr><td colSpan={5} className="py-6 text-center text-slate-500">No pending vendor requests.</td></tr>
+                  ) : vendorRegistrations.map(reg => (
+                      <tr key={reg.id} className="border-b border-gray-50 last:border-0 hover:bg-slate-50">
+                          <td className="py-4">
+                              <div className="font-bold">{reg.companyName}</div>
+                              <div className="text-xs text-slate-500">{reg.name}</div>
+                              <div className="text-xs text-slate-400">{reg.location}</div>
+                          </td>
+                          <td className="py-4">
+                              <div className="text-sm">{reg.email}</div>
+                              <div className="text-xs text-slate-500">{reg.mobile}</div>
+                          </td>
+                          <td className="py-4 font-medium text-blue-600">{reg.productName}</td>
+                          <td className="py-4 text-sm text-slate-500 max-w-xs truncate" title={reg.message}>{reg.message}</td>
+                          <td className="py-4 text-sm text-slate-400">{reg.date}</td>
+                      </tr>
+                  ))}
+               </tbody>
+            </table>
+          </div>
+      </div>
+  );
+
   const renderAdminUsers = () => (
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-6">Manage Users & Vendors</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-6">Manage Users</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
                <thead>
@@ -695,12 +735,17 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                         <div className="text-slate-500 text-sm mb-1">Total Leads</div>
                         <div className="text-3xl font-bold">{leads.length}</div>
                     </div>
+                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="text-slate-500 text-sm mb-1">Pending Vendors</div>
+                        <div className="text-3xl font-bold">{vendorRegistrations.length}</div>
+                    </div>
                     <div className="col-span-full mt-6">
                         {renderAdminLeads()}
                     </div>
                 </div>
             )}
             {activeTab === 'leads' && renderAdminLeads()}
+            {activeTab === 'requests' && renderVendorRequests()}
             {activeTab === 'users' && renderAdminUsers()}
             {activeTab === 'logos' && renderAdminLogos()}
             {activeTab === 'products' && renderAdminProducts()}

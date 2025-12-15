@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, User, Phone, Mail, MapPin, Package, MessageSquare, CheckCircle2 } from 'lucide-react';
 import SEO from '../components/SEO';
+import { useData } from '../context/DataContext';
 
 const VendorRegister: React.FC = () => {
   const navigate = useNavigate();
+  const { addVendorRegistration } = useData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
@@ -21,7 +23,21 @@ const VendorRegister: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call
+    
+    const newReg = {
+      id: `v_reg_${Date.now()}`,
+      name: formData.name,
+      companyName: formData.companyName,
+      mobile: formData.mobile,
+      email: formData.email,
+      location: formData.location,
+      productName: formData.productName,
+      message: formData.message,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    addVendorRegistration(newReg);
+
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSuccess(true);

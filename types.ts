@@ -56,6 +56,18 @@ export interface VendorAsset {
   logoUrl: string;
 }
 
+export interface VendorRegistration {
+  id: string;
+  name: string;
+  companyName: string;
+  mobile: string;
+  email: string;
+  location: string;
+  productName: string;
+  message: string;
+  date: string;
+}
+
 export interface Testimonial {
   id: string;
   text: string;
