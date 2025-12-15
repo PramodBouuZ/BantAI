@@ -62,8 +62,9 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
     setIsSubmitting(true);
     
     // Save to Context (Simulate Database Save)
+    // Use timestamp for unique ID to avoid collisions in Supabase
     const newLead = {
-      id: `L${Math.floor(Math.random() * 10000)}`,
+      id: `L${Date.now()}`,
       name: formData.name,
       email: formData.email,
       mobile: formData.mobile,

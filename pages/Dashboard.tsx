@@ -182,7 +182,13 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const renderAdminLeads = () => (
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-8 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
-            <h3 className="text-xl font-bold text-slate-800">All Enquiries</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-bold text-slate-800">All Enquiries</h3>
+              <span className="flex items-center text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100" title="Updates will appear here instantly">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
+                Real-time Active
+              </span>
+            </div>
             <button onClick={handleExportLeads} className="flex items-center text-sm text-green-700 bg-green-100 hover:bg-green-200 px-4 py-2 rounded-lg transition font-bold">
                 <Download size={16} className="mr-2" /> Download CSV
             </button>
