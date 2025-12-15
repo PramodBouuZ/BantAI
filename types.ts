@@ -93,3 +93,9 @@ export interface SiteConfig {
   bannerTitle?: string;
   bannerSubtitle?: string;
 }
+
+export interface AppNotification {
+  id: string;
+  message: string;
+  type: 'success' | 'info' | 'error' | 'warning';
+}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration } from '../types';
+import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification } from '../types';
 import { PRODUCTS, RECENT_LEADS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
 
@@ -11,6 +11,7 @@ interface DataContextType {
   vendorLogos: VendorAsset[];
   vendorRegistrations: VendorRegistration[];
   siteConfig: SiteConfig;
+  notifications: AppNotification[];
   
   // Product Actions
   addProduct: (product: Product) => void;
@@ -35,6 +36,10 @@ interface DataContextType {
   addVendorLogo: (asset: VendorAsset) => void;
   deleteVendorLogo: (id: string) => void;
   addVendorRegistration: (reg: VendorRegistration) => void;
+
+  // Notification Actions
+  addNotification: (message: string, type: AppNotification['type']) => void;
+  removeNotification: (id: string) => void;
 }
 
 const defaultSiteConfig: SiteConfig = {
@@ -66,6 +71,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // --- STATE ---
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('products');
     return saved ? JSON.parse(saved) : PRODUCTS;
@@ -100,6 +107,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('vendorRegistrations');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // --- ACTIONS ---
+  const addNotification = (message: string, type: AppNotification['type'] = 'info') => {
+    const id = Date.now().toString() + Math.random().toString();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    // Auto remove after 5s
+    setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
 
   // --- SUPABASE SYNC & REALTIME ---
   useEffect(() => {
@@ -180,6 +201,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 assignedTo: newRecord.assigned_to, remarks: newRecord.remarks, date: newRecord.date
             };
             setLeads(prev => [mapped, ...prev.filter(l => l.id !== mapped.id)]);
+            addNotification(`New Enquiry: ${mapped.service} from ${mapped.name}`, 'info');
          } else if (eventType === 'UPDATE') {
              setLeads(prev => prev.map(l => l.id === newRecord.id ? {
                 ...l,
@@ -199,6 +221,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
              message: newReg.message, date: newReg.date
          };
          setVendorRegistrations(prev => [mapped, ...prev.filter(r => r.id !== mapped.id)]);
+         addNotification(`New Vendor Registration: ${mapped.companyName}`, 'success');
       })
       .subscribe();
 
@@ -206,8 +229,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.removeChannel(channel);
     };
   }, []);
-
-  // --- ACTIONS ---
 
   const addProduct = async (product: Product) => {
     setProducts([...products, product]);
@@ -217,6 +238,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          price_range: product.priceRange, features: product.features, icon: product.icon, rating: product.rating, image: product.image
       });
     }
+    addNotification('Product added successfully', 'success');
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
@@ -228,6 +250,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          rating: updatedProduct.rating, image: updatedProduct.image
       }).eq('id', id);
     }
+    addNotification('Product updated', 'info');
   };
 
   const deleteProduct = async (id: string) => {
@@ -235,6 +258,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) {
       await supabase.from('products').delete().eq('id', id);
     }
+    addNotification('Product deleted', 'warning');
   };
 
   const addLead = async (lead: Lead) => {
@@ -252,16 +276,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
        console.warn("Supabase not configured. Lead saved locally only.");
     }
+    // Notification handled by Realtime subscription if supabase exists, else manual:
+    if (!supabase) addNotification('Enquiry Submitted!', 'success');
   };
 
   const updateLeadStatus = async (id: string, status: Lead['status']) => {
     setLeads(leads.map(l => l.id === id ? { ...l, status } : l));
     if (supabase) await supabase.from('leads').update({ status }).eq('id', id);
+    addNotification('Lead status updated', 'info');
   };
 
   const assignLead = async (id: string, vendor: string) => {
     setLeads(leads.map(l => l.id === id ? { ...l, assignedTo: vendor } : l));
     if (supabase) await supabase.from('leads').update({ assigned_to: vendor }).eq('id', id);
+    addNotification(`Lead assigned to ${vendor}`, 'info');
   };
 
   const updateLeadRemarks = async (id: string, remarks: string) => {
@@ -272,6 +300,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteLead = async (id: string) => {
     setLeads(leads.filter(l => l.id !== id));
     if (supabase) await supabase.from('leads').delete().eq('id', id);
+    addNotification('Lead deleted', 'warning');
   };
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
@@ -284,6 +313,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) console.error("Supabase Vendor Reg Error:", error);
     }
+    if (!supabase) addNotification('Registration Submitted!', 'success');
   };
 
   const updateSiteConfig = async (config: SiteConfig) => {
@@ -295,21 +325,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           whatsapp_number: config.whatsappNumber, social_links: config.socialLinks, updated_at: new Date().toISOString()
       });
     }
+    addNotification('Site settings updated', 'success');
   };
 
   const addCategory = async (category: string) => {
     if (!categories.includes(category)) {
       setCategories([...categories, category]);
       if (supabase) await supabase.from('categories').insert({ name: category });
+      addNotification('Category added', 'success');
     }
   };
 
   const deleteCategory = async (category: string) => {
     setCategories(categories.filter(c => c !== category));
     if (supabase) await supabase.from('categories').delete().eq('name', category);
+    addNotification('Category deleted', 'warning');
   };
 
-  const addUser = (user: User) => setUsers([...users, user]);
+  const addUser = (user: User) => {
+      setUsers([...users, user]);
+      addNotification(`Welcome ${user.name}!`, 'success');
+  }
   const deleteUser = (id: string) => setUsers(users.filter(u => u.id !== id));
 
   const addVendorLogo = async (asset: VendorAsset) => {
@@ -317,21 +353,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) {
       await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
     }
+    addNotification('Vendor logo added', 'success');
   };
 
   const deleteVendorLogo = async (id: string) => {
     setVendorLogos(vendorLogos.filter(v => v.id !== id));
     if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
+    addNotification('Vendor logo removed', 'warning');
   };
 
   return (
     <DataContext.Provider value={{
-      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations,
+      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations, notifications,
       addProduct, updateProduct, deleteProduct,
       addLead, updateLeadStatus, assignLead, updateLeadRemarks, deleteLead,
       updateSiteConfig, addCategory, deleteCategory,
       addUser, deleteUser, addVendorLogo, deleteVendorLogo,
-      addVendorRegistration
+      addVendorRegistration, addNotification, removeNotification
     }}>
       {children}
     </DataContext.Provider>

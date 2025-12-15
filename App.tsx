@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -13,7 +13,7 @@ import Features from './pages/Features';
 import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
 import { User } from './types';
-import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle, X, Check, Info, AlertCircle } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { HelmetProvider } from 'react-helmet-async';
 
@@ -26,8 +26,11 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false };
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -52,6 +55,43 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     }
     return this.props.children;
   }
+}
+
+// --- Toast Notification Component ---
+const ToastContainer: React.FC = () => {
+    const { notifications, removeNotification } = useData();
+
+    return (
+        <div className="fixed top-24 right-4 z-[100] flex flex-col gap-3 pointer-events-none">
+            {notifications.map((n) => (
+                <div 
+                    key={n.id} 
+                    className={`
+                        pointer-events-auto bg-white rounded-xl shadow-2xl p-4 min-w-[300px] max-w-sm flex items-start transform transition-all animate-slide-left border-l-4
+                        ${n.type === 'success' ? 'border-green-500' : n.type === 'error' ? 'border-red-500' : n.type === 'warning' ? 'border-yellow-500' : 'border-blue-500'}
+                    `}
+                >
+                    <div className={`mr-3 mt-0.5 ${n.type === 'success' ? 'text-green-500' : n.type === 'error' ? 'text-red-500' : n.type === 'warning' ? 'text-yellow-500' : 'text-blue-500'}`}>
+                        {n.type === 'success' ? <Check size={20} /> : n.type === 'error' ? <AlertCircle size={20} /> : <Info size={20} />}
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-800">{n.type === 'success' ? 'Success' : n.type === 'error' ? 'Error' : 'Notification'}</p>
+                        <p className="text-sm text-slate-600 leading-snug">{n.message}</p>
+                    </div>
+                    <button onClick={() => removeNotification(n.id)} className="ml-3 text-slate-400 hover:text-slate-600"><X size={16} /></button>
+                </div>
+            ))}
+            <style>{`
+                @keyframes slideLeft {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                .animate-slide-left {
+                    animation: slideLeft 0.3s ease-out forwards;
+                }
+            `}</style>
+        </div>
+    );
 }
 
 // --- Placeholder Page Component ---
@@ -155,6 +195,7 @@ const AppContent: React.FC = () => {
   return (
     <Router>
       <ScrollToTop />
+      <ToastContainer />
       <Routes>
         {/* Routes with Navbar & Footer */}
         <Route element={<MainLayout currentUser={currentUser} setCurrentUser={setCurrentUser} />}>
