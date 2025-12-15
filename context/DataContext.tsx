@@ -95,14 +95,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   // --- SUPABASE SYNC ---
-  // If Supabase is connected, try to fetch leads
   useEffect(() => {
-    const fetchLeads = async () => {
+    const syncData = async () => {
       if (!supabase) return;
+
+      // 1. Fetch Leads
       try {
         const { data, error } = await supabase.from('leads').select('*');
         if (data && !error) {
-          // Merge Supabase leads with local ones (simplified strategy)
           setLeads(prev => {
              const existingIds = new Set(prev.map(l => l.id));
              const newLeads = data.filter((l: any) => !existingIds.has(l.id)) as Lead[];
@@ -110,17 +110,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } catch (err) {
-        console.warn("Supabase fetch error (likely table doesn't exist yet):", err);
+        // Silent fail if table missing
+      }
+
+      // 2. Fetch Site Config
+      try {
+        const { data: configData, error: configError } = await supabase
+          .from('site_config')
+          .select('*')
+          .single();
+
+        if (configData && !configError) {
+           const newConfig: SiteConfig = {
+               siteName: configData.site_name || defaultSiteConfig.siteName,
+               bannerTitle: configData.banner_title || defaultSiteConfig.bannerTitle,
+               bannerSubtitle: configData.banner_subtitle || defaultSiteConfig.bannerSubtitle,
+               logoUrl: configData.logo_url || undefined,
+               faviconUrl: configData.favicon_url || undefined,
+               whatsappNumber: configData.whatsapp_number || undefined,
+               socialLinks: configData.social_links || defaultSiteConfig.socialLinks,
+               bannerImage: undefined // Not syncing heavy banner image for now
+           };
+           // Update state and local storage
+           setSiteConfig(newConfig);
+           localStorage.setItem('siteConfig', JSON.stringify(newConfig));
+        }
+      } catch (err) {
+         console.log("Config fetch error:", err);
       }
     };
-    fetchLeads();
+    syncData();
   }, []);
 
   // --- PERSISTENCE ---
   useEffect(() => { localStorage.setItem('products', JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem('leads', JSON.stringify(leads)); }, [leads]);
   useEffect(() => { localStorage.setItem('categories', JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem('siteConfig', JSON.stringify(siteConfig)); }, [siteConfig]);
+  // We handle siteConfig persistence manually in updateSiteConfig for DB sync
   useEffect(() => { localStorage.setItem('users', JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem('vendorLogos', JSON.stringify(vendorLogos)); }, [vendorLogos]);
 
@@ -130,10 +156,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteProduct = (id: string) => setProducts(products.filter(p => p.id !== id));
 
   const addLead = async (lead: Lead) => {
-    // 1. Optimistic Update (Local)
     setLeads([lead, ...leads]);
-    
-    // 2. Supabase Insert (if configured)
     if (supabase) {
       try {
         await supabase.from('leads').insert({
@@ -158,7 +181,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateLeadRemarks = (id: string, remarks: string) => setLeads(leads.map(l => l.id === id ? { ...l, remarks } : l));
   const deleteLead = (id: string) => setLeads(leads.filter(l => l.id !== id));
 
-  const updateSiteConfig = (config: SiteConfig) => setSiteConfig(config);
+  const updateSiteConfig = async (config: SiteConfig) => {
+    // 1. Optimistic Update (UI)
+    setSiteConfig(config);
+    localStorage.setItem('siteConfig', JSON.stringify(config));
+
+    // 2. Database Update
+    if (supabase) {
+      try {
+        await supabase.from('site_config').upsert({
+          id: 1, // Singleton row for global config
+          site_name: config.siteName,
+          logo_url: config.logoUrl,
+          favicon_url: config.faviconUrl,
+          banner_title: config.bannerTitle,
+          banner_subtitle: config.bannerSubtitle,
+          whatsapp_number: config.whatsappNumber,
+          social_links: config.socialLinks,
+          updated_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error("Failed to sync config to Supabase:", err);
+      }
+    }
+  };
+
   const addCategory = (category: string) => {
     if (!categories.includes(category)) setCategories([...categories, category]);
   };
