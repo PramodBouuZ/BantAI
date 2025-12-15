@@ -34,6 +34,9 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     password: ''
   });
 
+  // PRODUCTION URL: Hardcoded to ensure email links open the live site, not localhost
+  const SITE_URL = 'https://bantconfirm.com';
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -58,7 +61,8 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
         // Supabase Reset
         if (supabase) {
             const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-                redirectTo: window.location.origin + '/reset-password',
+                // Force redirect to live site
+                redirectTo: `${SITE_URL}/#/login?reset=true`,
             });
             if (error) {
                 setErrorMsg(error.message);
@@ -87,9 +91,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     }
 
     // --- 1. ADMIN BACKDOOR (Always Check First) ---
-    // This allows the default admin to login even if Supabase is connected but the user doesn't exist there.
     if (!isSignup && formData.email === 'admin@bantconfirm.com' && formData.password === 'admin123') {
-       // Simulate a small network delay for realism
        setTimeout(() => {
          const adminUser: User = {
              id: 'admin_1',
@@ -113,8 +115,9 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
              email: formData.email,
              password: formData.password,
              options: {
-               // CRITICAL: Redirect back to the live site after email confirmation
-               emailRedirectTo: window.location.origin, 
+               // CRITICAL: Force redirect to the live domain. 
+               // Even if you are testing on localhost, the email link will open the live site.
+               emailRedirectTo: SITE_URL, 
                data: {
                  full_name: formData.name,
                  role: selectedRole,
@@ -124,6 +127,15 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
              }
            });
            if (error) throw error;
+           
+           // If email confirmation is required, Supabase returns user but session might be null
+           if (data.user && !data.session) {
+             setLoading(false);
+             // Show a specific message about checking email
+             setErrorMsg("Account created! Please check your email to confirm your account.");
+             return; 
+           }
+
            if (data.user) {
              const newUser: User = {
                 id: data.user.id,
@@ -134,7 +146,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                 location: formData.location,
                 joinedDate: new Date().toISOString().split('T')[0]
              };
-             addUser(newUser); // Save to local context for UI
+             addUser(newUser);
              setCurrentUser(newUser);
              navigate(from + search);
              return;
@@ -147,9 +159,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            });
            if (error) throw error;
            if (data.user) {
-             // Fetch user metadata or look up in local context
              const meta = data.user.user_metadata || {};
-             // If this user is the admin email (and was created manually in Supabase), force role to admin
              const role = (data.user.email === 'admin@bantconfirm.com') ? 'admin' : (meta.role || 'user');
 
              setCurrentUser({
@@ -165,9 +175,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
         }
       } catch (err: any) {
         console.error("Supabase Auth Error:", err);
-        // Fallback to mock auth if Supabase fails or isn't configured for this specific user
         if (err.message && !err.message.includes("configured")) {
-           // If it's a real auth error (wrong password or user not found), stop here
            setErrorMsg(err.message === "Invalid login credentials" ? "Invalid login credentials. If you are the admin, use the default password." : err.message);
            setLoading(false);
            return;
@@ -175,7 +183,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
       }
     }
 
-    // --- 3. MOCK AUTH FALLBACK (If Supabase skipped) ---
+    // --- 3. MOCK AUTH FALLBACK ---
     setTimeout(() => {
       // Signup Logic
       if (isSignup) {
@@ -195,13 +203,11 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
           return;
       }
 
-      // Login Logic (Simulated by finding existing user or defaulting)
+      // Login Logic
       const existingUser = users.find(u => u.email === formData.email);
-      
       if (existingUser) {
           setCurrentUser(existingUser);
       } else {
-          // Demo user fallback if no matching mock user found
           const tempUser: User = {
               id: `u_temp_${Date.now()}`,
               name: 'Demo User',
@@ -221,7 +227,6 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
-      {/* Back Arrow */}
       <button 
         onClick={() => navigate('/')} 
         className="absolute top-6 left-4 md:top-10 md:left-10 text-blue-600 hover:text-blue-700 transition-transform hover:scale-110 p-2"
@@ -232,7 +237,6 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
 
       <div className="max-w-[440px] w-full bg-white p-10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] animate-fade-in border border-slate-50">
         
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <div className="bg-gradient-to-tr from-yellow-100 to-amber-50 p-4 rounded-3xl shadow-sm">
             <Zap size={32} className="text-yellow-500 fill-current" />
@@ -269,7 +273,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                 </div>
 
                 {errorMsg && (
-                  <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-100 animate-fade-in">
+                  <div className={`mb-6 p-4 rounded-xl text-sm font-bold text-center border animate-fade-in ${errorMsg.includes('Account created') ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                     {errorMsg}
                   </div>
                 )}
