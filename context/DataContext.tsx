@@ -12,6 +12,7 @@ interface DataContextType {
   vendorRegistrations: VendorRegistration[];
   siteConfig: SiteConfig;
   notifications: AppNotification[];
+  compareList: Product[];
   
   // Product Actions
   addProduct: (product: Product) => void;
@@ -40,6 +41,10 @@ interface DataContextType {
   // Notification Actions
   addNotification: (message: string, type: AppNotification['type']) => void;
   removeNotification: (id: string) => void;
+
+  // Compare Actions
+  toggleCompare: (product: Product) => void;
+  clearCompare: () => void;
 }
 
 const defaultSiteConfig: SiteConfig = {
@@ -72,6 +77,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // --- STATE ---
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [compareList, setCompareList] = useState<Product[]>([]);
   
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('products');
@@ -120,6 +126,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const toggleCompare = (product: Product) => {
+    setCompareList(prev => {
+      const exists = prev.find(p => p.id === product.id);
+      if (exists) {
+        // Remove
+        const newList = prev.filter(p => p.id !== product.id);
+        return newList;
+      } else {
+        // Add (Limit to 3)
+        if (prev.length >= 3) {
+          addNotification("You can only compare up to 3 products", "warning");
+          return prev;
+        }
+        addNotification(`Added ${product.title} to compare`, "success");
+        return [...prev, product];
+      }
+    });
+  };
+
+  const clearCompare = () => {
+    setCompareList([]);
   };
 
   // --- SUPABASE SYNC & REALTIME ---
@@ -434,12 +463,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{
-      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations, notifications,
+      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations, notifications, compareList,
       addProduct, updateProduct, deleteProduct,
       addLead, updateLeadStatus, assignLead, updateLeadRemarks, deleteLead,
       updateSiteConfig, addCategory, deleteCategory,
       addUser, deleteUser, addVendorLogo, deleteVendorLogo,
-      addVendorRegistration, addNotification, removeNotification
+      addVendorRegistration, addNotification, removeNotification,
+      toggleCompare, clearCompare
     }}>
       {children}
     </DataContext.Provider>

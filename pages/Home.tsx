@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ArrowRight, Shield, Zap, TrendingUp, Users, Search, Filter, Star, Server, Phone, Wifi, Database, Globe, Building2, Briefcase, Megaphone, X } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Shield, Zap, TrendingUp, Users, Search, Filter, Star, Server, Phone, Wifi, Database, Globe, Building2, Briefcase, Megaphone, X, Scale } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { TESTIMONIALS } from '../services/mockData';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import SEO from '../components/SEO';
+import { Product } from '../types';
 
 interface HomeProps {
   isLoggedIn: boolean;
@@ -33,7 +34,12 @@ const getIcon = (iconName: string) => {
   }
 };
 
-const ProductCard: React.FC<{ product: any, onAction: (id?: string) => void }> = ({ product, onAction }) => (
+const ProductCard: React.FC<{ 
+  product: Product, 
+  onAction: (id?: string) => void,
+  onCompare: (product: Product) => void,
+  isSelected: boolean 
+}> = ({ product, onAction, onCompare, isSelected }) => (
   <article className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group flex flex-col h-full">
       <div className="relative h-48 overflow-hidden">
           {product.image ? (
@@ -72,14 +78,17 @@ const ProductCard: React.FC<{ product: any, onAction: (id?: string) => void }> =
 
         <div className="mt-auto">
            <p className="text-lg font-bold text-slate-900 mb-4">{product.priceRange}</p>
-           <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => onAction(product.id)} className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
+           <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => onAction(product.id)} className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
                 Book Now
               </button>
-              <button onClick={() => onAction()} className="bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
-                Consult
+              <button onClick={() => onCompare(product)} className={`rounded-xl transition shadow-md flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}`} title={isSelected ? 'Remove from compare' : 'Add to compare'}>
+                <Scale size={18} />
               </button>
            </div>
+           <button onClick={() => onAction()} className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
+             Consult Expert
+           </button>
         </div>
       </div>
    </article>
@@ -207,7 +216,7 @@ const SEOFooterLinks = () => {
 }
 
 const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
-  const { products, siteConfig, categories } = useData();
+  const { products, siteConfig, categories, toggleCompare, compareList } = useData();
   const [chartData, setChartData] = useState(initialChartData);
   const [activeLeads, setActiveLeads] = useState(247);
   const [dealsClosed, setDealsClosed] = useState(86032); 
@@ -349,6 +358,8 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
       "availableLanguage": ["en", "hi"]
     }
   };
+
+  const isProductSelected = (id: string) => compareList.some(p => p.id === id);
 
   return (
     <div className="overflow-hidden">
@@ -539,7 +550,15 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                    
                    {filteredProducts.length > 0 ? (
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                          {filteredProducts.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
+                          {filteredProducts.map((product) => (
+                             <ProductCard 
+                                key={product.id} 
+                                product={product} 
+                                onAction={handleAuthAction} 
+                                onCompare={toggleCompare}
+                                isSelected={isProductSelected(product.id)}
+                             />
+                          ))}
                        </div>
                    ) : (
                        <div className="text-center py-20">
@@ -563,7 +582,15 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                    </div>
                    
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {featuredSoftware.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
+                      {featuredSoftware.map((product) => (
+                         <ProductCard 
+                            key={product.id} 
+                            product={product} 
+                            onAction={handleAuthAction} 
+                            onCompare={toggleCompare}
+                            isSelected={isProductSelected(product.id)}
+                         />
+                      ))}
                    </div>
                </div>
 
@@ -578,7 +605,15 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                    </div>
                    
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {featuredTelecom.map((product) => <ProductCard key={product.id} product={product} onAction={handleAuthAction} />)}
+                      {featuredTelecom.map((product) => (
+                         <ProductCard 
+                            key={product.id} 
+                            product={product} 
+                            onAction={handleAuthAction} 
+                            onCompare={toggleCompare}
+                            isSelected={isProductSelected(product.id)}
+                         />
+                      ))}
                    </div>
                </div>
              </>

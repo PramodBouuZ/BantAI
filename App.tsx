@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, Outlet } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -13,7 +13,7 @@ import Features from './pages/Features';
 import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
 import { User } from './types';
-import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle, X, Check, Info, AlertCircle } from 'lucide-react';
+import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { HelmetProvider } from 'react-helmet-async';
 
@@ -91,6 +91,46 @@ const ToastContainer: React.FC = () => {
     );
 }
 
+// --- Compare Tray Component ---
+const CompareTray: React.FC = () => {
+  const { compareList, toggleCompare, clearCompare } = useData();
+  const navigate = useNavigate();
+
+  if (compareList.length === 0) return null;
+
+  return (
+    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 max-w-2xl w-full mx-4 animate-slide-up flex items-center justify-between">
+      <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
+         <div className="flex items-center justify-center bg-indigo-50 w-12 h-12 rounded-xl text-indigo-600 shrink-0">
+            <Scale size={24} />
+         </div>
+         {compareList.map(item => (
+           <div key={item.id} className="relative group shrink-0">
+              <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden border border-gray-200">
+                 {item.image ? <img src={item.image} className="w-full h-full object-cover" alt={item.title}/> : <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">IMG</div>}
+              </div>
+              <button onClick={() => toggleCompare(item)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition">
+                <X size={12} />
+              </button>
+           </div>
+         ))}
+         {Array.from({ length: 3 - compareList.length }).map((_, i) => (
+            <div key={i} className="w-12 h-12 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-xs text-gray-300 font-bold shrink-0">
+               +
+            </div>
+         ))}
+      </div>
+
+      <div className="flex items-center gap-3 pl-4 border-l border-gray-100 ml-4">
+         <button onClick={clearCompare} className="text-slate-500 hover:text-red-500 text-sm font-medium px-2 transition">Clear</button>
+         <button onClick={() => navigate('/enquiry?type=compare')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">
+           Compare ({compareList.length})
+         </button>
+      </div>
+    </div>
+  );
+};
+
 // --- Placeholder Page Component ---
 const PlaceholderPage = ({ title, type }: { title: string, type: 'careers' | 'blog' | 'legal' | 'press' }) => {
   const getContent = () => {
@@ -150,6 +190,7 @@ const MainLayout = ({ currentUser, setCurrentUser }: { currentUser: User | null,
       <div className="flex-grow">
         <Outlet />
       </div>
+      <CompareTray />
       <Footer />
       
       {/* WhatsApp Notification Floating Button */}

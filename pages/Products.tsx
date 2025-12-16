@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { CheckCircle2, Search, ArrowRight, Server, Phone, Database, Globe, Wifi, Shield, Star, Zap } from 'lucide-react';
+import { CheckCircle2, Search, ArrowRight, Server, Phone, Database, Globe, Wifi, Shield, Star, Zap, Scale } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO';
 
@@ -21,7 +21,7 @@ const getIcon = (iconName: string) => {
 };
 
 const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
-  const { products, categories } = useData();
+  const { products, categories, toggleCompare, compareList } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('All Categories');
   const navigate = useNavigate();
@@ -96,60 +96,66 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
 
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-blue-100 transition duration-300 group hover:-translate-y-2 flex flex-col h-full">
-                 <div className="relative h-56 overflow-hidden">
-                     {product.image ? (
-                         <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                     ) : (
-                         <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                             <Server size={56} className="text-slate-300" />
-                         </div>
-                     )}
-                     <div className="absolute top-4 left-4">
-                         {getIcon(product.icon)}
-                     </div>
-                     <div className="absolute top-4 right-4 flex items-center bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm">
-                         <Star size={16} className="text-yellow-500 fill-current mr-1.5" />
-                         <span className="text-sm font-bold text-slate-800">{product.rating}</span>
-                     </div>
-                 </div>
-                 
-                 <div className="p-8 flex-grow flex flex-col">
-                     <div className="flex justify-between items-start mb-4">
-                         <h3 className="text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition leading-tight">{product.title}</h3>
-                     </div>
-                     
-                     <p className="text-slate-500 text-lg mb-6 line-clamp-2 leading-relaxed">{product.description}</p>
-                     
-                     <div className="mb-8 bg-slate-50 p-5 rounded-2xl">
-                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3 flex items-center">
-                             <Zap size={14} className="mr-1.5 text-yellow-500" /> Key Features
-                         </p>
-                         <ul className="space-y-2">
-                             {product.features.map((feature, idx) => (
-                             <li key={idx} className="flex items-start text-sm text-slate-700 font-medium">
-                                 <CheckCircle2 size={16} className="text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                                 {feature}
-                             </li>
-                             ))}
-                         </ul>
-                     </div>
-                     
-                     <div className="mt-auto pt-6 border-t border-gray-50">
-                         <p className="font-bold text-slate-900 text-2xl mb-5">{product.priceRange}</p>
-                         <div className="grid grid-cols-2 gap-4">
-                              <button onClick={() => handleAction(product.id)} className="bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-base font-bold transition shadow-md hover:shadow-lg text-center flex items-center justify-center">
-                                  Book Now
-                              </button>
-                              <button onClick={() => handleAction()} className="bg-yellow-500 hover:bg-yellow-600 text-white py-3.5 rounded-xl text-base font-bold transition shadow-md hover:shadow-lg text-center flex items-center justify-center">
-                                  Consult
-                              </button>
-                         </div>
-                     </div>
-                 </div>
-              </div>
-            ))}
+            {filteredProducts.map((product) => {
+              const isSelected = compareList.some(p => p.id === product.id);
+              return (
+                <div key={product.id} className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-blue-100 transition duration-300 group hover:-translate-y-2 flex flex-col h-full">
+                  <div className="relative h-56 overflow-hidden">
+                      {product.image ? (
+                          <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      ) : (
+                          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                              <Server size={56} className="text-slate-300" />
+                          </div>
+                      )}
+                      <div className="absolute top-4 left-4">
+                          {getIcon(product.icon)}
+                      </div>
+                      <div className="absolute top-4 right-4 flex items-center bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm">
+                          <Star size={16} className="text-yellow-500 fill-current mr-1.5" />
+                          <span className="text-sm font-bold text-slate-800">{product.rating}</span>
+                      </div>
+                  </div>
+                  
+                  <div className="p-8 flex-grow flex flex-col">
+                      <div className="flex justify-between items-start mb-4">
+                          <h3 className="text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition leading-tight">{product.title}</h3>
+                      </div>
+                      
+                      <p className="text-slate-500 text-lg mb-6 line-clamp-2 leading-relaxed">{product.description}</p>
+                      
+                      <div className="mb-8 bg-slate-50 p-5 rounded-2xl">
+                          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-3 flex items-center">
+                              <Zap size={14} className="mr-1.5 text-yellow-500" /> Key Features
+                          </p>
+                          <ul className="space-y-2">
+                              {product.features.map((feature, idx) => (
+                              <li key={idx} className="flex items-start text-sm text-slate-700 font-medium">
+                                  <CheckCircle2 size={16} className="text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                                  {feature}
+                              </li>
+                              ))}
+                          </ul>
+                      </div>
+                      
+                      <div className="mt-auto pt-6 border-t border-gray-50">
+                          <p className="font-bold text-slate-900 text-2xl mb-5">{product.priceRange}</p>
+                          <div className="grid grid-cols-3 gap-4">
+                                <button onClick={() => handleAction(product.id)} className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-base font-bold transition shadow-md hover:shadow-lg text-center flex items-center justify-center">
+                                    Book Now
+                                </button>
+                                <button onClick={() => toggleCompare(product)} className={`rounded-xl transition shadow-md flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}`} title={isSelected ? 'Remove from compare' : 'Add to compare'}>
+                                  <Scale size={20} />
+                                </button>
+                          </div>
+                          <button onClick={() => handleAction()} className="w-full mt-3 bg-yellow-500 hover:bg-yellow-600 text-white py-3.5 rounded-xl text-base font-bold transition shadow-md hover:shadow-lg text-center flex items-center justify-center">
+                              Consult
+                          </button>
+                      </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-20 bg-slate-50 rounded-3xl">
