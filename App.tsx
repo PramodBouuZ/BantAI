@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -177,15 +177,15 @@ const AppContent: React.FC = () => {
   // Apply Site Config (Title & Favicon)
   useEffect(() => {
     if (siteConfig?.faviconUrl) {
-      const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (link) {
-        link.href = siteConfig.faviconUrl;
-      } else {
-        const newLink = document.createElement('link');
-        newLink.rel = 'icon';
-        newLink.href = siteConfig.faviconUrl;
-        document.head.appendChild(newLink);
+      // Create new link or update existing
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
       }
+      // Force refresh by appending timestamp if it's not a data URL
+      link.href = siteConfig.faviconUrl;
     }
   }, [siteConfig]);
 

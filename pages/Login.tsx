@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { Zap, Briefcase, MapPin, Phone, Mail, Lock, User as UserIcon, ChevronLeft, Check, ArrowLeft } from 'lucide-react';
+import { Zap, Briefcase, MapPin, Phone, Mail, Lock, User as UserIcon, ChevronLeft, Check, ArrowLeft, Inbox } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
 
@@ -24,6 +24,9 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   // Forgot Password State
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  
+  // Account Confirmation State (New)
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -128,11 +131,11 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            });
            if (error) throw error;
            
-           // If email confirmation is required, Supabase returns user but session might be null
+           // If email confirmation is required, Supabase returns user but session might be null.
+           // This handles the user's request to show a status message.
            if (data.user && !data.session) {
              setLoading(false);
-             // Show a specific message about checking email
-             setErrorMsg("Account created! Please check your email to confirm your account.");
+             setConfirmationSent(true); // Switch to Confirmation UI
              return; 
            }
 
@@ -243,7 +246,29 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
           </div>
         </div>
 
-        {resetSent ? (
+        {confirmationSent ? (
+            <div className="text-center animate-fade-in">
+                <div className="flex justify-center mb-6">
+                    <div className="bg-blue-100 p-5 rounded-full text-blue-600">
+                        <Inbox size={48} />
+                    </div>
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Check your email</h2>
+                <p className="text-slate-500 mb-8 leading-relaxed">
+                    We've sent a verification link to<br/>
+                    <span className="font-bold text-slate-800">{formData.email}</span>
+                </p>
+                <div className="bg-yellow-50 text-yellow-800 p-4 rounded-2xl text-sm mb-8 text-left border border-yellow-100">
+                    <strong>Note:</strong> If you don't see the email, please check your <strong>Spam</strong> or <strong>Promotions</strong> folder.
+                </div>
+                <button 
+                    onClick={() => { setConfirmationSent(false); setIsSignup(false); }}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl text-lg tracking-wide mb-4"
+                >
+                    Proceed to Login
+                </button>
+            </div>
+        ) : resetSent ? (
             <div className="text-center animate-fade-in">
                 <div className="flex justify-center mb-6">
                     <div className="bg-green-100 p-4 rounded-full text-green-600">

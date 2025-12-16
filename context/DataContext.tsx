@@ -128,7 +128,53 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 1. Initial Data Fetch
     const fetchData = async () => {
-      // Leads
+      // Products: Only fetch if NO local storage (Local First Strategy to prevent overwrite)
+      if (!localStorage.getItem('products')) {
+        const { data: prodData } = await supabase.from('products').select('*');
+        if (prodData && prodData.length > 0) {
+            setProducts(prodData.map((p: any) => ({
+              id: p.id, title: p.title, description: p.description, category: p.category,
+              priceRange: p.price_range, features: p.features || [], icon: p.icon || 'globe',
+              rating: Number(p.rating), image: p.image
+            })));
+        }
+      }
+
+      // Site Config: Only fetch if NO local storage
+      if (!localStorage.getItem('siteConfig')) {
+        const { data: configData } = await supabase.from('site_config').select('*').single();
+        if (configData) {
+            setSiteConfig({
+                siteName: configData.site_name || defaultSiteConfig.siteName,
+                bannerTitle: configData.banner_title || defaultSiteConfig.bannerTitle,
+                bannerSubtitle: configData.banner_subtitle || defaultSiteConfig.bannerSubtitle,
+                logoUrl: configData.logo_url || undefined,
+                faviconUrl: configData.favicon_url || undefined,
+                whatsappNumber: configData.whatsapp_number || undefined,
+                socialLinks: configData.social_links || defaultSiteConfig.socialLinks,
+                bannerImage: undefined
+            });
+        }
+      }
+
+      // Vendor Logos: Only fetch if NO local storage
+      if (!localStorage.getItem('vendorLogos')) {
+        const { data: vendorData } = await supabase.from('vendor_assets').select('*');
+        if (vendorData && vendorData.length > 0) {
+            setVendorLogos(vendorData.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
+        }
+      }
+      
+      // Categories: Only fetch if NO local storage
+      if (!localStorage.getItem('categories')) {
+          const { data: catData } = await supabase.from('categories').select('*');
+          if (catData && catData.length > 0) {
+             const mappedCats = catData.map((c: any) => c.name);
+             setCategories(Array.from(new Set([...mappedCats, 'Software', 'Telecom', 'Connectivity'])));
+          }
+      }
+
+      // Leads: Always sync leads (Transactional Data)
       const { data: leadData } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
       if (leadData) {
          setLeads(leadData.map((l: any) => ({
@@ -138,51 +184,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          })));
       }
 
-      // Vendor Registrations
+      // Vendor Registrations: Always sync
       const { data: vendorRegData } = await supabase.from('vendor_registrations').select('*').order('created_at', { ascending: false });
       if (vendorRegData) {
          setVendorRegistrations(vendorRegData.map((r: any) => ({
              id: r.id, name: r.name, companyName: r.company_name, email: r.email, mobile: r.mobile,
              location: r.location, productName: r.product_name, message: r.message, date: r.date
          })));
-      }
-
-      // Products
-      const { data: prodData } = await supabase.from('products').select('*');
-      if (prodData && prodData.length > 0) {
-           setProducts(prodData.map((p: any) => ({
-             id: p.id, title: p.title, description: p.description, category: p.category,
-             priceRange: p.price_range, features: p.features || [], icon: p.icon || 'globe',
-             rating: Number(p.rating), image: p.image
-           })));
-      }
-
-      // Site Config
-      const { data: configData } = await supabase.from('site_config').select('*').single();
-      if (configData) {
-           setSiteConfig({
-               siteName: configData.site_name || defaultSiteConfig.siteName,
-               bannerTitle: configData.banner_title || defaultSiteConfig.bannerTitle,
-               bannerSubtitle: configData.banner_subtitle || defaultSiteConfig.bannerSubtitle,
-               logoUrl: configData.logo_url || undefined,
-               faviconUrl: configData.favicon_url || undefined,
-               whatsappNumber: configData.whatsapp_number || undefined,
-               socialLinks: configData.social_links || defaultSiteConfig.socialLinks,
-               bannerImage: undefined
-           });
-      }
-      
-      // Categories
-      const { data: catData } = await supabase.from('categories').select('*');
-      if (catData && catData.length > 0) {
-         const mappedCats = catData.map((c: any) => c.name);
-         setCategories(Array.from(new Set([...mappedCats, 'Software', 'Telecom', 'Connectivity'])));
-      }
-
-      // Vendor Logos
-      const { data: vendorData } = await supabase.from('vendor_assets').select('*');
-      if (vendorData && vendorData.length > 0) {
-           setVendorLogos(vendorData.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
       }
     };
 
