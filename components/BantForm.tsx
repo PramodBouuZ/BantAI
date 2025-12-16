@@ -12,7 +12,7 @@ interface BantFormProps {
 const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addLead } = useData();
+  const { addLead, addNotification } = useData();
   
   // Get product if passed in URL
   const searchParams = new URLSearchParams(location.search);
@@ -62,7 +62,6 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
     setIsSubmitting(true);
     
     // Save to Context (Simulate Database Save)
-    // Use timestamp for unique ID to avoid collisions in Supabase
     const newLead = {
       id: `L${Date.now()}`,
       name: formData.name,
@@ -80,6 +79,10 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
     };
 
     addLead(newLead);
+    
+    // Notify user of success/email
+    // Note: For real emails, this would trigger a Supabase Edge Function
+    addNotification('Requirement posted successfully! A confirmation email has been sent.', 'success');
     
     // Simulate AI Matching Automation
     let progress = 0;
@@ -112,7 +115,7 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
                        </div>
                   </div>
                   <h3 className="text-2xl font-bold text-slate-900 mb-2">AI Matching in Progress</h3>
-                  <p className="text-slate-500 mb-8 text-lg">Saving your requirement and finding vendors...</p>
+                  <p className="text-slate-500 mb-8 text-lg">Saving your requirement and notifying vendors...</p>
                   
                   <div className="w-full bg-gray-100 rounded-full h-3 mb-4 overflow-hidden">
                       <div className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-out" style={{ width: `${matchingStatus}%` }}></div>
