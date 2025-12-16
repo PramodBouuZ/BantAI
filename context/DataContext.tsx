@@ -200,17 +200,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 budget: newRecord.budget, requirement: newRecord.requirement, status: newRecord.status,
                 assignedTo: newRecord.assigned_to, remarks: newRecord.remarks, date: newRecord.date
             };
-            setLeads(prev => [mapped, ...prev.filter(l => l.id !== mapped.id)]);
+            setLeads(prev => {
+              const updated = [mapped, ...prev.filter(l => l.id !== mapped.id)];
+              localStorage.setItem('leads', JSON.stringify(updated));
+              return updated;
+            });
             addNotification(`New Enquiry: ${mapped.service} from ${mapped.name}`, 'info');
          } else if (eventType === 'UPDATE') {
-             setLeads(prev => prev.map(l => l.id === newRecord.id ? {
+             setLeads(prev => {
+               const updated = prev.map(l => l.id === newRecord.id ? {
                 ...l,
                 status: newRecord.status,
                 assignedTo: newRecord.assigned_to,
                 remarks: newRecord.remarks
-             } : l));
+               } : l);
+               localStorage.setItem('leads', JSON.stringify(updated));
+               return updated;
+             });
          } else if (eventType === 'DELETE') {
-             setLeads(prev => prev.filter(l => l.id !== oldRecord.id));
+             setLeads(prev => {
+               const updated = prev.filter(l => l.id !== oldRecord.id);
+               localStorage.setItem('leads', JSON.stringify(updated));
+               return updated;
+             });
          }
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'vendor_registrations' }, (payload) => {
@@ -220,7 +232,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
              mobile: newReg.mobile, location: newReg.location, productName: newReg.product_name,
              message: newReg.message, date: newReg.date
          };
-         setVendorRegistrations(prev => [mapped, ...prev.filter(r => r.id !== mapped.id)]);
+         setVendorRegistrations(prev => {
+            const updated = [mapped, ...prev.filter(r => r.id !== mapped.id)];
+            localStorage.setItem('vendorRegistrations', JSON.stringify(updated));
+            return updated;
+         });
          addNotification(`New Vendor Registration: ${mapped.companyName}`, 'success');
       })
       .subscribe();
@@ -231,7 +247,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const addProduct = async (product: Product) => {
-    setProducts([...products, product]);
+    const updatedProducts = [...products, product];
+    setProducts(updatedProducts);
+    localStorage.setItem('products', JSON.stringify(updatedProducts));
+    
     if (supabase) {
       await supabase.from('products').insert({
          id: product.id, title: product.title, description: product.description, category: product.category,
@@ -242,7 +261,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    setProducts(products.map(p => p.id === id ? updatedProduct : p));
+    const updatedProducts = products.map(p => p.id === id ? updatedProduct : p);
+    setProducts(updatedProducts);
+    localStorage.setItem('products', JSON.stringify(updatedProducts));
+    
     if (supabase) {
       await supabase.from('products').update({
          title: updatedProduct.title, description: updatedProduct.description, category: updatedProduct.category,
@@ -254,7 +276,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteProduct = async (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+    const updatedProducts = products.filter(p => p.id !== id);
+    setProducts(updatedProducts);
+    localStorage.setItem('products', JSON.stringify(updatedProducts));
+
     if (supabase) {
       await supabase.from('products').delete().eq('id', id);
     }
@@ -262,8 +287,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addLead = async (lead: Lead) => {
-    // Optimistic update
-    setLeads([lead, ...leads]);
+    const updatedLeads = [lead, ...leads];
+    setLeads(updatedLeads);
+    localStorage.setItem('leads', JSON.stringify(updatedLeads));
+
     if (supabase) {
       try {
         const { error } = await supabase.from('leads').insert({
@@ -276,35 +303,49 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
        console.warn("Supabase not configured. Lead saved locally only.");
     }
-    // Notification handled by Realtime subscription if supabase exists, else manual:
     if (!supabase) addNotification('Enquiry Submitted!', 'success');
   };
 
   const updateLeadStatus = async (id: string, status: Lead['status']) => {
-    setLeads(leads.map(l => l.id === id ? { ...l, status } : l));
+    const updatedLeads = leads.map(l => l.id === id ? { ...l, status } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('leads', JSON.stringify(updatedLeads));
+
     if (supabase) await supabase.from('leads').update({ status }).eq('id', id);
     addNotification('Lead status updated', 'info');
   };
 
   const assignLead = async (id: string, vendor: string) => {
-    setLeads(leads.map(l => l.id === id ? { ...l, assignedTo: vendor } : l));
+    const updatedLeads = leads.map(l => l.id === id ? { ...l, assignedTo: vendor } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('leads', JSON.stringify(updatedLeads));
+
     if (supabase) await supabase.from('leads').update({ assigned_to: vendor }).eq('id', id);
     addNotification(`Lead assigned to ${vendor}`, 'info');
   };
 
   const updateLeadRemarks = async (id: string, remarks: string) => {
-    setLeads(leads.map(l => l.id === id ? { ...l, remarks } : l));
+    const updatedLeads = leads.map(l => l.id === id ? { ...l, remarks } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('leads', JSON.stringify(updatedLeads));
+
     if (supabase) await supabase.from('leads').update({ remarks }).eq('id', id);
   };
 
   const deleteLead = async (id: string) => {
-    setLeads(leads.filter(l => l.id !== id));
+    const updatedLeads = leads.filter(l => l.id !== id);
+    setLeads(updatedLeads);
+    localStorage.setItem('leads', JSON.stringify(updatedLeads));
+
     if (supabase) await supabase.from('leads').delete().eq('id', id);
     addNotification('Lead deleted', 'warning');
   };
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
-    setVendorRegistrations([reg, ...vendorRegistrations]);
+    const updatedRegs = [reg, ...vendorRegistrations];
+    setVendorRegistrations(updatedRegs);
+    localStorage.setItem('vendorRegistrations', JSON.stringify(updatedRegs));
+
     if (supabase) {
       const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
@@ -318,6 +359,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSiteConfig = async (config: SiteConfig) => {
     setSiteConfig(config);
+    localStorage.setItem('siteConfig', JSON.stringify(config));
+
     if (supabase) {
       await supabase.from('site_config').upsert({
           id: 1, site_name: config.siteName, logo_url: config.logoUrl, favicon_url: config.faviconUrl,
@@ -330,26 +373,42 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addCategory = async (category: string) => {
     if (!categories.includes(category)) {
-      setCategories([...categories, category]);
+      const updatedCats = [...categories, category];
+      setCategories(updatedCats);
+      localStorage.setItem('categories', JSON.stringify(updatedCats));
+
       if (supabase) await supabase.from('categories').insert({ name: category });
       addNotification('Category added', 'success');
     }
   };
 
   const deleteCategory = async (category: string) => {
-    setCategories(categories.filter(c => c !== category));
+    const updatedCats = categories.filter(c => c !== category);
+    setCategories(updatedCats);
+    localStorage.setItem('categories', JSON.stringify(updatedCats));
+
     if (supabase) await supabase.from('categories').delete().eq('name', category);
     addNotification('Category deleted', 'warning');
   };
 
   const addUser = (user: User) => {
-      setUsers([...users, user]);
+      const updatedUsers = [...users, user];
+      setUsers(updatedUsers);
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
       addNotification(`Welcome ${user.name}!`, 'success');
   }
-  const deleteUser = (id: string) => setUsers(users.filter(u => u.id !== id));
+
+  const deleteUser = (id: string) => {
+      const updatedUsers = users.filter(u => u.id !== id);
+      setUsers(updatedUsers);
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
+  };
 
   const addVendorLogo = async (asset: VendorAsset) => {
-    setVendorLogos([...vendorLogos, asset]);
+    const updatedLogos = [...vendorLogos, asset];
+    setVendorLogos(updatedLogos);
+    localStorage.setItem('vendorLogos', JSON.stringify(updatedLogos));
+
     if (supabase) {
       await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
     }
@@ -357,7 +416,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteVendorLogo = async (id: string) => {
-    setVendorLogos(vendorLogos.filter(v => v.id !== id));
+    const updatedLogos = vendorLogos.filter(v => v.id !== id);
+    setVendorLogos(updatedLogos);
+    localStorage.setItem('vendorLogos', JSON.stringify(updatedLogos));
+
     if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
     addNotification('Vendor logo removed', 'warning');
   };
