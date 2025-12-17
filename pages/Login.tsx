@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, UserRole } from '../types';
-import { Zap, Briefcase, MapPin, Phone, Mail, Lock, User as UserIcon, ChevronLeft, Check, ArrowLeft, Inbox } from 'lucide-react';
+import { Zap, Briefcase, MapPin, Phone, Mail, Lock, User as UserIcon, ChevronLeft, Check, ArrowLeft, Inbox, RefreshCw } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
 
@@ -25,8 +25,9 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   
-  // Account Confirmation State (New)
+  // Account Confirmation State
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -37,8 +38,16 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     password: ''
   });
 
-  // PRODUCTION URL: Hardcoded to ensure email links open the live site, not localhost
-  const SITE_URL = 'https://bantconfirm.com';
+  // Timer effect for resend cooldown
+  useEffect(() => {
+    let interval: any;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -46,6 +55,33 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
       [e.target.name]: e.target.value
     });
     setErrorMsg('');
+  };
+
+  const handleResendEmail = async () => {
+    if (resendTimer > 0) return;
+    
+    if (supabase) {
+        setLoading(true);
+        setErrorMsg(''); // Clear previous errors
+        try {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: formData.email,
+                options: {
+                    emailRedirectTo: window.location.origin
+                }
+            });
+            
+            if (error) throw error;
+            
+            setErrorMsg('Verification email resent successfully! Check your inbox.');
+            setResendTimer(60); // 60 seconds cooldown
+        } catch (err: any) {
+            setErrorMsg(err.message || "Failed to resend email.");
+        } finally {
+            setLoading(false);
+        }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,8 +100,8 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
         // Supabase Reset
         if (supabase) {
             const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-                // Force redirect to live site
-                redirectTo: `${SITE_URL}/#/login?reset=true`,
+                // Use dynamic origin for better reliability across envs
+                redirectTo: `${window.location.origin}/#/login?reset=true`,
             });
             if (error) {
                 setErrorMsg(error.message);
@@ -118,9 +154,8 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
              email: formData.email,
              password: formData.password,
              options: {
-               // CRITICAL: Force redirect to the live domain. 
-               // Even if you are testing on localhost, the email link will open the live site.
-               emailRedirectTo: SITE_URL, 
+               // Use dynamic origin to ensure link works in both dev and prod
+               emailRedirectTo: window.location.origin, 
                data: {
                  full_name: formData.name,
                  role: selectedRole,
@@ -132,7 +167,6 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            if (error) throw error;
            
            // If email confirmation is required, Supabase returns user but session might be null.
-           // This handles the user's request to show a status message.
            if (data.user && !data.session) {
              setLoading(false);
              setConfirmationSent(true); // Switch to Confirmation UI
@@ -254,19 +288,42 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                     </div>
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Check your email</h2>
-                <p className="text-slate-500 mb-8 leading-relaxed">
+                <p className="text-slate-500 mb-6 leading-relaxed">
                     We've sent a verification link to<br/>
                     <span className="font-bold text-slate-800">{formData.email}</span>
                 </p>
-                <div className="bg-yellow-50 text-yellow-800 p-4 rounded-2xl text-sm mb-8 text-left border border-yellow-100">
+                
+                {errorMsg && (
+                    <div className="mb-6 p-3 rounded-lg text-sm font-bold bg-green-50 text-green-700 border border-green-100 animate-fade-in">
+                        {errorMsg}
+                    </div>
+                )}
+
+                <div className="bg-yellow-50 text-yellow-800 p-4 rounded-2xl text-sm mb-6 text-left border border-yellow-100">
                     <strong>Note:</strong> If you don't see the email, please check your <strong>Spam</strong> or <strong>Promotions</strong> folder.
                 </div>
-                <button 
-                    onClick={() => { setConfirmationSent(false); setIsSignup(false); }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl text-lg tracking-wide mb-4"
-                >
-                    Proceed to Login
-                </button>
+
+                <div className="space-y-3">
+                    <button 
+                        onClick={handleResendEmail}
+                        disabled={resendTimer > 0 || loading}
+                        className="w-full bg-white border-2 border-slate-100 text-slate-600 font-bold py-3 rounded-2xl hover:bg-slate-50 hover:border-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    >
+                        {loading ? 'Sending...' : (
+                            <>
+                                <RefreshCw size={18} className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                                {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Verification Email'}
+                            </>
+                        )}
+                    </button>
+
+                    <button 
+                        onClick={() => { setConfirmationSent(false); setIsSignup(false); setErrorMsg(''); }}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg hover:shadow-xl text-lg tracking-wide"
+                    >
+                        Proceed to Login
+                    </button>
+                </div>
             </div>
         ) : resetSent ? (
             <div className="text-center animate-fade-in">
@@ -298,7 +355,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                 </div>
 
                 {errorMsg && (
-                  <div className={`mb-6 p-4 rounded-xl text-sm font-bold text-center border animate-fade-in ${errorMsg.includes('Account created') ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                  <div className={`mb-6 p-4 rounded-xl text-sm font-bold text-center border animate-fade-in ${errorMsg.includes('Account created') || errorMsg.includes('resent') ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                     {errorMsg}
                   </div>
                 )}
