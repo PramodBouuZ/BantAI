@@ -1,5 +1,4 @@
 
-
 // Fixed missing Component import and ErrorBoundary property errors
 import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
@@ -31,8 +30,9 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Inherit from React.Component to ensure props and state are correctly typed by the compiler
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Inherit from Component to ensure props and state are correctly typed by the compiler
+// Fix: Use Component directly from import to resolve potential namespacing issues with React.Component
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // Define state property explicitly as a class field to satisfy TypeScript's property checks
   state: ErrorBoundaryState = { hasError: false };
 
@@ -57,6 +57,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
+    // Fix: this.props is now correctly recognized as ErrorBoundary extends Component
     return this.props.children;
   }
 }
