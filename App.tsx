@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -26,10 +26,11 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Inherit directly from the named Component import to resolve TypeScript state/props access errors
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fix: Use React.Component explicitly to ensure TypeScript correctly resolves inherited properties like 'state' and 'props'.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    // Fix for line 33: Correctly initialize state on the class instance.
     this.state = { hasError: false };
   }
 
@@ -42,6 +43,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   render() {
+    // Fix for line 45: Accessing 'state' which is now correctly resolved via inheritance.
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -54,6 +56,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
+    // Fix for line 57: Accessing 'props' which is now correctly resolved via inheritance.
     return this.props.children;
   }
 }
