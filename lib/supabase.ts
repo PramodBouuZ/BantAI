@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Access environment variables safely (supports Vite)
-// Casting import.meta to any to resolve TypeScript error: Property 'env' does not exist on type 'ImportMeta'
 const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
 const supabaseKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
 
@@ -15,47 +14,47 @@ export const isSupabaseConfigured = () => !!supabase;
 
 /*
 ========================================================================
-SUPABASE EMAIL TEMPLATE INSTRUCTIONS (For Logo & Redirect)
+CRITICAL: GOOGLE SEARCH & EMAIL DELIVERY CONFIGURATION
 ========================================================================
 
-To add your logo to the confirmation email and ensure the button looks professional:
+1. GOOGLE SEARCH ICON:
+   Google Search requires a high-resolution favicon (multiples of 48px).
+   Ensure your uploaded favicon in the Admin Panel is 192x192px or larger.
 
-1. Go to Supabase Dashboard -> Authentication -> Email Templates
-2. Select "Confirm Sign Up"
-3. Paste the following HTML into the "Body" section:
+2. FIXING "EMAIL NOT RECEIVED" (Supabase Dashboard Settings):
+   - Go to: Authentication -> URL Configuration
+   - SITE_URL: https://bantconfirm.com
+   - REDIRECT_URLS: 
+      - https://bantconfirm.com/#/login
+      - https://bantconfirm.com/
 
+3. EMAIL SENDER LIMITS:
+   By default, Supabase allows only 3 emails per hour. 
+   To handle more users, go to:
+   Authentication -> Providers -> SMTP
+   And connect a provider like Resend (resend.com) or SendGrid.
+
+4. UPDATED EMAIL TEMPLATE (Confirm Sign Up):
+   Go to: Authentication -> Email Templates -> Confirm Sign Up
+   
 <!DOCTYPE html>
 <html>
 <head>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    .header { background-color: #ffffff; padding: 30px; text-align: center; border-bottom: 3px solid #facc15; }
-    .logo { height: 50px; width: auto; }
-    .content { padding: 40px 30px; color: #334155; }
-    .btn { display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; }
-    .footer { background-color: #f8fafc; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px; }
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 500px; margin: 40px auto; background: #ffffff; border-radius: 24px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
+    .logo { height: 48px; margin-bottom: 24px; }
+    .btn { display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 16px 32px; text-decoration: none; border-radius: 16px; font-weight: bold; margin-top: 24px; }
+    .footer { margin-top: 32px; color: #94a3b8; font-size: 12px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <!-- REPLACE THIS URL WITH YOUR ACTUAL LOGO URL -->
-      <img src="https://bantconfirm.com/logo.png" alt="BantConfirm" class="logo" />
-    </div>
-    <div class="content">
-      <h2 style="color: #0f172a; margin-top: 0;">Verify your account</h2>
-      <p>Hello,</p>
-      <p>Thank you for joining <strong>BantConfirm</strong>, India's #1 B2B Marketplace.</p>
-      <p>Please confirm your email address to access verified vendor leads and post requirements.</p>
-      <center>
-        <a href="{{ .ConfirmationURL }}" class="btn">Confirm Email Address</a>
-      </center>
-    </div>
-    <div class="footer">
-      &copy; 2025 BantConfirm India Pvt Ltd.<br/>
-      Noida, Uttar Pradesh, India
-    </div>
+    <img src="https://bantconfirm.com/favicon.ico" class="logo" />
+    <h2 style="color: #0f172a;">Verify your email</h2>
+    <p style="color: #64748b;">Welcome to BantConfirm. Please verify your email to start accessing verified B2B leads.</p>
+    <a href="{{ .ConfirmationURL }}" class="btn">Verify Account</a>
+    <p class="footer">© 2025 BantConfirm India Pvt Ltd</p>
   </div>
 </body>
 </html>
