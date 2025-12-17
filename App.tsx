@@ -26,9 +26,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fix: Explicitly use React.Component to ensure props and state are correctly inherited
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Explicitly define constructor to satisfy TypeScript props check
+// Fixed: Inherit directly from the named Component import to resolve TypeScript state/props access errors
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -185,7 +184,6 @@ const PlaceholderPage = ({ title, type }: { title: string, type: 'careers' | 'bl
 };
 
 // --- Layout Component ---
-// Handles the structure for pages that need Navbar and Footer
 const MainLayout = ({ currentUser, setCurrentUser }: { currentUser: User | null, setCurrentUser: (u: User | null) => void }) => {
   const { siteConfig } = useData();
 
@@ -221,17 +219,25 @@ const AppContent: React.FC = () => {
   const { siteConfig } = useData();
 
   // Apply Site Config (Title & Favicon)
+  // Enhanced to update all relevant icon types for Google Search visibility
   useEffect(() => {
     if (siteConfig?.faviconUrl) {
-      // Create new link or update existing
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.head.appendChild(link);
+      const relTypes = ['icon', 'shortcut icon', 'apple-touch-icon'];
+      
+      relTypes.forEach(rel => {
+        let link = document.querySelector(`link[rel~="${rel}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = rel;
+          document.head.appendChild(link);
+        }
+        link.href = siteConfig.faviconUrl || '/favicon.ico';
+      });
+      
+      // Also update page title dynamically if needed
+      if (siteConfig.siteName) {
+        document.title = siteConfig.siteName + " - India's #1 B2B Marketplace";
       }
-      // Force refresh by appending timestamp if it's not a data URL
-      link.href = siteConfig.faviconUrl;
     }
   }, [siteConfig]);
 
@@ -240,7 +246,6 @@ const AppContent: React.FC = () => {
       <ScrollToTop />
       <ToastContainer />
       <Routes>
-        {/* Routes with Navbar & Footer */}
         <Route element={<MainLayout currentUser={currentUser} setCurrentUser={setCurrentUser} />}>
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
           <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
@@ -248,13 +253,9 @@ const AppContent: React.FC = () => {
           <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
           <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
           <Route path="/vendor-register" element={<VendorRegister />} />
-          
-          {/* Rich Content Pages */}
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/features" element={<Features />} />
-          
-          {/* Placeholder Routes */}
           <Route path="/privacy" element={<PlaceholderPage title="Privacy Policy" type="legal" />} />
           <Route path="/terms" element={<PlaceholderPage title="Terms of Service" type="legal" />} />
           <Route path="/blog" element={<PlaceholderPage title="Blog" type="blog" />} />
@@ -265,8 +266,6 @@ const AppContent: React.FC = () => {
           <Route path="/community" element={<PlaceholderPage title="Vendor Community" type="blog" />} />
           <Route path="/security" element={<PlaceholderPage title="Security (ISO 27001)" type="legal" />} />
           <Route path="/cookies" element={<PlaceholderPage title="Cookie Settings" type="legal" />} />
-          
-          {/* 404 Route */}
           <Route path="*" element={
             <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
               <h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2>
@@ -275,8 +274,6 @@ const AppContent: React.FC = () => {
             </div>
           } />
         </Route>
-
-        {/* Routes WITHOUT Navbar/Footer (e.g. Login) */}
         <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
       </Routes>
     </Router>
@@ -295,7 +292,6 @@ const App: React.FC = () => {
   );
 };
 
-// Helper component to scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   React.useEffect(() => {

@@ -9,6 +9,11 @@
     <title>BantConfirm - B2B Marketplace India | Buy CRM, Cloud Telephony & IT Services Near Me</title>
     <meta name="description" content="India's #1 B2B Marketplace. Compare & Buy Tata/Airtel Leased Lines, Zoho/Salesforce CRM, Cloud Telephony, IVR & Custom Software. Verified Vendors in Delhi, Mumbai, Bangalore, Noida & near you." />
     
+    <!-- Favicon & Icons for Google Search -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/favicon.ico" />
+    
     <!-- Geo Tags for Local SEO -->
     <meta name="geo.region" content="IN" />
     <meta name="geo.placename" content="Noida, India" />
@@ -18,36 +23,24 @@
     <!-- Comprehensive Keywords Strategy -->
     <meta name="keywords" content="
       BantConfirm, Bant Confirm, bantconfirm.com,
-      
-      <!-- Core Services -->
       B2B Marketplace India, IT Procurement, MSME Software, BANT Verification, Verified Vendors, Lead Generation, 
-      
-      <!-- Telecom & Connectivity -->
       Tata Teleservices, Airtel Business, Jio Business, Vodafone Idea Business,
       Internet Leased Line, ILL, Smartflo, Tata Lease Line Price, Airtel Internet Leased Line, 
       PRI Line, SIP Trunk, Cloud Telephony, IVR Service provider, Auto Dialer, Toll Free Number,
       Virtual Number, MyOperator, Knowlarity, Exotel, CallerDesk, Twilio,
-      
-      <!-- Software & CRM -->
       Zoho CRM, Salesforce, LeadSquared, TeleCRM, Freshworks, HubSpot,
       ERP Solutions, SAP, Oracle, Tally Prime, Marg ERP,
       HRMS Software, Payroll Software, Keka, GreytHR,
-      
-      <!-- Development & IT Services -->
       Custom Software Development, Software Developer near me,
       Web Development Company, Mobile App Development, Android App Developer,
       Digital Marketing Agency near me, SEO Services, Social Media Marketing,
       Cybersecurity, Firewall, Endpoint Security, Antivirus for Business,
       Cloud Storage, AWS Services, Azure, Google Cloud, Data Center, VPS Hosting,
-      
-      <!-- Location Based (Tier 1 & 2 Cities) -->
       IT Services in Delhi, Software Company in Noida, Telecom Vendor in Mumbai,
       CRM Dealer in Bangalore, Cloud Telephony in Gurgaon, Leased Line in Pune,
       Web Development in Hyderabad, Digital Marketing in Chennai,
       IT Support in Kolkata, Software Vendor in Ahmedabad,
       Jaipur, Lucknow, Surat, Kanpur, Indore, Chandigarh, Kochi, Coimbatore,
-      
-      <!-- Intent Based -->
       Best IT Service Provider near me, Software Marketplace India,
       Buy CRM Software online, Compare Telecom Prices India,
       B2B Lead Generation Agency, Verified IT Vendors nearby
@@ -56,10 +49,8 @@
     <meta name="robots" content="index, follow" />
     <meta name="author" content="BantConfirm India Pvt Ltd" />
     
-    <!-- Sitemap/Favicon References -->
+    <!-- Sitemap References -->
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
-    <!-- FIXED: Removed type="image/svg+xml" because .ico files are not SVGs -->
-    <link rel="icon" href="/favicon.ico" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -107,26 +98,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body { font-family: 'Inter', sans-serif; }
-      /* Custom scrollbar for dashboard tables */
-      .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-      }
-      .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-      }
-      
-      /* Animations */
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-      @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-      
       .animate-fade-in { animation: fadeIn 1s ease-out forwards; }
       .animate-slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-      .animate-slide-up-delay-1 { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0; }
-      .animate-slide-up-delay-2 { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards; opacity: 0; }
-
-      /* Hero Background Animations */
       @keyframes gradient-xy {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -136,22 +113,13 @@
         background-size: 200% 200%;
         animation: gradient-xy 15s ease infinite;
       }
-      
       @keyframes blob {
         0% { transform: translate(0px, 0px) scale(1); }
         33% { transform: translate(30px, -50px) scale(1.1); }
         66% { transform: translate(-20px, 20px) scale(0.9); }
         100% { transform: translate(0px, 0px) scale(1); }
       }
-      .animate-blob {
-        animation: blob 7s infinite;
-      }
-      .animation-delay-2000 {
-        animation-delay: 2s;
-      }
-      .animation-delay-4000 {
-        animation-delay: 4s;
-      }
+      .animate-blob { animation: blob 7s infinite; }
     </style>
   <script type="importmap">
 {
@@ -172,7 +140,6 @@
 </head>
   <body class="bg-slate-50 text-slate-900 text-lg antialiased selection:bg-blue-100 selection:text-blue-900">
     <div id="root"></div>
-    <!-- IMPORTANT: Use relative path ./index.tsx so it works in subdirectories -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
