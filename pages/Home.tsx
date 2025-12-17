@@ -113,18 +113,17 @@ const NewsTicker = () => {
   return (
     <div className="bg-indigo-900 text-white py-3 overflow-hidden relative" role="alert" aria-live="polite">
       <div className="max-w-7xl mx-auto px-4 text-center">
-         <p className="text-sm md:text-base font-medium flex items-center justify-center animate-fade-in key={index}">
+         <p key={index} className="text-sm md:text-base font-medium flex items-center justify-center animate-fade-in">
             <Megaphone size={16} className="mr-2 text-yellow-400" />
             {messages[index]}
          </p>
       </div>
-      <div className="absolute bottom-0 left-0 h-1 bg-yellow-400/50 transition-all duration-[5000ms] ease-linear w-full" key={index} style={{ animation: 'width 5s linear' }}></div>
+      <div key={`timer-${index}`} className="absolute bottom-0 left-0 h-1 bg-yellow-400/50 transition-all duration-[5000ms] ease-linear w-full" style={{ animation: 'width 5s linear' }}></div>
       <style>{`@keyframes width { from { width: 0%; } to { width: 100%; } }`}</style>
     </div>
   );
 };
 
-// Vendor Scroll Component
 const VendorTicker = () => {
   const { vendorLogos } = useData();
   
@@ -137,7 +136,6 @@ const VendorTicker = () => {
       </div>
       <div className="relative w-full overflow-hidden">
         <div className="flex animate-scroll whitespace-nowrap gap-16 items-center w-max">
-           {/* Duplicate list to create seamless loop */}
            {[...vendorLogos, ...vendorLogos, ...vendorLogos].map((logo, i) => (
              <div key={`${logo.id}-${i}`} className="flex-shrink-0 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
                <img src={logo.logoUrl} alt={`${logo.name} logo`} loading="lazy" className="h-10 md:h-12 w-auto object-contain" />
@@ -158,7 +156,6 @@ const VendorTicker = () => {
   );
 }
 
-// SEO Text Component for City/Service Ranking
 const SEOFooterLinks = () => {
   return (
     <section className="bg-white border-t border-gray-100 py-16">
@@ -223,7 +220,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
   const [activeFeature, setActiveFeature] = useState<any>(null);
   const navigate = useNavigate();
 
-  // New Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -259,7 +255,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
     }
   };
 
-  // Filter Logic
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -337,7 +332,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
     }
   };
 
-  // Structured Data (Organization)
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -372,18 +366,12 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
       
       <NewsTicker />
       
-      {/* Hero Section */}
       <section className="relative pt-20 pb-40 overflow-hidden" aria-labelledby="hero-title">
-        {/* Animated Background */}
         <div className="absolute inset-0 -z-10 animate-gradient-xy bg-gradient-to-br from-blue-50 via-white to-blue-100 opacity-70"></div>
-        
-        {/* Pattern Overlay */}
         <div className="absolute inset-0 -z-10 opacity-[0.4]" style={{
             backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
             backgroundSize: '30px 30px'
         }}></div>
-
-        {/* Floating animated blobs */}
         <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
         <div className="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
         <div className="absolute -bottom-32 left-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
@@ -427,9 +415,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
             </div>
           </div>
 
-          {/* Hero Dashboard Preview */}
           <div className="mt-20 relative max-w-6xl mx-auto animate-slide-up-delay-1">
-             {/* Floating Badge */}
             <div className="absolute -top-10 -right-10 z-10 bg-yellow-400 text-white p-6 rounded-3xl shadow-2xl transform rotate-12 hidden md:block animate-[bounce_3s_infinite]">
                <span className="text-4xl">💰</span>
             </div>
@@ -486,19 +472,15 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
         </div>
       </section>
 
-      {/* Vendor Ticker - New Feature */}
       <VendorTicker />
 
-      {/* Marketplace Browser Section */}
       <section className="py-20 bg-slate-50 border-t border-gray-100" id="marketplace">
         <div className="max-w-7xl mx-auto px-4">
-           {/* Header */}
            <div className="mb-12">
                <h2 className="text-4xl font-bold text-slate-900">Explore IT & Telecom Solutions</h2>
                <p className="text-slate-500 mt-2 text-lg">Curated services for the Indian business ecosystem</p>
            </div>
            
-           {/* Search Bar */}
            <div className="mb-8 max-w-3xl">
               <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-4 shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                   <Search size={22} className="text-gray-400 mr-3" />
@@ -518,7 +500,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
               </div>
            </div>
 
-           {/* Categories */}
            <nav className="flex items-center space-x-3 overflow-x-auto pb-4 scrollbar-hide mb-10">
                <button 
                  onClick={() => setSelectedCategory('All')}
@@ -539,7 +520,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                </button>
            </nav>
 
-           {/* Content Logic: Filtered vs Default */}
            {(searchQuery || selectedCategory !== 'All') ? (
                <div className="min-h-[400px]">
                    <div className="flex items-center justify-between mb-8">
@@ -571,7 +551,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                </div>
            ) : (
              <>
-               {/* Default View: Software */}
                <div className="mb-16">
                    <div className="flex items-center justify-between mb-8">
                      <h3 className="text-2xl font-bold text-slate-900 flex items-center">
@@ -594,7 +573,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                    </div>
                </div>
 
-               {/* Default View: Telecom */}
                <div className="mb-12">
                    <div className="flex items-center justify-between mb-8">
                      <h3 className="text-2xl font-bold text-slate-900 flex items-center">
@@ -621,7 +599,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
         </div>
       </section>
 
-      {/* Features Grid */}
       <section className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-4">
            <div className="text-center max-w-4xl mx-auto mb-20">
@@ -653,7 +630,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
         </div>
       </section>
 
-      {/* Testimonials */}
       <section className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-20">
@@ -680,14 +656,11 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
         </div>
       </section>
 
-      {/* SEO Footer Links */}
       <SEOFooterLinks />
 
-      {/* CTA Section */}
       <section className="py-24">
          <div className="max-w-7xl mx-auto px-4">
            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2.5rem] p-16 text-center text-white shadow-2xl relative overflow-hidden group">
-             {/* Background decorative elements */}
              <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity duration-700">
                 <div className="absolute top-10 left-10 text-6xl animate-pulse">+</div>
                 <div className="absolute bottom-10 right-10 text-8xl animate-pulse">+</div>
@@ -711,7 +684,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
          </div>
       </section>
 
-      {/* Feature Details Modal */}
       {activeFeature && (
          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={() => setActiveFeature(null)}>
             <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl animate-slide-up relative overflow-hidden" onClick={e => e.stopPropagation()}>

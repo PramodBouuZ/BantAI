@@ -1,4 +1,7 @@
-import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
+
+
+// Fixed missing Component import and ErrorBoundary property errors
+import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -12,6 +15,8 @@ import Contact from './pages/Contact';
 import Features from './pages/Features';
 import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
+import Comparison from './pages/Comparison';
+import AIConsultant from './components/AIConsultant';
 import { User } from './types';
 import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
@@ -26,13 +31,10 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed ErrorBoundary to ensure state and props are correctly inherited and typed
-// By using React.Component directly and constructor initialization, we avoid inheritance issues
+// Inherit from React.Component to ensure props and state are correctly typed by the compiler
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+  // Define state property explicitly as a class field to satisfy TypeScript's property checks
+  state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -43,7 +45,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   render() {
-    // Correctly accessing state via this.state
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -56,7 +57,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    // Correctly accessing props via this.props
     return this.props.children;
   }
 }
@@ -130,57 +130,9 @@ const CompareTray: React.FC = () => {
 
       <div className="flex items-center gap-3 pl-4 border-l border-gray-100 ml-4">
          <button onClick={clearCompare} className="text-slate-500 hover:text-red-500 text-sm font-medium px-2 transition">Clear</button>
-         <button onClick={() => navigate('/enquiry?type=compare')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">
+         <button onClick={() => navigate('/compare')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">
            Compare ({compareList.length})
          </button>
-      </div>
-    </div>
-  );
-};
-
-// --- Placeholder Page Component ---
-const PlaceholderPage = ({ title, type }: { title: string, type: 'careers' | 'blog' | 'legal' | 'press' }) => {
-  const getContent = () => {
-    switch(type) {
-      case 'careers':
-        return {
-          icon: <Briefcase size={64} className="text-blue-500 mb-6" />,
-          subtitle: "Join our mission to transform B2B procurement.",
-          text: "We are always looking for talented individuals to join our team in Bangalore. Check back soon for open positions in Engineering, Sales, and Customer Success."
-        };
-      case 'blog':
-        return {
-          icon: <FileText size={64} className="text-green-500 mb-6" />,
-          subtitle: "Insights on IT Procurement and B2B Trends.",
-          text: "Our editorial team is curating the best articles on navigating the Indian IT landscape. The blog will launch next month with guides on Cloud Migration, VoIP regulations, and more."
-        };
-      case 'press':
-        return {
-          icon: <Newspaper size={64} className="text-purple-500 mb-6" />,
-          subtitle: "Media Resources & Company News.",
-          text: "Find our latest press releases, brand assets, and media contact information here soon. For immediate media inquiries, please contact press@bantconfirm.com."
-        };
-      default:
-        return {
-          icon: <Construction size={64} className="text-yellow-500 mb-6" />,
-          subtitle: "This page is under construction.",
-          text: "We are working hard to bring you this content. Please check back shortly."
-        };
-    }
-  };
-
-  const content = getContent();
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 py-20">
-      <div className="max-w-2xl text-center bg-white p-12 rounded-3xl shadow-xl border border-gray-100">
-        <div className="flex justify-center">{content.icon}</div>
-        <h1 className="text-4xl font-bold text-slate-900 mb-4">{title}</h1>
-        <h2 className="text-xl text-blue-600 font-semibold mb-6">{content.subtitle}</h2>
-        <p className="text-lg text-slate-600 leading-relaxed mb-8">{content.text}</p>
-        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl border border-yellow-200 inline-block">
-          <strong>Note:</strong> We are currently building this section to better serve our MSME and Enterprise clients.
-        </div>
       </div>
     </div>
   );
@@ -197,9 +149,9 @@ const MainLayout = ({ currentUser, setCurrentUser }: { currentUser: User | null,
         <Outlet />
       </div>
       <CompareTray />
+      <AIConsultant />
       <Footer />
       
-      {/* WhatsApp Notification Floating Button */}
       {siteConfig.whatsappNumber && (
         <a 
           href={`https://wa.me/${siteConfig.whatsappNumber.replace(/[^0-9]/g, '')}`} 
@@ -221,12 +173,9 @@ const AppContent: React.FC = () => {
   const isLoggedIn = currentUser !== null;
   const { siteConfig } = useData();
 
-  // Apply Site Config (Title & Favicon)
-  // Enhanced to update all relevant icon types for Google Search visibility
   useEffect(() => {
     if (siteConfig?.faviconUrl) {
       const relTypes = ['icon', 'shortcut icon', 'apple-touch-icon'];
-      
       relTypes.forEach(rel => {
         let link = document.querySelector(`link[rel~="${rel}"]`) as HTMLLinkElement;
         if (!link) {
@@ -236,8 +185,6 @@ const AppContent: React.FC = () => {
         }
         link.href = siteConfig.faviconUrl || '/favicon.ico';
       });
-      
-      // Also update page title dynamically if needed
       if (siteConfig.siteName) {
         document.title = siteConfig.siteName + " - India's #1 B2B Marketplace";
       }
@@ -253,27 +200,18 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
           <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
           <Route path="/products/:id" element={<ProductDetails />} />
+          <Route path="/compare" element={<Comparison />} />
           <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
           <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
           <Route path="/vendor-register" element={<VendorRegister />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/features" element={<Features />} />
-          <Route path="/privacy" element={<PlaceholderPage title="Privacy Policy" type="legal" />} />
-          <Route path="/terms" element={<PlaceholderPage title="Terms of Service" type="legal" />} />
-          <Route path="/blog" element={<PlaceholderPage title="Blog" type="blog" />} />
-          <Route path="/careers" element={<PlaceholderPage title="Careers" type="careers" />} />
-          <Route path="/press" element={<PlaceholderPage title="Press Kit" type="press" />} />
-          <Route path="/help" element={<PlaceholderPage title="Help Center" type="legal" />} />
-          <Route path="/api" element={<PlaceholderPage title="API Reference" type="legal" />} />
-          <Route path="/community" element={<PlaceholderPage title="Vendor Community" type="blog" />} />
-          <Route path="/security" element={<PlaceholderPage title="Security (ISO 27001)" type="legal" />} />
-          <Route path="/cookies" element={<PlaceholderPage title="Cookie Settings" type="legal" />} />
           <Route path="*" element={
             <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
               <h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2>
               <h3 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h3>
-              <p className="text-slate-500">The page you are looking for doesn't exist or has been moved.</p>
+              <button onClick={() => window.history.back()} className="text-indigo-600 font-bold hover:underline mt-4">Go Back</button>
             </div>
           } />
         </Route>
