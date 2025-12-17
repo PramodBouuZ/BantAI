@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -27,12 +27,11 @@ interface ErrorBoundaryState {
 }
 
 // Fixed ErrorBoundary to ensure state and props are correctly inherited and typed
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Explicitly initialize state on the class to avoid "Property 'state' does not exist" errors
-  public state: ErrorBoundaryState = { hasError: false };
-
+// By using React.Component directly and constructor initialization, we avoid inheritance issues
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {

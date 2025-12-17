@@ -8,7 +8,7 @@ import {
 import { 
   Download, Search, Filter, Star, CheckCircle2, Server, Phone, Wifi, Database, Shield, Globe, Zap, IndianRupee,
   Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, UserPlus, Briefcase, FileText, Upload,
-  Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare
+  Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, AlertTriangle, ExternalLink
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -732,21 +732,45 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
         <main className="flex-grow overflow-y-auto p-8">
             {activeTab === 'overview' && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <div className="text-slate-500 text-sm mb-1">Total Users</div>
-                        <div className="text-3xl font-bold">{users.length}</div>
+                <div className="space-y-8">
+                    {/* CRITICAL ALERT BOX for MISSING EMAILS */}
+                    <div className="bg-amber-50 border border-amber-200 p-6 rounded-3xl flex items-start gap-5 shadow-sm">
+                        <div className="bg-amber-100 p-4 rounded-2xl text-amber-700">
+                            <AlertTriangle size={32} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-slate-900 text-lg mb-1">Are users reporting missing verification emails?</h3>
+                            <p className="text-slate-600 text-sm mb-4 leading-relaxed">
+                                Supabase's default email provider has a strict limit of <strong>3 emails per hour</strong>. 
+                                For high traffic, you MUST connect a custom SMTP provider (like Resend or SendGrid).
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                                <a href="https://supabase.com/dashboard/project/_/auth/url-configuration" target="_blank" className="bg-white border border-amber-200 px-4 py-2 rounded-xl text-xs font-bold hover:bg-amber-100 transition flex items-center">
+                                    Check Redirect URLs <ExternalLink size={12} className="ml-1" />
+                                </a>
+                                <a href="https://supabase.com/dashboard/project/_/auth/providers" target="_blank" className="bg-white border border-amber-200 px-4 py-2 rounded-xl text-xs font-bold hover:bg-amber-100 transition flex items-center">
+                                    Setup SMTP <ExternalLink size={12} className="ml-1" />
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <div className="text-slate-500 text-sm mb-1">Total Leads</div>
-                        <div className="text-3xl font-bold">{leads.length}</div>
-                    </div>
-                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <div className="text-slate-500 text-sm mb-1">Pending Vendors</div>
-                        <div className="text-3xl font-bold">{vendorRegistrations.length}</div>
-                    </div>
-                    <div className="col-span-full mt-6">
-                        {renderAdminLeads()}
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="text-slate-500 text-sm mb-1">Total Users</div>
+                            <div className="text-3xl font-bold">{users.length}</div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="text-slate-500 text-sm mb-1">Total Leads</div>
+                            <div className="text-3xl font-bold">{leads.length}</div>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                            <div className="text-slate-500 text-sm mb-1">Pending Vendors</div>
+                            <div className="text-3xl font-bold">{vendorRegistrations.length}</div>
+                        </div>
+                        <div className="col-span-full mt-6">
+                            {renderAdminLeads()}
+                        </div>
                     </div>
                 </div>
             )}
