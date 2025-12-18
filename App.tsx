@@ -1,5 +1,5 @@
 // Fixed missing Component import and ErrorBoundary property errors
-import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -29,11 +29,13 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Inherit from React.Component to ensure props and state are correctly typed by the compiler
-// Use React.Component explicitly to resolve 'props' not found on type error
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Define state property explicitly as a class field to satisfy TypeScript's property checks
-  state: ErrorBoundaryState = { hasError: false };
+// Inherit from Component and use a constructor to ensure props and state are correctly typed by the compiler
+// This resolves the 'Property props does not exist on type ErrorBoundary' error.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -56,7 +58,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    // Fixed: Using React.Component ensures this.props is correctly recognized within the render method
+    // Access children property from this.props
     return this.props.children;
   }
 }

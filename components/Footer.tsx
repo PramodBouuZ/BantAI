@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Zap, Twitter, Linkedin, Facebook, Instagram, Phone, Mail, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -5,6 +6,13 @@ import { useData } from '../context/DataContext';
 
 const Footer: React.FC = () => {
   const { siteConfig } = useData();
+
+  const socialLinks = [
+    { icon: Twitter, url: siteConfig.socialLinks.twitter, label: 'Twitter' },
+    { icon: Linkedin, url: siteConfig.socialLinks.linkedin, label: 'LinkedIn' },
+    { icon: Facebook, url: siteConfig.socialLinks.facebook, label: 'Facebook' },
+    { icon: Instagram, url: siteConfig.socialLinks.instagram, label: 'Instagram' },
+  ].filter(link => link.url && link.url !== '#');
 
   return (
     <footer className="bg-slate-900 text-white pt-16 pb-8 border-t border-slate-800">
@@ -44,11 +52,21 @@ const Footer: React.FC = () => {
             </div>
 
             <div className="flex space-x-4">
-              {[Twitter, Linkedin, Facebook, Instagram].map((Icon, i) => (
-                <a key={i} href="#" className="p-2 bg-slate-800 rounded-lg hover:bg-blue-600 transition-colors text-slate-300 hover:text-white">
-                  <Icon size={18} />
+              {socialLinks.map((social, i) => (
+                <a 
+                  key={i} 
+                  href={social.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="p-2 bg-slate-800 rounded-lg hover:bg-blue-600 transition-colors text-slate-300 hover:text-white"
+                  title={social.label}
+                >
+                  <social.icon size={18} />
                 </a>
               ))}
+              {socialLinks.length === 0 && (
+                 <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Connect with us</p>
+              )}
             </div>
           </div>
 

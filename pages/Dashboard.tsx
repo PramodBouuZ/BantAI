@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useRef } from 'react';
 import { Product, Lead, User, VendorAsset, VendorRegistration } from '../types';
 import { useData } from '../context/DataContext';
 import { 
   Download, Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, Briefcase, FileText, Upload,
   Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, CheckCircle2, IndianRupee, Star, ExternalLink, Globe, Phone, MapPin,
-  // Added missing Zap and Mail icons to resolve compilation errors
-  Zap, Mail
+  Zap, Mail, Camera
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -20,7 +20,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     addProduct, updateProduct, deleteProduct, 
     updateLeadStatus, assignLead, updateLeadRemarks, deleteLead, updateSiteConfig,
     addCategory, deleteCategory,
-    addUser, deleteUser, addVendorLogo, deleteVendorLogo
+    addUser, deleteUser, addVendorLogo, deleteVendorLogo, addNotification
   } = useData();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'categories' | 'users' | 'requests' | 'settings' | 'logos'>('overview');
@@ -45,11 +45,30 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     if (siteConfig) setConfigForm(siteConfig);
   }, [siteConfig]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper for image upload to Base64
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        addNotification('Only JPEG, PNG, or JPG files allowed.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        callback(reader.result as string);
+        addNotification('Image uploaded successfully!', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleExportLeads = () => {
-    const headers = ["ID", "Name", "Mobile", "Email", "Company", "Location", "Service", "Budget", "Status", "Date"];
+    const headers = ["ID", "Name", "Mobile", "Email", "Company", "Location", "Service", "Budget", "Need", "Authority", "Timing", "Status", "Date"];
     const csvContent = [
       headers.join(","),
-      ...leads.map(l => [l.id, l.name, l.mobile, l.email, l.company, l.location, l.service, l.budget, l.status, l.date].map(field => `"${field}"`).join(","))
+      ...leads.map(l => [l.id, l.name, l.mobile, l.email, l.company, l.location, l.service, l.budget, l.requirement, l.authority || '', l.timing || '', l.status, l.date].map(field => `"${field}"`).join(","))
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -212,9 +231,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 text-[11px] uppercase text-slate-400 font-black tracking-[0.1em]">
-                <th className="px-8 py-5">User Details</th>
+                <th className="px-8 py-5">User & Company</th>
+                <th className="px-8 py-5">BANT Profile</th>
                 <th className="px-8 py-5">Requirement</th>
-                <th className="px-8 py-5">Location/Budget</th>
                 <th className="px-8 py-5">Status</th>
                 <th className="px-8 py-5">Action</th>
               </tr>
@@ -224,21 +243,23 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-6">
                       <div className="font-bold text-slate-900 text-base">{lead.name}</div>
-                      <div className="text-slate-400 text-xs font-medium">{lead.email}</div>
-                      <div className="text-slate-400 text-xs font-medium">{lead.mobile}</div>
+                      <div className="text-blue-600 text-xs font-bold">{lead.company}</div>
+                      <div className="text-slate-400 text-xs mt-1">{lead.email} | {lead.mobile}</div>
+                      <div className="flex items-center gap-1.5 text-slate-500 text-[10px] mt-2 font-bold uppercase">
+                        <MapPin size={10} /> {lead.location}
+                      </div>
                   </td>
                   <td className="px-8 py-6">
-                      <div className="font-bold text-blue-600">{lead.service}</div>
-                      <div className="text-slate-500 text-xs mt-1 line-clamp-1 italic">"{lead.requirement}"</div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2"><span className="w-16 text-[10px] font-black uppercase text-slate-400">Budget:</span> <span className="text-green-600 font-bold">{lead.budget}</span></div>
+                        <div className="flex items-center gap-2"><span className="w-16 text-[10px] font-black uppercase text-slate-400">Timing:</span> <span className="text-blue-600 font-bold">{lead.timing || 'N/A'}</span></div>
+                        <div className="flex items-center gap-2"><span className="w-16 text-[10px] font-black uppercase text-slate-400">Authority:</span> <span className="text-indigo-600 font-bold">{lead.authority || 'N/A'}</span></div>
+                      </div>
+                  </td>
+                  <td className="px-8 py-6">
+                      <div className="font-bold text-slate-800">{lead.service}</div>
+                      <div className="text-slate-500 text-xs mt-1 line-clamp-2 max-w-xs leading-relaxed italic">"{lead.requirement}"</div>
                       <div className="text-slate-400 text-[10px] mt-2 font-bold uppercase">{lead.date}</div>
-                  </td>
-                  <td className="px-8 py-6">
-                      <div className="flex items-center gap-1.5 text-slate-700 font-bold mb-1">
-                        <MapPin size={14} className="text-slate-300" /> {lead.location}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-green-600 font-bold">
-                        <IndianRupee size={14} className="text-green-300" /> {lead.budget}
-                      </div>
                   </td>
                   <td className="px-8 py-6">
                     <select 
@@ -378,13 +399,27 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             value={newLogo.name}
             onChange={(e) => setNewLogo({...newLogo, name: e.target.value})}
           />
-          <input 
-            type="text" 
-            placeholder="Logo Image URL" 
-            className="bg-slate-50 border-none outline-none px-5 py-3 rounded-xl font-medium"
-            value={newLogo.url}
-            onChange={(e) => setNewLogo({...newLogo, url: e.target.value})}
-          />
+          <div className="relative">
+             <input 
+                type="text" 
+                placeholder="Logo URL (or click upload)" 
+                className="bg-slate-50 border-none outline-none px-5 py-3 rounded-xl font-medium w-full"
+                value={newLogo.url}
+                onChange={(e) => setNewLogo({...newLogo, url: e.target.value})}
+              />
+              <button 
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e: any) => handleImageUpload(e, (base64) => setNewLogo({...newLogo, url: base64}));
+                  input.click();
+                }}
+                className="absolute right-2 top-2 p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+              >
+                <Camera size={20} />
+              </button>
+          </div>
         </div>
         <button 
           onClick={handleLogoUpload}
@@ -420,7 +455,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 <th className="px-8 py-5">Partner</th>
                 <th className="px-8 py-5">Contact Info</th>
                 <th className="px-8 py-5">Product/Service</th>
-                <th className="px-8 py-5">Location</th>
+                <th className="px-8 py-5">Message/Note</th>
                 <th className="px-8 py-5">Status</th>
               </tr>
             </thead>
@@ -430,6 +465,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                   <td className="px-8 py-6">
                     <div className="font-bold text-slate-900">{reg.companyName}</div>
                     <div className="text-slate-400 text-xs">{reg.name}</div>
+                    <div className="flex items-center gap-1.5 text-slate-500 text-[10px] mt-2 font-bold uppercase">
+                      <MapPin size={10} /> {reg.location}
+                    </div>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2 mb-1"><Mail size={14} className="text-slate-300" /> {reg.email}</div>
@@ -439,10 +477,11 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                     <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg inline-block font-bold text-xs uppercase">{reg.productName}</div>
                   </td>
                   <td className="px-8 py-6 font-medium text-slate-600">
-                    {reg.location}
+                    <div className="text-xs leading-relaxed max-w-xs italic text-slate-500">"{reg.message}"</div>
+                    <div className="text-[10px] text-slate-400 font-bold mt-2">{reg.date}</div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">NEW</span>
+                    <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">NEW REQUEST</span>
                   </td>
                 </tr>
               ))}
@@ -461,13 +500,43 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             <label className="block text-xs font-black uppercase text-slate-400 mb-2">Site Name</label>
             <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-100" value={configForm.siteName} onChange={e => setConfigForm({...configForm, siteName: e.target.value})} />
           </div>
-          <div>
-            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Logo URL</label>
-            <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.logoUrl || ''} onChange={e => setConfigForm({...configForm, logoUrl: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Favicon URL</label>
-            <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.faviconUrl || ''} onChange={e => setConfigForm({...configForm, faviconUrl: e.target.value})} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-black uppercase text-slate-400 mb-2">Logo URL</label>
+              <div className="relative">
+                <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.logoUrl || ''} onChange={e => setConfigForm({...configForm, logoUrl: e.target.value})} />
+                <button 
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e: any) => handleImageUpload(e, (base64) => setConfigForm({...configForm, logoUrl: base64}));
+                    input.click();
+                  }}
+                  className="absolute right-2 top-2 p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                >
+                  <Camera size={20} />
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase text-slate-400 mb-2">Favicon URL</label>
+              <div className="relative">
+                <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.faviconUrl || ''} onChange={e => setConfigForm({...configForm, faviconUrl: e.target.value})} />
+                <button 
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/x-icon,image/png,image/jpeg';
+                    input.onchange = (e: any) => handleImageUpload(e, (base64) => setConfigForm({...configForm, faviconUrl: base64}));
+                    input.click();
+                  }}
+                  className="absolute right-2 top-2 p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                >
+                  <Camera size={20} />
+                </button>
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-black uppercase text-slate-400 mb-2">WhatsApp Number (e.g. +91...)</label>
@@ -477,13 +546,25 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
           <h3 className="text-xl font-bold text-slate-900 mb-6">Social Media & Hero</h3>
-          <div>
-            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Twitter Profile</label>
-            <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.socialLinks.twitter || ''} onChange={e => setConfigForm({...configForm, socialLinks: {...configForm.socialLinks, twitter: e.target.value}})} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-black uppercase text-slate-400 mb-2">Twitter Profile</label>
+              <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.socialLinks.twitter || ''} onChange={e => setConfigForm({...configForm, socialLinks: {...configForm.socialLinks, twitter: e.target.value}})} />
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase text-slate-400 mb-2">LinkedIn Profile</label>
+              <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.socialLinks.linkedin || ''} onChange={e => setConfigForm({...configForm, socialLinks: {...configForm.socialLinks, linkedin: e.target.value}})} />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-black uppercase text-slate-400 mb-2">LinkedIn Profile</label>
-            <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.socialLinks.linkedin || ''} onChange={e => setConfigForm({...configForm, socialLinks: {...configForm.socialLinks, linkedin: e.target.value}})} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-black uppercase text-slate-400 mb-2">Facebook Profile</label>
+              <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.socialLinks.facebook || ''} onChange={e => setConfigForm({...configForm, socialLinks: {...configForm.socialLinks, facebook: e.target.value}})} />
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase text-slate-400 mb-2">Instagram Profile</label>
+              <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.socialLinks.instagram || ''} onChange={e => setConfigForm({...configForm, socialLinks: {...configForm.socialLinks, instagram: e.target.value}})} />
+            </div>
           </div>
           <div>
             <label className="block text-xs font-black uppercase text-slate-400 mb-2">Banner Title</label>
@@ -504,7 +585,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
       <div className="p-8 border-b border-gray-100 flex justify-between items-center">
         <h3 className="text-2xl font-black text-slate-900">User Directory</h3>
-        <button className="text-blue-600 font-bold text-sm bg-blue-50 px-4 py-2 rounded-xl">Add New User</button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
@@ -681,8 +761,22 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                    <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none" placeholder="Feature 1, Feature 2..." value={prodFeaturesText} onChange={e => setProdFeaturesText(e.target.value)} />
                 </div>
                 <div>
-                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Image URL</label>
-                   <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none" value={prodForm.image} onChange={e => setProdForm({...prodForm, image: e.target.value})} />
+                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Image</label>
+                   <div className="flex gap-4 items-center">
+                      <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden">
+                        {prodForm.image ? <img src={prodForm.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" />}
+                      </div>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        id="prod-upload"
+                        onChange={(e) => handleImageUpload(e, (base64) => setProdForm({...prodForm, image: base64}))} 
+                      />
+                      <label htmlFor="prod-upload" className="cursor-pointer bg-slate-50 text-slate-500 px-6 py-4 rounded-2xl font-bold border-2 border-dashed border-slate-200 hover:bg-slate-100 transition flex items-center gap-2">
+                         <Camera size={20} /> Upload Service Image
+                      </label>
+                   </div>
                 </div>
                 <button onClick={handleSaveProduct} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-100 transform active:scale-95 transition">
                   {editingProduct ? 'Update Product' : 'Create Product'}

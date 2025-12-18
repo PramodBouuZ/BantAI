@@ -33,7 +33,7 @@ export interface Lead {
   timing?: string;
   status: 'Pending' | 'Verified' | 'Sold' | 'Rejected';
   assignedTo?: string;
-  remarks?: string; // New field for admin notes
+  remarks?: string;
   date: string;
 }
 
