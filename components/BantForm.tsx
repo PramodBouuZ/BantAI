@@ -1,4 +1,3 @@
-
 // Fixed missing Mail import on line 4
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -62,16 +61,16 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
     
     const newLead = {
       id: `L${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      mobile: formData.mobile,
-      location: formData.location,
+      name: formData.name || 'Anonymous User',
+      email: formData.email || 'not-provided@bantconfirm.com',
+      mobile: formData.mobile || 'Not Provided',
+      location: formData.location || 'Not Provided',
       company: formData.company || 'Not Provided',
       service: productId ? `Product ID: ${productId}` : (type === 'consult' ? 'General Consulting' : 'Custom Requirement'),
-      requirement: formData.need,
-      budget: formData.budget,
-      authority: formData.authority,
-      timing: formData.timing,
+      requirement: formData.need || 'Custom Requirement',
+      budget: formData.budget || 'Not Provided',
+      authority: formData.authority || 'Not Provided',
+      timing: formData.timing || 'Not Provided',
       status: 'Pending' as const,
       date: new Date().toISOString().split('T')[0]
     };

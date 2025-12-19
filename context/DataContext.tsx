@@ -96,7 +96,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('site_config').select('*').maybeSingle(),
         supabase.from('vendor_assets').select('*'),
         supabase.from('categories').select('*'),
-        supabase.from('leads').select('*').order('created_at', { ascending: false }),
+        supabase.from('leads').select('*').order('date', { ascending: false }),
         supabase.from('vendor_registrations').select('*').order('date', { ascending: false })
       ]);
 
@@ -122,7 +122,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
       if (catData) setCategories(Array.from(new Set([...catData.map((c: any) => c.name), 'Software', 'Telecom'])));
-      if (leadData) setLeads(leadData.map((l: any) => ({ ...l, priceRange: l.price_range })));
+      
+      if (leadData) {
+        setLeads(leadData.map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          email: l.email,
+          mobile: l.mobile,
+          company: l.company,
+          location: l.location,
+          service: l.service,
+          budget: l.budget || 'Not Provided',
+          requirement: l.requirement || '',
+          authority: l.authority || 'Not Provided',
+          timing: l.timing || 'Not Provided',
+          status: l.status,
+          date: l.date,
+          remarks: l.remarks,
+          assignedTo: l.assigned_to
+        })));
+      }
+
       if (vRegData) setVendorRegistrations(vRegData.map((v: any) => ({ ...v, companyName: v.company_name, productName: v.product_name })));
     } catch (err) {
       console.error("Fetch data failed:", err);
@@ -147,9 +167,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // --- ACTIONS WITH OPTIMISTIC UPDATES ---
 
   const addProduct = async (product: Product) => {
-    // Optimistic UI Update
     setProducts(prev => [product, ...prev]);
-    
     if (supabase) {
       const { error } = await supabase.from('products').insert({
          id: product.id, title: product.title, description: product.description, category: product.category,
@@ -157,7 +175,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) {
         addNotification(`Failed to save: ${error.message}`, 'error');
-        fetchData(); // Rollback to actual state
+        fetchData();
       } else {
         addNotification('Product added successfully', 'success');
       }
@@ -165,19 +183,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    // Optimistic UI Update
     setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
-
     if (supabase) {
       const { error } = await supabase.from('products').update({
          title: updatedProduct.title, description: updatedProduct.description, category: updatedProduct.category,
          price_range: updatedProduct.priceRange, features: updatedProduct.features, icon: updatedProduct.icon,
          rating: updatedProduct.rating, image: updatedProduct.image
       }).eq('id', id);
-      
       if (error) {
         addNotification(`Update failed: ${error.message}`, 'error');
-        fetchData(); // Rollback
+        fetchData();
       } else {
         addNotification('Product updated across all devices', 'success');
       }
@@ -187,7 +202,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteProduct = async (id: string) => {
     const original = [...products];
     setProducts(prev => prev.filter(p => p.id !== id));
-    
     if (supabase) {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) {
@@ -200,7 +214,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSiteConfig = async (config: SiteConfig) => {
     const original = siteConfig;
     setSiteConfig(config);
-
     if (supabase) {
       const { error } = await supabase.from('site_config').upsert({
           id: 1, site_name: config.siteName, logo_url: config.logoUrl, favicon_url: config.faviconUrl,
@@ -220,9 +233,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLeads(prev => [lead, ...prev]);
     if (supabase) {
       const { error } = await supabase.from('leads').insert({
-         id: lead.id, name: lead.name, email: lead.email, mobile: lead.mobile, company: lead.company,
-         location: lead.location, service: lead.service, budget: lead.budget, requirement: lead.requirement,
-         status: lead.status, date: lead.date
+         id: lead.id, 
+         name: lead.name, 
+         email: lead.email, 
+         mobile: lead.mobile, 
+         company: lead.company,
+         location: lead.location, 
+         service: lead.service, 
+         budget: lead.budget || 'Not Provided', 
+         requirement: lead.requirement || 'Custom Requirement',
+         authority: lead.authority || 'Not Provided',
+         timing: lead.timing || 'Not Provided',
+         status: lead.status, 
+         date: lead.date
       });
       if (error) {
         addNotification(`Failed to submit lead: ${error.message}`, 'error');
