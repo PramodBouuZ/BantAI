@@ -21,7 +21,7 @@ interface DataContextType {
   deleteProduct: (id: string) => Promise<void>;
   
   // Lead Actions
-  addLead: (lead: Lead) => Promise<void>;
+  addLead: (lead: Lead) => Promise<boolean>;
   updateLeadStatus: (id: string, status: Lead['status']) => Promise<void>;
   assignLead: (id: string, vendor: string) => Promise<void>;
   updateLeadRemarks: (id: string, remarks: string) => Promise<void>;
@@ -48,11 +48,13 @@ interface DataContextType {
   clearCompare: () => void;
 }
 
+const ADMIN_EMAIL = 'info.bouuz@gmail.com';
+
 const defaultSiteConfig: SiteConfig = {
   siteName: 'BantConfirm',
   bannerTitle: 'The Premier IT Marketplace for MSMEs & Enterprises',
   bannerSubtitle: 'Discover, Compare, and Buy Enterprise-grade IT, Software, and Telecom solutions.',
-  adminNotificationEmail: 'info.bouuz@gmail.com',
+  adminNotificationEmail: ADMIN_EMAIL,
   socialLinks: { twitter: '#', linkedin: '#', facebook: '#', instagram: '#' }
 };
 
@@ -82,26 +84,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  /**
-   * Triggers an email notification to the Admin.
-   * Integration Note: You can connect this to EmailJS, Resend, or a Supabase Edge Function.
-   */
-  const sendAdminEmailNotification = async (subject: string, details: Record<string, any>) => {
-    const adminEmail = siteConfig.adminNotificationEmail || 'info.bouuz@gmail.com';
-    
-    console.log(`[Admin Notification] Sending to: ${adminEmail}`);
-    console.log(`[Subject]: ${subject}`);
-    console.table(details);
-
-    // MOCK: In a production environment, you would call your backend or EmailJS here
-    // Example for EmailJS: emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", { ...details, to_email: adminEmail });
-    
-    // We'll show a small toast to confirm the process started
-    addNotification(`Admin (${adminEmail}) notified of new request.`, 'info');
-    return true;
+  const triggerAdminNotification = async (subject: string, payload: any) => {
+    const target = siteConfig.adminNotificationEmail || ADMIN_EMAIL;
+    console.log(`[ADMIN NOTIFICATION] To: ${target} | Subject: ${subject}`);
+    // Mocking email trigger
+    addNotification(`Admin notified: ${target}`, 'info');
   };
 
-  // --- DATA FETCHING ---
   const fetchData = useCallback(async () => {
     if (!supabase) return;
     try {
@@ -137,12 +126,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logoUrl: configData.logo_url,
           faviconUrl: configData.favicon_url,
           whatsappNumber: configData.whatsapp_number,
-          adminNotificationEmail: configData.admin_notification_email || defaultSiteConfig.adminNotificationEmail,
+          adminNotificationEmail: configData.admin_notification_email || ADMIN_EMAIL,
           socialLinks: configData.social_links || defaultSiteConfig.socialLinks
         });
       }
 
-      if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
+      if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logo_url: v.logo_url })));
       if (catData) setCategories(Array.from(new Set([...catData.map((c: any) => c.name), 'Software', 'Telecom'])));
       
       if (leadData) {
@@ -176,68 +165,73 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!supabase) return;
 
     const channel = supabase.channel('global-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendor_assets' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  // --- ACTIONS ---
+  const addLead = async (lead: Lead): Promise<boolean> => {
+    if (supabase) {
+      const { error } = await supabase.from('leads').insert({
+         id: lead.id, 
+         name: lead.name, 
+         email: lead.email, 
+         mobile: lead.mobile, 
+         company: lead.company,
+         location: lead.location, 
+         service: lead.service, 
+         budget: lead.budget || 'Not Provided', 
+         requirement: lead.requirement || 'Enquiry',
+         authority: lead.authority || 'Not Provided', // Lowercase key to match lowercase DB column
+         timing: lead.timing || 'Not Provided',
+         status: 'Pending', 
+         date: new Date().toISOString().split('T')[0]
+      });
+      
+      if (error) {
+        addNotification(`Failed to submit lead: ${error.message}`, 'error');
+        return false;
+      } else {
+        setLeads(prev => [lead, ...prev]);
+        addNotification('Requirement posted successfully!', 'success');
+        triggerAdminNotification('New Enquiry Received', { name: lead.name, company: lead.company, service: lead.service });
+        return true;
+      }
+    }
+    return false;
+  };
 
   const addProduct = async (product: Product) => {
-    setProducts(prev => [product, ...prev]);
     if (supabase) {
-      const { error } = await supabase.from('products').insert({
+      await supabase.from('products').insert({
          id: product.id, title: product.title, description: product.description, category: product.category,
          price_range: product.priceRange, features: product.features, icon: product.icon, rating: product.rating, image: product.image
       });
-      if (error) {
-        addNotification(`Failed to save: ${error.message}`, 'error');
-        fetchData();
-      } else {
-        addNotification('Product added successfully', 'success');
-      }
+      fetchData();
     }
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
     if (supabase) {
-      const { error } = await supabase.from('products').update({
+      await supabase.from('products').update({
          title: updatedProduct.title, description: updatedProduct.description, category: updatedProduct.category,
          price_range: updatedProduct.priceRange, features: updatedProduct.features, icon: updatedProduct.icon,
          rating: updatedProduct.rating, image: updatedProduct.image
       }).eq('id', id);
-      if (error) {
-        addNotification(`Update failed: ${error.message}`, 'error');
-        fetchData();
-      } else {
-        addNotification('Product updated across all devices', 'success');
-      }
+      fetchData();
     }
   };
 
   const deleteProduct = async (id: string) => {
-    const original = [...products];
-    setProducts(prev => prev.filter(p => p.id !== id));
-    if (supabase) {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) {
-        addNotification(`Delete failed: ${error.message}`, 'error');
-        setProducts(original);
-      }
-    }
+    if (supabase) await supabase.from('products').delete().eq('id', id);
+    fetchData();
   };
 
   const updateSiteConfig = async (config: SiteConfig) => {
-    const original = siteConfig;
-    setSiteConfig(config);
     if (supabase) {
-      const { error } = await supabase.from('site_config').upsert({
+      await supabase.from('site_config').upsert({
           id: 1, 
           site_name: config.siteName, 
           logo_url: config.logoUrl, 
@@ -249,121 +243,64 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           social_links: config.socialLinks, 
           updated_at: new Date().toISOString()
       });
-      if (error) {
-        addNotification(`Config update failed: ${error.message}`, 'error');
-        setSiteConfig(original);
-      } else {
-        addNotification('Global settings updated successfully', 'success');
-      }
-    }
-  };
-
-  const addLead = async (lead: Lead) => {
-    setLeads(prev => [lead, ...prev]);
-    if (supabase) {
-      const { error } = await supabase.from('leads').insert({
-         id: lead.id, 
-         name: lead.name, 
-         email: lead.email, 
-         mobile: lead.mobile, 
-         company: lead.company,
-         location: lead.location, 
-         service: lead.service, 
-         budget: lead.budget || 'Not Provided', 
-         requirement: lead.requirement || 'Custom Requirement',
-         authority: lead.authority || 'Not Provided',
-         timing: lead.timing || 'Not Provided',
-         status: lead.status, 
-         date: lead.date
-      });
-      
-      if (error) {
-        addNotification(`Failed to submit lead: ${error.message}`, 'error');
-        fetchData();
-      } else {
-        addNotification('Enquiry Submitted!', 'success');
-        // TRIGGER ADMIN NOTIFICATION
-        sendAdminEmailNotification(`New Lead Enquiry: ${lead.name}`, {
-           "Customer Name": lead.name,
-           "Company": lead.company,
-           "Email": lead.email,
-           "Phone": lead.mobile,
-           "Requirement": lead.requirement,
-           "Service Needed": lead.service,
-           "Budget": lead.budget,
-           "Timestamp": new Date().toLocaleString()
-        });
-      }
+      fetchData();
     }
   };
 
   const updateLeadStatus = async (id: string, status: Lead['status']) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     if (supabase) await supabase.from('leads').update({ status }).eq('id', id);
+    fetchData();
   };
 
   const assignLead = async (id: string, vendor: string) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, assignedTo: vendor } : l));
     if (supabase) await supabase.from('leads').update({ assigned_to: vendor }).eq('id', id);
+    fetchData();
   };
 
   const updateLeadRemarks = async (id: string, remarks: string) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, remarks } : l));
     if (supabase) await supabase.from('leads').update({ remarks }).eq('id', id);
+    fetchData();
   };
 
   const deleteLead = async (id: string) => {
-    setLeads(prev => prev.filter(l => l.id !== id));
     if (supabase) await supabase.from('leads').delete().eq('id', id);
+    fetchData();
   };
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
-    setVendorRegistrations(prev => [reg, ...prev]);
     if (supabase) {
       const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
         mobile: reg.mobile, location: reg.location, product_name: reg.productName,
         message: reg.message, date: reg.date
       });
-
       if (!error) {
-        // TRIGGER ADMIN NOTIFICATION
-        sendAdminEmailNotification(`New Vendor Registration: ${reg.companyName}`, {
-           "Vendor Name": reg.name,
-           "Company": reg.companyName,
-           "Email": reg.email,
-           "Phone": reg.mobile,
-           "Product/Service": reg.productName,
-           "Message": reg.message,
-           "Timestamp": new Date().toLocaleString()
-        });
+        addNotification('Vendor application received!', 'success');
+        triggerAdminNotification('New Vendor Registration', { company: reg.companyName, name: reg.name });
       }
     }
   };
 
   const addCategory = async (category: string) => {
-    setCategories(prev => [...prev, category]);
     if (supabase) await supabase.from('categories').insert({ name: category });
+    fetchData();
   };
 
   const deleteCategory = async (category: string) => {
-    setCategories(prev => prev.filter(c => c !== category));
     if (supabase) await supabase.from('categories').delete().eq('name', category);
+    fetchData();
   };
 
   const addUser = (user: User) => setUsers(prev => [...prev, user]);
   const deleteUser = (id: string) => setUsers(prev => prev.filter(u => u.id !== id));
-
   const addVendorLogo = async (asset: VendorAsset) => {
-    setVendorLogos(prev => [...prev, asset]);
     if (supabase) await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
+    fetchData();
   };
-
   const deleteVendorLogo = async (id: string) => {
-    setVendorLogos(prev => prev.filter(v => v.id !== id));
     if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
+    fetchData();
   };
-
   const toggleCompare = (product: Product) => {
     setCompareList(prev => {
       const exists = prev.find(p => p.id === product.id);
@@ -375,7 +312,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [...prev, product];
     });
   };
-
   const clearCompare = () => setCompareList([]);
 
   return (

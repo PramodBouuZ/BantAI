@@ -1,4 +1,4 @@
-// Fixed missing Mail import on line 4
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, ChevronRight, AlertCircle, Loader2, Search, Check, Building2, User, Phone, MapPin, Sparkles, Database, Cpu, Mail } from 'lucide-react';
@@ -13,7 +13,7 @@ interface BantFormProps {
 const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addLead, addNotification } = useData();
+  const { addLead } = useData();
   
   const searchParams = new URLSearchParams(location.search);
   const productId = searchParams.get('product');
@@ -55,7 +55,7 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
 
   if (!isLoggedIn) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
@@ -75,22 +75,25 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
       date: new Date().toISOString().split('T')[0]
     };
 
-    addLead(newLead);
-    addNotification('Requirement posted successfully! AI is finding the best matches.', 'success');
+    const savedSuccessfully = await addLead(newLead);
     
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += Math.floor(Math.random() * 10) + 5;
-        if (progress > 100) progress = 100;
-        setMatchingStatus(progress);
-        
-        if (progress === 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-                navigate('/dashboard');
-            }, 800);
-        }
-    }, 200);
+    if (savedSuccessfully) {
+      let progress = 0;
+      const interval = setInterval(() => {
+          progress += Math.floor(Math.random() * 10) + 5;
+          if (progress > 100) progress = 100;
+          setMatchingStatus(progress);
+          
+          if (progress === 100) {
+              clearInterval(interval);
+              setTimeout(() => {
+                  navigate('/dashboard');
+              }, 800);
+          }
+      }, 200);
+    } else {
+      setIsSubmitting(false);
+    }
   };
 
   const nextStep = () => setStep(step + 1);
