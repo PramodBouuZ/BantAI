@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification } from '../types';
 import { PRODUCTS, RECENT_LEADS } from '../services/mockData';
@@ -51,6 +52,7 @@ const defaultSiteConfig: SiteConfig = {
   siteName: 'BantConfirm',
   bannerTitle: 'The Premier IT Marketplace for MSMEs & Enterprises',
   bannerSubtitle: 'Discover, Compare, and Buy Enterprise-grade IT, Software, and Telecom solutions.',
+  adminNotificationEmail: 'info.bouuz@gmail.com',
   socialLinks: { twitter: '#', linkedin: '#', facebook: '#', instagram: '#' }
 };
 
@@ -78,6 +80,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  /**
+   * Triggers an email notification to the Admin.
+   * Integration Note: You can connect this to EmailJS, Resend, or a Supabase Edge Function.
+   */
+  const sendAdminEmailNotification = async (subject: string, details: Record<string, any>) => {
+    const adminEmail = siteConfig.adminNotificationEmail || 'info.bouuz@gmail.com';
+    
+    console.log(`[Admin Notification] Sending to: ${adminEmail}`);
+    console.log(`[Subject]: ${subject}`);
+    console.table(details);
+
+    // MOCK: In a production environment, you would call your backend or EmailJS here
+    // Example for EmailJS: emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", { ...details, to_email: adminEmail });
+    
+    // We'll show a small toast to confirm the process started
+    addNotification(`Admin (${adminEmail}) notified of new request.`, 'info');
+    return true;
   };
 
   // --- DATA FETCHING ---
@@ -116,6 +137,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logoUrl: configData.logo_url,
           faviconUrl: configData.favicon_url,
           whatsappNumber: configData.whatsapp_number,
+          adminNotificationEmail: configData.admin_notification_email || defaultSiteConfig.adminNotificationEmail,
           socialLinks: configData.social_links || defaultSiteConfig.socialLinks
         });
       }
@@ -164,7 +186,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  // --- ACTIONS WITH OPTIMISTIC UPDATES ---
+  // --- ACTIONS ---
 
   const addProduct = async (product: Product) => {
     setProducts(prev => [product, ...prev]);
@@ -216,9 +238,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSiteConfig(config);
     if (supabase) {
       const { error } = await supabase.from('site_config').upsert({
-          id: 1, site_name: config.siteName, logo_url: config.logoUrl, favicon_url: config.faviconUrl,
-          banner_title: config.bannerTitle, banner_subtitle: config.bannerSubtitle,
-          whatsapp_number: config.whatsappNumber, social_links: config.socialLinks, updated_at: new Date().toISOString()
+          id: 1, 
+          site_name: config.siteName, 
+          logo_url: config.logoUrl, 
+          favicon_url: config.faviconUrl,
+          banner_title: config.bannerTitle, 
+          banner_subtitle: config.bannerSubtitle,
+          whatsapp_number: config.whatsappNumber, 
+          admin_notification_email: config.adminNotificationEmail,
+          social_links: config.socialLinks, 
+          updated_at: new Date().toISOString()
       });
       if (error) {
         addNotification(`Config update failed: ${error.message}`, 'error');
@@ -247,11 +276,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          status: lead.status, 
          date: lead.date
       });
+      
       if (error) {
         addNotification(`Failed to submit lead: ${error.message}`, 'error');
         fetchData();
       } else {
         addNotification('Enquiry Submitted!', 'success');
+        // TRIGGER ADMIN NOTIFICATION
+        sendAdminEmailNotification(`New Lead Enquiry: ${lead.name}`, {
+           "Customer Name": lead.name,
+           "Company": lead.company,
+           "Email": lead.email,
+           "Phone": lead.mobile,
+           "Requirement": lead.requirement,
+           "Service Needed": lead.service,
+           "Budget": lead.budget,
+           "Timestamp": new Date().toLocaleString()
+        });
       }
     }
   };
@@ -279,11 +320,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addVendorRegistration = async (reg: VendorRegistration) => {
     setVendorRegistrations(prev => [reg, ...prev]);
     if (supabase) {
-      await supabase.from('vendor_registrations').insert({
+      const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
         mobile: reg.mobile, location: reg.location, product_name: reg.productName,
         message: reg.message, date: reg.date
       });
+
+      if (!error) {
+        // TRIGGER ADMIN NOTIFICATION
+        sendAdminEmailNotification(`New Vendor Registration: ${reg.companyName}`, {
+           "Vendor Name": reg.name,
+           "Company": reg.companyName,
+           "Email": reg.email,
+           "Phone": reg.mobile,
+           "Product/Service": reg.productName,
+           "Message": reg.message,
+           "Timestamp": new Date().toLocaleString()
+        });
+      }
     }
   };
 

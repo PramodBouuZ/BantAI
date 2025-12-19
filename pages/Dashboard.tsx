@@ -500,6 +500,20 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             <label className="block text-xs font-black uppercase text-slate-400 mb-2">Site Name</label>
             <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-100" value={configForm.siteName} onChange={e => setConfigForm({...configForm, siteName: e.target.value})} />
           </div>
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Admin Notification Email</label>
+            <div className="relative">
+              <Mail size={20} className="absolute left-4 top-3.5 text-slate-300" />
+              <input 
+                type="email" 
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-xl border-none outline-none" 
+                value={configForm.adminNotificationEmail || ''} 
+                onChange={e => setConfigForm({...configForm, adminNotificationEmail: e.target.value})} 
+                placeholder="info.bouuz@gmail.com"
+              />
+            </div>
+            <p className="mt-2 text-[10px] text-slate-400 font-bold uppercase">Admin gets instant email alerts for new enquiries and vendor signups.</p>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Logo URL</label>

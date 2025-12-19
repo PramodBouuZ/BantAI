@@ -82,6 +82,7 @@ export interface SiteConfig {
   siteName: string;
   logoUrl?: string;
   faviconUrl?: string;
+  adminNotificationEmail?: string;
   socialLinks: {
     twitter?: string;
     linkedin?: string;

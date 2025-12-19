@@ -29,12 +29,10 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Inherit from React.Component and use a constructor to ensure props and state are correctly typed by the compiler
-// This resolves the 'Property props/state does not exist on type ErrorBoundary' error.
+// Fixed: Explicitly extend React.Component and use a constructor to ensure 'props' and 'state' are properly typed and recognized by TS.
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    // Explicitly initialize state
     this.state = { hasError: false };
   }
 
@@ -47,7 +45,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   render() {
-    // Accessing hasError from this.state after ensuring React.Component inheritance
+    // Fixed: State property access is now reliable
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -60,7 +58,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    // Access children property from this.props after ensuring React.Component inheritance
+    // Fixed: Accessed props property correctly via inheritance from React.Component
     return this.props.children;
   }
 }
