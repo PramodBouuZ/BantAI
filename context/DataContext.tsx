@@ -77,7 +77,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
         setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000);
+    }, 6000);
   }, []);
 
   const removeNotification = (id: string) => {
@@ -86,9 +86,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const triggerAdminNotification = async (subject: string, payload: any) => {
     const target = siteConfig.adminNotificationEmail || ADMIN_EMAIL;
-    console.log(`[ADMIN NOTIFICATION] To: ${target} | Subject: ${subject}`);
-    // Mocking email trigger
-    addNotification(`Admin notified: ${target}`, 'info');
+    console.log(`[ADMIN NOTIFICATION SENT] To: ${target} | Subject: ${subject}`);
+    // Mocking email notification for UI feedback
+    addNotification(`Admin Alert sent to ${target}`, 'info');
   };
 
   const fetchData = useCallback(async () => {
@@ -164,7 +164,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchData();
     if (!supabase) return;
 
-    const channel = supabase.channel('global-sync')
+    const channel = supabase.channel('realtime-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
       .subscribe();
@@ -174,6 +174,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLead = async (lead: Lead): Promise<boolean> => {
     if (supabase) {
+      // We wrap the DB call to ensure error notification ONLY happens if the call fails
       const { error } = await supabase.from('leads').insert({
          id: lead.id, 
          name: lead.name, 
@@ -183,20 +184,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          location: lead.location, 
          service: lead.service, 
          budget: lead.budget || 'Not Provided', 
-         requirement: lead.requirement || 'Enquiry',
-         authority: lead.authority || 'Not Provided', // Lowercase key to match lowercase DB column
+         requirement: lead.requirement || 'BANT Qualified Lead',
+         authority: lead.authority || 'Not Provided', 
          timing: lead.timing || 'Not Provided',
          status: 'Pending', 
-         date: new Date().toISOString().split('T')[0]
+         date: new Date().toISOString().split('T')[0] // explicitly setting the date column
       });
       
       if (error) {
-        addNotification(`Failed to submit lead: ${error.message}`, 'error');
+        console.error("Supabase Error:", error);
+        addNotification(`Database Error: ${error.message}. Please run the SQL reload command in Supabase.`, 'error');
         return false;
       } else {
+        // Success case
         setLeads(prev => [lead, ...prev]);
-        addNotification('Requirement posted successfully!', 'success');
-        triggerAdminNotification('New Enquiry Received', { name: lead.name, company: lead.company, service: lead.service });
+        addNotification('Requirement posted successfully! AI is finding the best matches.', 'success');
+        triggerAdminNotification('New Lead Received', { name: lead.name, company: lead.company, service: lead.service });
         return true;
       }
     }
@@ -205,21 +208,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addProduct = async (product: Product) => {
     if (supabase) {
-      await supabase.from('products').insert({
+      const { error } = await supabase.from('products').insert({
          id: product.id, title: product.title, description: product.description, category: product.category,
          price_range: product.priceRange, features: product.features, icon: product.icon, rating: product.rating, image: product.image
       });
+      if (error) addNotification(error.message, 'error');
       fetchData();
     }
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
     if (supabase) {
-      await supabase.from('products').update({
+      const { error } = await supabase.from('products').update({
          title: updatedProduct.title, description: updatedProduct.description, category: updatedProduct.category,
          price_range: updatedProduct.priceRange, features: updatedProduct.features, icon: updatedProduct.icon,
          rating: updatedProduct.rating, image: updatedProduct.image
       }).eq('id', id);
+      if (error) addNotification(error.message, 'error');
       fetchData();
     }
   };
@@ -231,7 +236,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSiteConfig = async (config: SiteConfig) => {
     if (supabase) {
-      await supabase.from('site_config').upsert({
+      const { error } = await supabase.from('site_config').upsert({
           id: 1, 
           site_name: config.siteName, 
           logo_url: config.logoUrl, 
@@ -243,6 +248,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           social_links: config.socialLinks, 
           updated_at: new Date().toISOString()
       });
+      if (error) addNotification(error.message, 'error');
       fetchData();
     }
   };
@@ -275,8 +281,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: reg.message, date: reg.date
       });
       if (!error) {
-        addNotification('Vendor application received!', 'success');
-        triggerAdminNotification('New Vendor Registration', { company: reg.companyName, name: reg.name });
+        addNotification('Vendor application received! Our team will review it.', 'success');
+        triggerAdminNotification('New Vendor Signup', { company: reg.companyName, contact: reg.name });
+      } else {
+        addNotification(`Signup failed: ${error.message}`, 'error');
       }
     }
   };
