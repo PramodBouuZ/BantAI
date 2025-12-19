@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification } from '../types';
-import { PRODUCTS, RECENT_LEADS } from '../services/mockData';
+import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
 
 interface DataContextType {
@@ -69,7 +69,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [categories, setCategories] = useState<string[]>(['Software', 'Telecom', 'Security', 'Connectivity', 'Infrastructure', 'Consulting']);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(defaultSiteConfig);
   const [users, setUsers] = useState<User[]>([]);
-  const [vendorLogos, setVendorLogos] = useState<VendorAsset[]>([]);
+  const [vendorLogos, setVendorLogos] = useState<VendorAsset[]>(MOCK_VENDOR_LOGOS);
   const [vendorRegistrations, setVendorRegistrations] = useState<VendorRegistration[]>([]);
 
   const addNotification = useCallback((message: string, type: AppNotification['type'] = 'info') => {
@@ -131,7 +131,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logo_url: v.logo_url })));
+      if (vLogos && vLogos.length > 0) {
+        setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logo_url: v.logo_url })));
+      }
+      
       if (catData) setCategories(Array.from(new Set([...catData.map((c: any) => c.name), 'Software', 'Telecom'])));
       
       if (leadData) {

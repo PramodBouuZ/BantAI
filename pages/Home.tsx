@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, Shield, Zap, TrendingUp, Users, Search, Filter, Star, Server, Phone, Wifi, Database, Globe, Building2, Briefcase, Megaphone, X, Scale } from 'lucide-react';
@@ -130,15 +131,27 @@ const VendorTicker = () => {
   if (vendorLogos.length === 0) return null;
 
   return (
-    <div className="py-10 bg-slate-50 border-b border-gray-100 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 mb-6">
-        <p className="text-center text-sm font-bold text-slate-400 uppercase tracking-widest">Trusted Leading Companies</p>
+    <div className="py-12 bg-white border-b border-gray-100 overflow-hidden relative group">
+      <div className="max-w-7xl mx-auto px-4 mb-8">
+        <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Our Trusted Marketplace Partners</p>
       </div>
+      
+      {/* Edge Fading Gradients */}
+      <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-white to-transparent z-10"></div>
+      <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-white to-transparent z-10"></div>
+
       <div className="relative w-full overflow-hidden">
-        <div className="flex animate-scroll whitespace-nowrap gap-16 items-center w-max">
-           {[...vendorLogos, ...vendorLogos, ...vendorLogos].map((logo, i) => (
-             <div key={`${logo.id}-${i}`} className="flex-shrink-0 grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-               <img src={logo.logoUrl} alt={`${logo.name} logo`} loading="lazy" className="h-10 md:h-12 w-auto object-contain" />
+        <div className="flex animate-scroll whitespace-nowrap gap-16 md:gap-24 items-center w-max">
+           {/* Duplicate array for seamless infinite loop */}
+           {[...vendorLogos, ...vendorLogos, ...vendorLogos, ...vendorLogos].map((logo, i) => (
+             <div key={`${logo.id}-${i}`} className="flex-shrink-0 flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all duration-500 opacity-40 hover:opacity-100 group/logo">
+               <img 
+                 src={logo.logoUrl} 
+                 alt={`${logo.name} logo`} 
+                 loading="lazy" 
+                 className="h-8 md:h-12 w-auto object-contain transition-transform group-hover/logo:scale-110" 
+               />
+               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest opacity-0 group-hover/logo:opacity-100 transition-opacity">{logo.name}</span>
              </div>
            ))}
         </div>
@@ -146,10 +159,13 @@ const VendorTicker = () => {
       <style>{`
         @keyframes scroll {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-33.33%); }
+          100% { transform: translateX(-50%); }
         }
         .animate-scroll {
-          animation: scroll 30s linear infinite;
+          animation: scroll 40s linear infinite;
+        }
+        .animate-scroll:hover {
+          animation-play-state: paused;
         }
       `}</style>
     </div>

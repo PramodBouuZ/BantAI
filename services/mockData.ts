@@ -1,4 +1,14 @@
-import { Product, Lead, Testimonial } from '../types';
+
+import { Product, Lead, Testimonial, VendorAsset } from '../types';
+
+export const MOCK_VENDOR_LOGOS: VendorAsset[] = [
+  { id: 'v1', name: 'Tata Teleservices', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Tata_logo.svg/1200px-Tata_logo.svg.png' },
+  { id: 'v2', name: 'Airtel Business', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Airtel_logo_2010.svg/2560px-Airtel_logo_2010.svg.png' },
+  { id: 'v3', name: 'Zoho', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Zoho_Logo.svg/1280px-Zoho_Logo.svg.png' },
+  { id: 'v4', name: 'Salesforce', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Salesforce.com_logo.svg/1280px-Salesforce.com_logo.svg.png' },
+  { id: 'v5', name: 'Jio Business', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Reliance_Jio_Logo.svg/1200px-Reliance_Jio_Logo.svg.png' },
+  { id: 'v6', name: 'Freshworks', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Freshworks_logo.svg/2560px-Freshworks_logo.svg.png' },
+];
 
 export const PRODUCTS: Product[] = [
   {

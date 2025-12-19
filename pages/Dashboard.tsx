@@ -52,13 +52,13 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-        addNotification('Only JPEG, PNG, or JPG files allowed.', 'error');
+        addNotification('Only PNG, JPG, or JPEG files are allowed.', 'error');
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         callback(reader.result as string);
-        addNotification('Image uploaded successfully!', 'success');
+        addNotification('Image processed successfully!', 'success');
       };
       reader.readAsDataURL(file);
     }
@@ -105,7 +105,14 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   };
 
   const handleLogoUpload = async () => {
-    if (!newLogo.name || !newLogo.url) return;
+    if (!newLogo.name) {
+      addNotification('Please enter the company name.', 'warning');
+      return;
+    }
+    if (!newLogo.url) {
+      addNotification('Please upload a logo image.', 'warning');
+      return;
+    }
     await addVendorLogo({ id: Date.now().toString(), name: newLogo.name, logoUrl: newLogo.url });
     setNewLogo({ name: '', url: '' });
   };
@@ -390,55 +397,84 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const renderLogos = () => (
     <div className="space-y-8 animate-fade-in">
       <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm max-w-2xl">
-        <h3 className="text-xl font-bold text-slate-900 mb-6">Add Partner Logo</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <input 
-            type="text" 
-            placeholder="Company Name" 
-            className="bg-slate-50 border-none outline-none px-5 py-3 rounded-xl font-medium"
-            value={newLogo.name}
-            onChange={(e) => setNewLogo({...newLogo, name: e.target.value})}
-          />
-          <div className="relative">
-             <input 
-                type="text" 
-                placeholder="Logo URL (or click upload)" 
-                className="bg-slate-50 border-none outline-none px-5 py-3 rounded-xl font-medium w-full"
-                value={newLogo.url}
-                onChange={(e) => setNewLogo({...newLogo, url: e.target.value})}
-              />
-              <button 
-                onClick={() => {
-                  const input = document.createElement('input');
-                  input.type = 'file';
-                  input.accept = 'image/*';
-                  input.onchange = (e: any) => handleImageUpload(e, (base64) => setNewLogo({...newLogo, url: base64}));
-                  input.click();
-                }}
-                className="absolute right-2 top-2 p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-              >
-                <Camera size={20} />
-              </button>
+        <h3 className="text-xl font-bold text-slate-900 mb-2">Partner Logo Management</h3>
+        <p className="text-sm text-slate-500 mb-8 font-medium">Add logos of brands you represent in the marketplace ticker.</p>
+        
+        <div className="space-y-6">
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-400 mb-3 tracking-widest">1. Company Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Tata Teleservices" 
+              className="w-full bg-slate-50 border-none outline-none px-5 py-4 rounded-2xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 transition-all"
+              value={newLogo.name}
+              onChange={(e) => setNewLogo({...newLogo, name: e.target.value})}
+            />
           </div>
+
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-400 mb-3 tracking-widest">2. Logo Upload (PNG/JPG)</label>
+            <div 
+              className={`relative border-2 border-dashed rounded-3xl p-10 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden ${
+                newLogo.url ? 'border-green-400 bg-green-50/30' : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/30'
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {newLogo.url ? (
+                <div className="text-center animate-fade-in">
+                  <img src={newLogo.url} alt="Preview" className="h-24 w-auto object-contain mx-auto mb-4 drop-shadow-md" />
+                  <p className="text-xs font-black text-green-600 uppercase flex items-center justify-center gap-1">
+                    <CheckCircle2 size={14} /> Ready to Save
+                  </p>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setNewLogo({...newLogo, url: ''}); }}
+                    className="mt-4 text-[10px] font-black uppercase text-red-500 hover:underline"
+                  >
+                    Change Image
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="bg-white p-4 rounded-2xl shadow-sm text-slate-400 mx-auto mb-4 inline-block">
+                    <Upload size={32} />
+                  </div>
+                  <p className="text-sm font-bold text-slate-600 mb-1">Click to select image file</p>
+                  <p className="text-xs text-slate-400">Supported: PNG, JPG, JPEG</p>
+                </div>
+              )}
+              <input 
+                ref={fileInputRef}
+                type="file" 
+                accept="image/png,image/jpeg,image/jpg" 
+                className="hidden" 
+                onChange={(e) => handleImageUpload(e, (base64) => setNewLogo({...newLogo, url: base64}))} 
+              />
+            </div>
+          </div>
+
+          <button 
+            onClick={handleLogoUpload}
+            className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition transform active:scale-95 disabled:opacity-50"
+            disabled={!newLogo.name || !newLogo.url}
+          >
+            Add Partner Logo
+          </button>
         </div>
-        <button 
-          onClick={handleLogoUpload}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-100"
-        >
-          Add Partner Logo
-        </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-        {vendorLogos.map(logo => (
-          <div key={logo.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col items-center justify-center relative group shadow-sm hover:shadow-md transition">
-            <img src={logo.logoUrl} alt={logo.name} className="h-10 w-auto object-contain mb-3 grayscale group-hover:grayscale-0 transition" />
-            <div className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-wider">{logo.name}</div>
-            <button onClick={() => deleteVendorLogo(logo.id)} className="absolute top-2 right-2 p-1.5 bg-red-50 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition">
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))}
+      <div>
+        <h3 className="text-xs font-black uppercase text-slate-400 mb-6 tracking-widest">Active Partner Logos ({vendorLogos.length})</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          {vendorLogos.map(logo => (
+            <div key={logo.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center relative group shadow-sm hover:shadow-xl transition-all duration-300">
+              <img src={logo.logoUrl} alt={logo.name} className="h-10 w-auto object-contain mb-3 grayscale group-hover:grayscale-0 transition-all duration-500" />
+              <div className="text-[10px] font-black text-slate-400 text-center uppercase tracking-widest leading-tight">{logo.name}</div>
+              <button onClick={() => deleteVendorLogo(logo.id)} className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-red-600">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
