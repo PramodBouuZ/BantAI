@@ -132,7 +132,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (vLogos && vLogos.length > 0) {
-        setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logo_url: v.logo_url })));
+        // FIXED: Corrected property mapping from logo_url (DB) to logoUrl (State/Type)
+        setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
       }
       
       if (catData) setCategories(Array.from(new Set([...catData.map((c: any) => c.name), 'Software', 'Telecom'])));
@@ -170,6 +171,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const channel = supabase.channel('realtime-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendor_assets' }, fetchData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -177,7 +179,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLead = async (lead: Lead): Promise<boolean> => {
     if (supabase) {
-      // We wrap the DB call to ensure error notification ONLY happens if the call fails
       const { error } = await supabase.from('leads').insert({
          id: lead.id, 
          name: lead.name, 
@@ -191,17 +192,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          authority: lead.authority || 'Not Provided', 
          timing: lead.timing || 'Not Provided',
          status: 'Pending', 
-         date: new Date().toISOString().split('T')[0] // explicitly setting the date column
+         date: new Date().toISOString().split('T')[0]
       });
       
       if (error) {
         console.error("Supabase Error:", error);
-        addNotification(`Database Error: ${error.message}. Please run the SQL reload command in Supabase.`, 'error');
+        addNotification(`Database Error: ${error.message}`, 'error');
         return false;
       } else {
-        // Success case
         setLeads(prev => [lead, ...prev]);
-        addNotification('Requirement posted successfully! AI is finding the best matches.', 'success');
+        addNotification('Requirement posted successfully!', 'success');
         triggerAdminNotification('New Lead Received', { name: lead.name, company: lead.company, service: lead.service });
         return true;
       }
@@ -284,7 +284,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: reg.message, date: reg.date
       });
       if (!error) {
-        addNotification('Vendor application received! Our team will review it.', 'success');
+        addNotification('Vendor application received!', 'success');
         triggerAdminNotification('New Vendor Signup', { company: reg.companyName, contact: reg.name });
       } else {
         addNotification(`Signup failed: ${error.message}`, 'error');
@@ -304,14 +304,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addUser = (user: User) => setUsers(prev => [...prev, user]);
   const deleteUser = (id: string) => setUsers(prev => prev.filter(u => u.id !== id));
+  
   const addVendorLogo = async (asset: VendorAsset) => {
-    if (supabase) await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
-    fetchData();
+    if (supabase) {
+      const { error } = await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
+      if (error) addNotification(error.message, 'error');
+      fetchData();
+    }
   };
+  
   const deleteVendorLogo = async (id: string) => {
     if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
     fetchData();
   };
+  
   const toggleCompare = (product: Product) => {
     setCompareList(prev => {
       const exists = prev.find(p => p.id === product.id);

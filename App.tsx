@@ -1,5 +1,5 @@
-// Fixed missing Component import and ErrorBoundary property errors
-import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
+// Fixed ErrorBoundary class to properly extend React.Component and resolve state/props access errors
+import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -30,11 +30,11 @@ interface ErrorBoundaryState {
 }
 
 /**
- * Fixed ErrorBoundary class to correctly extend Component and access this.props.children.
- * Using Component as a named import from 'react' ensures TypeScript correctly identifies
- * the available properties (state, props) on the class instance.
+ * Fixed ErrorBoundary class to correctly extend React.Component.
+ * Using React.Component explicitly ensures TypeScript correctly identifies
+ * the available properties (state, props) inherited from the base class.
  */
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -49,7 +49,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   render() {
-    // Accessing state via this.state is correctly typed when extending Component
+    // Accessing state via this.state is correctly typed when extending React.Component
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -63,7 +63,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       );
     }
     
-    // Accessing props via this.props is correctly typed in a class extending Component
+    // Accessing props via this.props is correctly typed in a class extending React.Component
     return this.props.children;
   }
 }

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Zap, Menu, X, ChevronDown, LogIn, User } from 'lucide-react';
@@ -44,8 +45,9 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentUser }) => {
                 className="h-12 w-auto object-contain transition-transform transform group-hover:scale-105" 
               />
             ) : (
-              <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 tracking-tight">
-                {siteConfig.siteName}
+              <span className="text-3xl font-black tracking-tighter flex">
+                <span className="text-blue-600">BANT</span>
+                <span className="text-amber-500">Confirm</span>
               </span>
             )}
           </Link>
