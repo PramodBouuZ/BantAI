@@ -52,7 +52,7 @@ const ADMIN_EMAIL = 'info.bouuz@gmail.com';
 
 const defaultSiteConfig: SiteConfig = {
   siteName: 'BantConfirm',
-  bannerTitle: 'The Premier IT Marketplace for MSMEs & Enterprises',
+  bannerTitle: 'The Premier IT Marketplace for',
   bannerSubtitle: 'Discover, Compare, and Buy Enterprise-grade IT, Software, and Telecom solutions.',
   adminNotificationEmail: ADMIN_EMAIL,
   socialLinks: { twitter: '#', linkedin: '#', facebook: '#', instagram: '#' }
@@ -132,7 +132,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (vLogos && vLogos.length > 0) {
-        // FIXED: Corrected property mapping from logo_url (DB) to logoUrl (State/Type)
+        // Corrected property mapping from logo_url (DB) to logoUrl (State/Type)
         setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
       }
       

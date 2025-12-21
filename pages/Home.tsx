@@ -374,7 +374,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
   return (
     <div className="overflow-hidden">
       <SEO 
-        title={siteConfig.bannerTitle || "BantConfirm - B2B Marketplace for Tata, Airtel, Zoho & IT Services"}
+        title={siteConfig.bannerTitle ? `${siteConfig.bannerTitle} MSMEs & Enterprises` : "BantConfirm - B2B Marketplace for Tata, Airtel, Zoho & IT Services"}
         description="India's trusted marketplace to buy Tata/Airtel Leased Lines, Zoho/Salesforce CRM, and Cloud Telephony (IVR, MyOperator). Verified software developers and digital agencies in Noida, Delhi, Mumbai."
         keywords="BantConfirm, Tata Teleservices, Airtel Business, Jio Lease Line, Zoho CRM, Salesforce, LeadSquared, Cloud Telephony, IVR, Auto Dialer, Software Developer India, Digital Marketing Agency Delhi, IT Company near me"
         schema={organizationSchema}
@@ -400,7 +400,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
           
           <h1 id="hero-title" className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 mb-8 leading-[1.1]">
             {siteConfig.bannerTitle || "The Premier IT Marketplace for"} <br />
-            <span className="text-blue-600 bg-clip-text">MSMEs & Enterprises</span>
+            <span className="text-blue-600">MSMEs & Enterprises</span>
           </h1>
           
           <p className="max-w-3xl mx-auto text-xl md:text-2xl text-slate-600 mb-12 leading-relaxed">
