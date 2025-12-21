@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, X, Send, Bot, User, Loader2, ArrowRight, Zap } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
@@ -29,7 +28,7 @@ const AIConsultant: React.FC = () => {
     setIsTyping(true);
 
     try {
-      // Fix: Initialize GoogleGenAI strictly using process.env.API_KEY as per guidelines
+      // Corrected: Initialize GoogleGenAI strictly using process.env.API_KEY
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const model = 'gemini-3-flash-preview';
       
@@ -47,12 +46,13 @@ const AIConsultant: React.FC = () => {
         5. Encourage them to "Post an Enquiry" for custom pricing.
       `;
 
+      // Corrected: Simplified contents to a direct string prompt as per guidelines
       const response = await ai.models.generateContent({
         model,
-        contents: [{ parts: [{ text: `${context}\n\nUser Question: ${userMsg}` }] }],
+        contents: `${context}\n\nUser Question: ${userMsg}`,
       });
 
-      // Fix: Directly access response.text property (not a method call) as per SDK rules
+      // Corrected: Directly accessing response.text property (not a method call) as per SDK rules
       const aiResponse = response.text || "I'm sorry, I couldn't analyze that. Could you try rephrasing your requirement?";
       setMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
     } catch (error) {

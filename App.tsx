@@ -30,9 +30,12 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Inherit from Component and remove redundant constructor to ensure this.props is correctly recognized by TypeScript
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false };
+// Fixed ErrorBoundary by using React.Component and adding a constructor to ensure props/state are correctly typed
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -190,10 +193,12 @@ const AppContent: React.FC = () => {
     };
     checkUser();
 
-    // 2. Setup auth listener for real-time login/logout detection (Fixes Google OAuth Redirect loop)
+    // 2. Setup auth listener for real-time login/logout detection
+    // Handle both initial session and subsequent sign-ins
     if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
+        console.log(`Auth event: ${event}`);
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
           const meta = session.user.user_metadata || {};
           setCurrentUser({
             id: session.user.id,

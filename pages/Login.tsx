@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from '../types';
-import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LoginProps {
@@ -11,6 +11,8 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Parse redirect location
   const from = location.state?.from?.pathname || '/dashboard';
   const search = location.state?.from?.search || '';
   
@@ -40,7 +42,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     }
     setLoading(true);
     try {
-      // Corrected redirect for OAuth to ensure it returns to the root where the listener is active
+      // Use origin only to avoid deep hash routing issues on redirect
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -111,17 +113,21 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            });
            if (error) throw error;
            
-           if (data.user) {
-             const meta = data.user.user_metadata || {};
+           // If session is present, they are logged in automatically (Email Confirmation OFF)
+           if (data.session) {
+             const meta = data.user?.user_metadata || {};
              setCurrentUser({
-                id: data.user.id,
+                id: data.user!.id,
                 name: meta.full_name || formData.name || 'User',
-                email: data.user.email || formData.email,
+                email: data.user!.email || formData.email,
                 role: 'user',
                 joinedDate: new Date().toISOString()
              });
-             setSuccessMsg("Welcome to BantConfirm! Your account is ready.");
-             setTimeout(() => navigate(from + search), 1500);
+             setSuccessMsg("Welcome! Your account is ready.");
+             setTimeout(() => navigate(from + search), 1000);
+           } else {
+             // Email confirmation might be required
+             setSuccessMsg("Account created! Please check your email for a confirmation link.");
            }
         } else {
            const { data, error } = await supabase.auth.signInWithPassword({
@@ -142,26 +148,37 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            }
         }
       } catch (err: any) {
-        setErrorMsg(err.message);
+        // Specifically catch common "Email not confirmed" or "Rate limit" errors
+        if (err.message.toLowerCase().includes('confirm your email')) {
+            setErrorMsg("Please verify your email address before logging in. Check your inbox.");
+        } else if (err.message.toLowerCase().includes('rate limit')) {
+            setErrorMsg("Too many attempts. Please wait a few minutes and try again.");
+        } else {
+            setErrorMsg(err.message);
+        }
       } finally {
         setLoading(false);
       }
     } else {
-      setErrorMsg("Supabase is not configured. Local mode only.");
+      setErrorMsg("Authentication provider not found.");
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background blobs for aesthetic */}
+      <div className="absolute top-0 -left-20 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+      <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+
       <button 
         onClick={() => navigate('/')} 
-        className="absolute top-6 left-4 md:top-10 md:left-10 text-slate-400 hover:text-blue-600 transition-all hover:scale-110 p-2"
+        className="absolute top-6 left-4 md:top-10 md:left-10 text-slate-400 hover:text-blue-600 transition-all hover:scale-110 p-2 z-20"
       >
         <ChevronLeft size={32} strokeWidth={2.5} />
       </button>
 
-      <div className="max-w-[460px] w-full bg-white p-8 md:p-10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] animate-fade-in border border-slate-50">
+      <div className="max-w-[460px] w-full bg-white p-8 md:p-10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] animate-fade-in border border-slate-50 relative z-10">
         
         <div className="flex justify-center mb-6">
           <div className="bg-gradient-to-tr from-blue-600 to-blue-500 p-4 rounded-3xl shadow-lg shadow-blue-200">
@@ -173,7 +190,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
           <h2 className="text-3xl font-black text-slate-900 mb-2">
             {view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Reset Password' : 'Welcome Back'}
           </h2>
-          <p className="text-slate-500 font-medium">Empowering India's B2B Ecosystem</p>
+          <p className="text-slate-500 font-medium">India's Leading B2B IT Marketplace</p>
         </div>
 
         {errorMsg && (
@@ -196,7 +213,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl transition-all shadow-sm active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -228,6 +245,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                 <input 
                   name="name" 
                   required 
+                  autoComplete="name"
                   className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
                   placeholder="Full Name" 
                   value={formData.name} 
@@ -243,6 +261,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
               name="email" 
               type="email" 
               required 
+              autoComplete="email"
               className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
               placeholder="Email Address" 
               value={formData.email} 
@@ -257,6 +276,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                 name="password" 
                 type="password" 
                 required 
+                autoComplete={view === 'login' ? 'current-password' : 'new-password'}
                 className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
                 placeholder="Password" 
                 value={formData.password} 
@@ -281,9 +301,16 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
             <button 
               type="submit" 
               disabled={loading} 
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4.5 rounded-2xl transition-all shadow-xl text-lg tracking-wide disabled:opacity-50 active:scale-[0.98]"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4.5 rounded-2xl transition-all shadow-xl text-lg tracking-wide disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              {loading ? 'Processing...' : (view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Send Reset Link' : 'Sign In')}
+              {loading ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Send Reset Link' : 'Sign In'
+              )}
             </button>
           </div>
         </form>
@@ -318,12 +345,12 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
         .animate-shake {
           animation: shake 0.2s ease-in-out 0s 2;
         }
-        .animate-bounce-subtle {
-          animation: bounce 1s infinite;
-        }
-        @keyframes bounce {
+        @keyframes bounce-subtle {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
+          50% { transform: translateY(-3px); }
+        }
+        .animate-bounce-subtle {
+          animation: bounce-subtle 2s infinite ease-in-out;
         }
       `}</style>
     </div>
