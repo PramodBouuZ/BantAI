@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from '../types';
-import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LoginProps {
@@ -14,7 +14,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   const from = location.state?.from?.pathname || '/dashboard';
   const search = location.state?.from?.search || '';
   
-  const [isSignup, setIsSignup] = useState(false);
+  const [view, setView] = useState<'login' | 'signup' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -40,15 +40,36 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     }
     setLoading(true);
     try {
+      // Corrected redirect for OAuth to ensure it returns to the root where the listener is active
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + window.location.pathname + '#/dashboard'
+          redirectTo: window.location.origin + window.location.pathname
         }
       });
       if (error) throw error;
     } catch (err: any) {
       setErrorMsg(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email) {
+      setErrorMsg("Please enter your email address.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: window.location.origin + window.location.pathname + '#/login',
+      });
+      if (error) throw error;
+      setSuccessMsg("Password reset link sent to your email!");
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -60,7 +81,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     setSuccessMsg('');
 
     // Admin Backdoor
-    if (!isSignup && formData.email === 'admin@bantconfirm.com' && formData.password === 'admin123') {
+    if (view === 'login' && formData.email === 'admin@bantconfirm.com' && formData.password === 'admin123') {
          setCurrentUser({
              id: 'admin_1',
              name: 'Super Admin',
@@ -75,7 +96,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
 
     if (supabase) {
       try {
-        if (isSignup) {
+        if (view === 'signup') {
            const { data, error } = await supabase.auth.signUp({
              email: formData.email,
              password: formData.password,
@@ -91,7 +112,6 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            if (error) throw error;
            
            if (data.user) {
-             // Successfully signed up. In auto-confirm mode or simple UX, we proceed.
              const meta = data.user.user_metadata || {};
              setCurrentUser({
                 id: data.user.id,
@@ -151,7 +171,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
 
         <div className="text-center mb-8">
           <h2 className="text-3xl font-black text-slate-900 mb-2">
-            {isSignup ? 'Create Account' : 'Welcome Back'}
+            {view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Reset Password' : 'Welcome Back'}
           </h2>
           <p className="text-slate-500 font-medium">Empowering India's B2B Ecosystem</p>
         </div>
@@ -170,35 +190,38 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
           </div>
         )}
 
-        {/* Social Login Section */}
-        <div className="space-y-4 mb-8">
-          <button 
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl transition-all shadow-sm active:scale-[0.98]"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
-          </button>
-        </div>
-
-        <div className="relative mb-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-100"></div>
+        {view !== 'forgot' && (
+          <div className="space-y-4 mb-8">
+            <button 
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl transition-all shadow-sm active:scale-[0.98]"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </button>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-4 text-slate-400 font-black tracking-widest">or email & password</span>
-          </div>
-        </div>
+        )}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {isSignup && (
+        {view !== 'forgot' && (
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-100"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-4 text-slate-400 font-black tracking-widest">or email & password</span>
+            </div>
+          </div>
+        )}
+
+        <form className="space-y-4" onSubmit={view === 'forgot' ? handleForgotPassword : handleSubmit}>
+          {view === 'signup' && (
             <div className="space-y-4 animate-fade-in">
               <div className="relative group">
                 <UserIcon size={18} className="absolute left-5 top-[1.1rem] text-slate-300 group-focus-within:text-blue-500 transition-colors" />
@@ -227,18 +250,32 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
             />
           </div>
 
-          <div className="relative group">
-             <Lock size={18} className="absolute left-5 top-[1.1rem] text-slate-300 group-focus-within:text-blue-500 transition-colors" />
-             <input 
-              name="password" 
-              type="password" 
-              required 
-              className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
-              placeholder="Password" 
-              value={formData.password} 
-              onChange={handleInputChange} 
-            />
-          </div>
+          {view !== 'forgot' && (
+            <div className="relative group">
+               <Lock size={18} className="absolute left-5 top-[1.1rem] text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+               <input 
+                name="password" 
+                type="password" 
+                required 
+                className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
+                placeholder="Password" 
+                value={formData.password} 
+                onChange={handleInputChange} 
+              />
+            </div>
+          )}
+
+          {view === 'login' && (
+            <div className="flex justify-end mt-2">
+              <button 
+                type="button"
+                onClick={() => setView('forgot')}
+                className="text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors"
+              >
+                Forgot Password?
+              </button>
+            </div>
+          )}
 
           <div className="pt-4">
             <button 
@@ -246,21 +283,30 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
               disabled={loading} 
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4.5 rounded-2xl transition-all shadow-xl text-lg tracking-wide disabled:opacity-50 active:scale-[0.98]"
             >
-              {loading ? 'Processing...' : (isSignup ? 'Create Account' : 'Sign In')}
+              {loading ? 'Processing...' : (view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Send Reset Link' : 'Sign In')}
             </button>
           </div>
         </form>
 
-        <div className="text-center mt-8">
-          <p className="text-slate-500 text-sm font-bold">
-            {isSignup ? "Already have an account?" : "New to BantConfirm?"}{" "}
-            <button 
-              onClick={() => { setIsSignup(!isSignup); setErrorMsg(''); setSuccessMsg(''); }} 
-              className="text-blue-600 hover:text-blue-700 ml-1 font-black underline decoration-2 underline-offset-4"
-            >
-              {isSignup ? "Sign In" : "Sign Up"}
-            </button>
-          </p>
+        <div className="text-center mt-8 space-y-3">
+          {view === 'forgot' ? (
+             <button 
+                onClick={() => setView('login')}
+                className="flex items-center justify-center gap-2 w-full text-slate-500 hover:text-blue-600 font-bold transition-colors"
+             >
+                <ArrowLeft size={16} /> Back to Sign In
+             </button>
+          ) : (
+            <p className="text-slate-500 text-sm font-bold">
+              {view === 'signup' ? "Already have an account?" : "New to BantConfirm?"}{" "}
+              <button 
+                onClick={() => { setView(view === 'signup' ? 'login' : 'signup'); setErrorMsg(''); setSuccessMsg(''); }} 
+                className="text-blue-600 hover:text-blue-700 ml-1 font-black underline decoration-2 underline-offset-4"
+              >
+                {view === 'signup' ? "Sign In" : "Sign Up"}
+              </button>
+            </p>
+          )}
         </div>
       </div>
       <style>{`

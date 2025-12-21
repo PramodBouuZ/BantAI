@@ -1,4 +1,4 @@
-// Fixed ErrorBoundary class to properly extend React.Component and resolve state/props access errors
+// Fixed ErrorBoundary class to properly extend Component and resolve state/props access errors
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -19,6 +19,7 @@ import { User } from './types';
 import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { HelmetProvider } from 'react-helmet-async';
+import { supabase } from './lib/supabase';
 
 // --- Error Boundary to catch runtime crashes ---
 interface ErrorBoundaryProps {
@@ -29,18 +30,9 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-/**
- * Fixed ErrorBoundary class to correctly extend React.Component.
- * Using React.Component explicitly ensures TypeScript correctly identifies
- * the available properties (state, props) inherited from the base class.
- */
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Use property initializer for state to ensure it's correctly typed on the instance and recognized by TS
+// Fixed: Inherit from Component and remove redundant constructor to ensure this.props is correctly recognized by TypeScript
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false };
-
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-  }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -51,7 +43,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   render() {
-    // Accessing state via this.state is correctly typed when extending React.Component
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -64,8 +55,6 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    
-    // Accessing props via this.props is correctly typed in a class extending React.Component
     return this.props.children;
   }
 }
@@ -181,6 +170,45 @@ const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const isLoggedIn = currentUser !== null;
   const { siteConfig } = useData();
+
+  useEffect(() => {
+    // 1. Initial user check
+    const checkUser = async () => {
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const meta = session.user.user_metadata || {};
+          setCurrentUser({
+            id: session.user.id,
+            name: meta.full_name || meta.name || 'User',
+            email: session.user.email || '',
+            role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any,
+            joinedDate: session.user.created_at
+          });
+        }
+      }
+    };
+    checkUser();
+
+    // 2. Setup auth listener for real-time login/logout detection (Fixes Google OAuth Redirect loop)
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const meta = session.user.user_metadata || {};
+          setCurrentUser({
+            id: session.user.id,
+            name: meta.full_name || meta.name || 'User',
+            email: session.user.email || '',
+            role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any,
+            joinedDate: session.user.created_at
+          });
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, []);
 
   useEffect(() => {
     if (siteConfig?.faviconUrl) {
