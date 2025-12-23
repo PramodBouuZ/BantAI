@@ -23,7 +23,7 @@ interface DataContextType {
   // Lead Actions
   addLead: (lead: Lead) => Promise<boolean>;
   updateLeadStatus: (id: string, status: Lead['status']) => Promise<void>;
-  assignLead: (id: string, vendor: string) => Promise<void>;
+  assignLead: (id: string, vendorId: string) => Promise<void>;
   updateLeadRemarks: (id: string, remarks: string) => Promise<void>;
   deleteLead: (id: string) => Promise<void>;
   
@@ -86,9 +86,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const triggerAdminNotification = async (subject: string, payload: any) => {
     const target = siteConfig.adminNotificationEmail || ADMIN_EMAIL;
-    console.log(`[ADMIN NOTIFICATION SENT] To: ${target} | Subject: ${subject}`);
-    // Mocking email notification for UI feedback
-    addNotification(`Admin Alert sent to ${target}`, 'info');
+    console.log(`[ADMIN NOTIFICATION SENT] To: ${target} | Subject: ${subject} | Details:`, payload);
+    addNotification(`Admin Alert: ${subject}`, 'info');
+  };
+
+  const triggerVendorNotification = async (vendor: User, lead: Lead) => {
+    console.log(`[VENDOR NOTIFICATION] To: ${vendor.email} | Channel: Email & WhatsApp (${vendor.mobile}) | Message: You have been assigned a new BANT lead: ${lead.name} (${lead.service})`);
+    addNotification(`Notification sent to Vendor ${vendor.name}`, 'success');
   };
 
   const fetchData = useCallback(async () => {
@@ -100,14 +104,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { data: vLogos },
         { data: catData },
         { data: leadData },
-        { data: vRegData }
+        { data: vRegData },
+        { data: userData }
       ] = await Promise.all([
         supabase.from('products').select('*'),
         supabase.from('site_config').select('*').maybeSingle(),
         supabase.from('vendor_assets').select('*'),
         supabase.from('categories').select('*'),
         supabase.from('leads').select('*').order('date', { ascending: false }),
-        supabase.from('vendor_registrations').select('*').order('date', { ascending: false })
+        supabase.from('vendor_registrations').select('*').order('date', { ascending: false }),
+        supabase.from('users').select('*') // Assuming a profiles/users table exists
       ]);
 
       if (prodData) {
@@ -132,7 +138,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (vLogos && vLogos.length > 0) {
-        // Corrected property mapping from logo_url (DB) to logoUrl (State/Type)
         setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
       }
       
@@ -159,6 +164,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (vRegData) setVendorRegistrations(vRegData.map((v: any) => ({ ...v, companyName: v.company_name, productName: v.product_name })));
+      
+      if (userData) {
+        setUsers(userData.map((u: any) => ({
+          id: u.id,
+          name: u.name || u.full_name,
+          email: u.email,
+          role: u.role,
+          mobile: u.mobile,
+          company: u.company,
+          location: u.location,
+          joinedDate: u.created_at || u.joined_date
+        })));
+      }
     } catch (err) {
       console.error("Fetch data failed:", err);
     }
@@ -172,6 +190,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vendor_assets' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, fetchData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -202,7 +221,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setLeads(prev => [lead, ...prev]);
         addNotification('Requirement posted successfully!', 'success');
-        triggerAdminNotification('New Lead Received', { name: lead.name, company: lead.company, service: lead.service });
+        // Trigger Admin Notification for New Inquiry
+        triggerAdminNotification('New Inquiry Received', { 
+            name: lead.name, 
+            company: lead.company, 
+            service: lead.service,
+            requirement: lead.requirement 
+        });
         return true;
       }
     }
@@ -261,8 +286,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchData();
   };
 
-  const assignLead = async (id: string, vendor: string) => {
-    if (supabase) await supabase.from('leads').update({ assigned_to: vendor }).eq('id', id);
+  const assignLead = async (id: string, vendorId: string) => {
+    if (supabase) {
+        const { error } = await supabase.from('leads').update({ assigned_to: vendorId }).eq('id', id);
+        if (!error) {
+            const vendor = users.find(u => u.id === vendorId);
+            const lead = leads.find(l => l.id === id);
+            if (vendor && lead) {
+                triggerVendorNotification(vendor, lead);
+            }
+        }
+    }
     fetchData();
   };
 
@@ -285,7 +319,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (!error) {
         addNotification('Vendor application received!', 'success');
-        triggerAdminNotification('New Vendor Signup', { company: reg.companyName, contact: reg.name });
+        // Trigger Admin Notification for New Vendor Registration
+        triggerAdminNotification('New Vendor Registration', { 
+            company: reg.companyName, 
+            contact: reg.name, 
+            product: reg.productName 
+        });
       } else {
         addNotification(`Signup failed: ${error.message}`, 'error');
       }

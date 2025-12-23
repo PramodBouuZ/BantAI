@@ -5,7 +5,7 @@ import { useData } from '../context/DataContext';
 import { 
   Download, Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, Briefcase, FileText, Upload,
   Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, CheckCircle2, IndianRupee, Star, ExternalLink, Globe, Phone, MapPin,
-  Zap, Mail, Camera
+  Zap, Mail, Camera, UserCheck
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -40,6 +40,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newLogo, setNewLogo] = useState({ name: '', url: '' });
 
+  // Filter users with 'vendor' role for assignment
+  const availableVendors = users.filter(u => u.role === 'vendor');
+
   // Update config form state when siteConfig changes
   useEffect(() => {
     if (siteConfig) setConfigForm(siteConfig);
@@ -47,7 +50,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper for image upload to Base64
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -65,10 +67,15 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   };
 
   const handleExportLeads = () => {
-    const headers = ["ID", "Name", "Mobile", "Email", "Company", "Location", "Service", "Budget", "Need", "Authority", "Timing", "Status", "Date"];
+    const headers = ["ID", "Name", "Mobile", "Email", "Company", "Location", "Service", "Budget", "Need", "Authority", "Timing", "Status", "Assigned Vendor", "Remarks", "Date"];
     const csvContent = [
       headers.join(","),
-      ...leads.map(l => [l.id, l.name, l.mobile, l.email, l.company, l.location, l.service, l.budget, l.requirement, l.authority || '', l.timing || '', l.status, l.date].map(field => `"${field}"`).join(","))
+      ...leads.map(l => [
+          l.id, l.name, l.mobile, l.email, l.company, l.location, l.service, l.budget, l.requirement, l.authority || '', l.timing || '', l.status, 
+          users.find(u => u.id === l.assignedTo)?.name || 'Not Assigned',
+          l.remarks || '',
+          l.date
+      ].map(field => `"${field}"`).join(","))
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -158,12 +165,12 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             <span className="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg">+12%</span>
           </div>
           <div className="text-slate-500 text-sm font-bold uppercase tracking-wider">Total Users</div>
-          <div className="text-4xl font-black text-slate-900 mt-1">{users.length || 150}</div>
+          <div className="text-4xl font-black text-slate-900 mt-1">{users.length}</div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-yellow-50 p-3 rounded-2xl text-yellow-600"><FileText size={24} /></div>
-            <span className="text-xs font-bold text-yellow-500 bg-yellow-50 px-2 py-1 rounded-lg">Pending</span>
+            <span className="text-xs font-bold text-yellow-500 bg-yellow-50 px-2 py-1 rounded-lg">Live</span>
           </div>
           <div className="text-slate-500 text-sm font-bold uppercase tracking-wider">Total Leads</div>
           <div className="text-4xl font-black text-slate-900 mt-1">{leads.length}</div>
@@ -240,8 +247,8 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               <tr className="bg-slate-50 text-[11px] uppercase text-slate-400 font-black tracking-[0.1em]">
                 <th className="px-8 py-5">User & Company</th>
                 <th className="px-8 py-5">BANT Profile</th>
-                <th className="px-8 py-5">Requirement</th>
-                <th className="px-8 py-5">Status</th>
+                <th className="px-8 py-5">Status & Assignment</th>
+                <th className="px-8 py-5">Internal Remarks</th>
                 <th className="px-8 py-5">Action</th>
               </tr>
             </thead>
@@ -257,6 +264,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                       </div>
                   </td>
                   <td className="px-8 py-6">
+                      <div className="font-bold text-slate-800 text-sm mb-2">{lead.service}</div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2"><span className="w-16 text-[10px] font-black uppercase text-slate-400">Budget:</span> <span className="text-green-600 font-bold">{lead.budget}</span></div>
                         <div className="flex items-center gap-2"><span className="w-16 text-[10px] font-black uppercase text-slate-400">Timing:</span> <span className="text-blue-600 font-bold">{lead.timing || 'N/A'}</span></div>
@@ -264,25 +272,48 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                       </div>
                   </td>
                   <td className="px-8 py-6">
-                      <div className="font-bold text-slate-800">{lead.service}</div>
-                      <div className="text-slate-500 text-xs mt-1 line-clamp-2 max-w-xs leading-relaxed italic">"{lead.requirement}"</div>
-                      <div className="text-slate-400 text-[10px] mt-2 font-bold uppercase">{lead.date}</div>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Status:</span>
+                            <select 
+                            value={lead.status}
+                            onChange={(e) => updateLeadStatus(lead.id, e.target.value as any)}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold outline-none border transition ${
+                                lead.status === 'Verified' ? 'bg-green-50 text-green-700 border-green-100' :
+                                lead.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+                                lead.status === 'Sold' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-red-50 text-red-700 border-red-100'
+                            }`}
+                            >
+                            <option value="Pending">Pending</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Sold">Sold</option>
+                            <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                                <UserCheck size={12} /> Assign Vendor:
+                            </span>
+                            <select 
+                                value={lead.assignedTo || ''}
+                                onChange={(e) => assignLead(lead.id, e.target.value)}
+                                className="bg-slate-50 border border-slate-100 text-slate-600 text-xs px-2 py-1.5 rounded-lg font-medium outline-none focus:ring-1 focus:ring-blue-100 w-full"
+                            >
+                                <option value="">Select Vendor...</option>
+                                {availableVendors.map(vendor => (
+                                    <option key={vendor.id} value={vendor.id}>{vendor.name} ({vendor.company || 'Individual'})</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                   </td>
                   <td className="px-8 py-6">
-                    <select 
-                      value={lead.status}
-                      onChange={(e) => updateLeadStatus(lead.id, e.target.value as any)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase outline-none border-2 transition ${
-                        lead.status === 'Verified' ? 'bg-green-50 text-green-700 border-green-100' :
-                        lead.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                        lead.status === 'Sold' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-red-50 text-red-700 border-red-100'
-                      }`}
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Verified">Verified</option>
-                      <option value="Sold">Sold</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
+                    <textarea 
+                        className="w-full bg-slate-50 border border-slate-100 text-xs text-slate-600 p-2 rounded-xl outline-none focus:ring-1 focus:ring-blue-100 resize-none font-medium h-20"
+                        placeholder="Add notes for the vendor..."
+                        defaultValue={lead.remarks}
+                        onBlur={(e) => updateLeadRemarks(lead.id, e.target.value)}
+                    />
                   </td>
                   <td className="px-8 py-6">
                     <button onClick={() => deleteLead(lead.id)} className="text-slate-300 hover:text-red-500 p-2 transition-colors">
@@ -548,7 +579,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 placeholder="info.bouuz@gmail.com"
               />
             </div>
-            <p className="mt-2 text-[10px] text-slate-400 font-bold uppercase">Admin gets instant email alerts for new enquiries and vendor signups.</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -660,12 +690,13 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 </td>
                 <td className="px-8 py-6">
                   <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
-                    u.role === 'admin' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                    u.role === 'admin' ? 'bg-red-50 text-red-600' : 
+                    u.role === 'vendor' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'
                   }`}>{u.role}</span>
                 </td>
-                <td className="px-8 py-6 text-slate-500">{u.joinedDate.split('T')[0]}</td>
+                <td className="px-8 py-6 text-slate-500">{u.joinedDate?.split('T')[0] || 'N/A'}</td>
                 <td className="px-8 py-6">
-                  <button onClick={() => deleteUser(u.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={18} /></button>
+                  <button onClick={() => deleteUser(u.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                 </td>
               </tr>
             ))}
@@ -675,7 +706,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     </div>
   );
 
-  // User Dashboard for non-admins
   if (currentUser?.role !== 'admin') {
       const myLeads = leads.filter(l => l.email === currentUser?.email);
       return (
@@ -712,6 +742,11 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                                  <span>{l.location}</span>
                                  <span className="text-green-600">{l.budget}</span>
                                </div>
+                               {l.assignedTo && (
+                                   <div className="mt-2 text-[10px] font-bold text-indigo-500 uppercase tracking-wide flex items-center gap-1">
+                                       <UserCheck size={12} /> Assigned to Verified Vendor
+                                   </div>
+                               )}
                              </div>
                              <div className="flex items-center gap-4">
                                 <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase ${
@@ -771,7 +806,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
         </main>
       </div>
 
-      {/* Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-[2.5rem] w-full max-w-2xl p-8 shadow-2xl animate-slide-up max-h-[90vh] overflow-y-auto">
