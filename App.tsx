@@ -30,10 +30,11 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed ErrorBoundary by using the imported Component class with explicit Generic types to ensure state and props are recognized
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fixed: Explicitly use React.Component with Generics to ensure state and props are recognized by the TypeScript compiler
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    // Initialize state to fix Error: Property 'state' does not exist on type 'ErrorBoundary'
     this.state = { hasError: false };
   }
 
@@ -46,7 +47,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   render() {
-    // Correctly accessing state inherited from Component
+    // Accessing state inherited from React.Component to fix Error: Property 'state' does not exist on type 'ErrorBoundary'
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -59,7 +60,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    // Correctly accessing props inherited from Component
+    // Accessing props inherited from React.Component to fix Error: Property 'props' does not exist on type 'ErrorBoundary'
     return this.props.children;
   }
 }
@@ -218,17 +219,44 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Thoroughly update all favicon-related link tags for SEO and Browser compatibility
     if (siteConfig?.faviconUrl) {
-      const relTypes = ['icon', 'shortcut icon', 'apple-touch-icon'];
-      relTypes.forEach(rel => {
-        let link = document.querySelector(`link[rel~="${rel}"]`) as HTMLLinkElement;
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = rel;
+      const iconRels = [
+        'icon', 
+        'shortcut icon', 
+        'apple-touch-icon', 
+        'icon type="image/x-icon"',
+        'icon type="image/png"',
+        'fluid-icon'
+      ];
+
+      // Update or create link tags for search engines like Google
+      iconRels.forEach(rel => {
+        // Find existing or matching by rel (checking both simple and complex selectors)
+        let selector = `link[rel*="${rel.split(' ')[0]}"]`;
+        let links = document.querySelectorAll(selector);
+        
+        if (links.length > 0) {
+          links.forEach(l => {
+            (l as HTMLLinkElement).href = siteConfig.faviconUrl || '/favicon.ico';
+          });
+        } else {
+          const link = document.createElement('link');
+          // Handle complex rels like 'icon type="image/x-icon"'
+          if (rel.includes('type=')) {
+            const parts = rel.split(' ');
+            link.rel = parts[0];
+            const typePart = parts.find(p => p.startsWith('type='));
+            if (typePart) link.type = typePart.split('=')[1].replace(/"/g, '');
+          } else {
+            link.rel = rel;
+          }
+          link.href = siteConfig.faviconUrl || '/favicon.ico';
           document.head.appendChild(link);
         }
-        link.href = siteConfig.faviconUrl || '/favicon.ico';
       });
+
+      // Update Site Name for SEO
       if (siteConfig.siteName) {
         document.title = siteConfig.siteName + " - India's #1 B2B Marketplace";
       }
