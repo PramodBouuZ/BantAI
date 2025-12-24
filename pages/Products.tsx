@@ -100,7 +100,7 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
               const isSelected = compareList.some(p => p.id === product.id);
               return (
                 <div key={product.id} className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-blue-100 transition duration-300 group hover:-translate-y-2 flex flex-col h-full">
-                  <div className="relative h-56 overflow-hidden">
+                  <Link to={`/products/${product.id}`} className="relative h-56 overflow-hidden block">
                       {product.image ? (
                           <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                       ) : (
@@ -115,11 +115,13 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
                           <Star size={16} className="text-yellow-500 fill-current mr-1.5" />
                           <span className="text-sm font-bold text-slate-800">{product.rating}</span>
                       </div>
-                  </div>
+                  </Link>
                   
                   <div className="p-8 flex-grow flex flex-col">
                       <div className="flex justify-between items-start mb-4">
+                        <Link to={`/products/${product.id}`} className="block">
                           <h3 className="text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition leading-tight">{product.title}</h3>
+                        </Link>
                       </div>
                       
                       <p className="text-slate-500 text-lg mb-6 line-clamp-2 leading-relaxed">{product.description}</p>
@@ -138,7 +140,7 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
                           </ul>
                       </div>
                       
-                      <div className="mt-auto pt-6 border-t border-gray-50">
+                      <div className="mt-auto pt-6 border-t border-gray-00">
                           <p className="font-bold text-slate-900 text-2xl mb-5">{product.priceRange}</p>
                           <div className="grid grid-cols-3 gap-4">
                                 <button onClick={() => handleAction(product.id)} className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-base font-bold transition shadow-md hover:shadow-lg text-center flex items-center justify-center">

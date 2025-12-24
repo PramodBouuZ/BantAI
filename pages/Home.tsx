@@ -41,7 +41,7 @@ const ProductCard: React.FC<{
   isSelected: boolean 
 }> = ({ product, onAction, onCompare, isSelected }) => (
   <article className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group flex flex-col h-full">
-      <div className="relative h-48 overflow-hidden">
+      <Link to={`/products/${product.id}`} className="relative h-48 overflow-hidden block">
           {product.image ? (
             <img src={product.image} alt={product.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
           ) : (
@@ -56,10 +56,12 @@ const ProductCard: React.FC<{
              <Star size={14} className="text-yellow-500 fill-current mr-1" />
              <span className="text-xs font-bold text-slate-800">{product.rating}</span>
           </div>
-      </div>
+      </Link>
       
       <div className="p-6 flex-grow flex flex-col">
-        <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2">{product.title}</h3>
+        <Link to={`/products/${product.id}`} className="block">
+          <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors">{product.title}</h3>
+        </Link>
         <p className="text-slate-500 text-sm mb-4 line-clamp-2">{product.description}</p>
         
         <div className="mb-5 bg-slate-50 p-3 rounded-xl">

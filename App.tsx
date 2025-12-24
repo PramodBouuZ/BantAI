@@ -30,12 +30,13 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Inherit from Component directly to ensure state and props are recognized by the TypeScript compiler
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fixed: Inherit from React.Component explicitly to ensure state and props are recognized by the TypeScript compiler
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Use class property syntax for state to resolve Property 'state' does not exist error on line 38 and 51
+  public state: ErrorBoundaryState = { hasError: false };
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    // Fixed: Initializing state correctly on the class instance
-    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
@@ -47,7 +48,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   render() {
-    // Fixed: Correctly accessing state inherited from Component
+    // Correctly accessing state inherited from Component
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -60,7 +61,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    // Fixed: Correctly accessing props inherited from Component
+    // Correctly accessing props inherited from Component to resolve error on line 64
     return this.props.children;
   }
 }
@@ -197,10 +198,8 @@ const AppContent: React.FC = () => {
     checkUser();
 
     // 2. Setup auth listener for real-time login/logout detection
-    // Handle both initial session and subsequent sign-ins
     if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log(`Auth event: ${event}`);
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
           const meta = session.user.user_metadata || {};
           setCurrentUser({
@@ -221,42 +220,18 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     // Thoroughly update all favicon-related link tags for SEO and Browser compatibility
     if (siteConfig?.faviconUrl) {
-      const iconRels = [
-        'icon', 
-        'shortcut icon', 
-        'apple-touch-icon', 
-        'icon type="image/x-icon"',
-        'icon type="image/png"',
-        'fluid-icon'
-      ];
-
-      // Update or create link tags for search engines like Google
+      const iconRels = ['icon', 'shortcut icon', 'apple-touch-icon'];
       iconRels.forEach(rel => {
-        // Find existing or matching by rel (checking both simple and complex selectors)
-        let selector = `link[rel*="${rel.split(' ')[0]}"]`;
-        let links = document.querySelectorAll(selector);
-        
+        let links = document.querySelectorAll(`link[rel*="${rel}"]`);
         if (links.length > 0) {
-          links.forEach(l => {
-            (l as HTMLLinkElement).href = siteConfig.faviconUrl || '/favicon.ico';
-          });
+          links.forEach(l => { (l as HTMLLinkElement).href = siteConfig.faviconUrl || '/favicon.ico'; });
         } else {
           const link = document.createElement('link');
-          // Handle complex rels like 'icon type="image/x-icon"'
-          if (rel.includes('type=')) {
-            const parts = rel.split(' ');
-            link.rel = parts[0];
-            const typePart = parts.find(p => p.startsWith('type='));
-            if (typePart) link.type = typePart.split('=')[1].replace(/"/g, '');
-          } else {
-            link.rel = rel;
-          }
+          link.rel = rel;
           link.href = siteConfig.faviconUrl || '/favicon.ico';
           document.head.appendChild(link);
         }
       });
-
-      // Update Site Name for SEO
       if (siteConfig.siteName) {
         document.title = siteConfig.siteName + " - India's #1 B2B Marketplace";
       }
@@ -264,7 +239,7 @@ const AppContent: React.FC = () => {
   }, [siteConfig]);
 
   return (
-    <Router>
+    <>
       <ScrollToTop />
       <ToastContainer />
       <Routes>
@@ -289,7 +264,7 @@ const AppContent: React.FC = () => {
         </Route>
         <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
       </Routes>
-    </Router>
+    </>
   );
 };
 
@@ -298,7 +273,9 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <HelmetProvider>
         <DataProvider>
-          <AppContent />
+          <Router>
+            <AppContent />
+          </Router>
         </DataProvider>
       </HelmetProvider>
     </ErrorBoundary>
