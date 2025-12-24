@@ -41,7 +41,8 @@ const ProductCard: React.FC<{
   isSelected: boolean 
 }> = ({ product, onAction, onCompare, isSelected }) => (
   <article className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group flex flex-col h-full">
-      <Link to={`/products/${product.id}`} className="relative h-48 overflow-hidden block">
+      {/* Use Slug for URL */}
+      <Link to={`/products/${product.slug || product.id}`} className="relative h-48 overflow-hidden block">
           {product.image ? (
             <img src={product.image} alt={product.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
           ) : (
@@ -59,7 +60,7 @@ const ProductCard: React.FC<{
       </Link>
       
       <div className="p-6 flex-grow flex flex-col">
-        <Link to={`/products/${product.id}`} className="block">
+        <Link to={`/products/${product.slug || product.id}`} className="block">
           <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors">{product.title}</h3>
         </Link>
         <p className="text-slate-500 text-sm mb-4 line-clamp-2">{product.description}</p>
@@ -298,9 +299,6 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const featuredSoftware = products.filter(p => ['Software', 'Security', 'Infrastructure'].includes(p.category)).slice(0, 4);
-  const featuredTelecom = products.filter(p => ['Telecom', 'Connectivity'].includes(p.category)).slice(0, 4);
 
   const features = [
     {

@@ -21,11 +21,12 @@ const getIcon = (iconName: string) => {
 };
 
 const ProductDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>(); // The param in URL is still named 'id' in App.tsx
   const { products } = useData();
   const navigate = useNavigate();
 
-  const product = products.find(p => p.id === id);
+  // Find product by slug OR by ID for backward compatibility
+  const product = products.find(p => p.slug === id || p.id === id);
 
   if (!product) {
     return (

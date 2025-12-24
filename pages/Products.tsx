@@ -100,7 +100,7 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
               const isSelected = compareList.some(p => p.id === product.id);
               return (
                 <div key={product.id} className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-blue-100 transition duration-300 group hover:-translate-y-2 flex flex-col h-full">
-                  <Link to={`/products/${product.id}`} className="relative h-56 overflow-hidden block">
+                  <Link to={`/products/${product.slug || product.id}`} className="relative h-56 overflow-hidden block">
                       {product.image ? (
                           <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                       ) : (
@@ -119,7 +119,7 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
                   
                   <div className="p-8 flex-grow flex flex-col">
                       <div className="flex justify-between items-start mb-4">
-                        <Link to={`/products/${product.id}`} className="block">
+                        <Link to={`/products/${product.slug || product.id}`} className="block">
                           <h3 className="text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition leading-tight">{product.title}</h3>
                         </Link>
                       </div>

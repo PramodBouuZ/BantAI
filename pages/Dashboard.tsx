@@ -12,6 +12,17 @@ interface DashboardProps {
   currentUser: User | null;
 }
 
+// Helper to generate a slug from a title
+const generateSlug = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')     // Replace spaces with -
+    .replace(/[^\w-]+/g, '')  // Remove all non-word chars
+    .replace(/--+/g, '-');    // Replace multiple - with single -
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const { 
@@ -102,9 +113,13 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
       const features = prodFeaturesText.split(',').map(f => f.trim()).filter(f => f);
       if (!prodForm.title || !prodForm.priceRange) return;
 
+      const title = prodForm.title || '';
+      const slug = generateSlug(title);
+
       const pData: Product = {
           id: editingProduct ? editingProduct.id : Date.now().toString(),
-          title: prodForm.title || '',
+          slug: slug,
+          title: title,
           description: prodForm.description || '',
           category: prodForm.category || categories[0] || 'Software',
           priceRange: prodForm.priceRange || '',

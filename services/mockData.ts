@@ -10,9 +10,11 @@ export const MOCK_VENDOR_LOGOS: VendorAsset[] = [
   { id: 'v6', name: 'Freshworks', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Freshworks_logo.svg/2560px-Freshworks_logo.svg.png' },
 ];
 
+// Added missing 'slug' property to mock products
 export const PRODUCTS: Product[] = [
   {
     id: '1',
+    slug: 'crm-solutions',
     title: 'CRM Solutions',
     description: 'Complete Customer Relationship Management systems tailored to your business needs.',
     category: 'Software',
@@ -24,6 +26,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '2',
+    slug: 'cloud-telephony',
     title: 'Cloud Telephony',
     description: 'Advanced cloud-based phone systems with IVR, call recording, and analytics.',
     category: 'Telecom',
@@ -35,6 +38,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '3',
+    slug: 'internet-leased-line',
     title: 'Internet Leased Line',
     description: 'Dedicated high-speed internet connectivity with guaranteed bandwidth for offices.',
     category: 'Connectivity',
@@ -46,6 +50,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '4',
+    slug: 'sip-trunk-services',
     title: 'SIP Trunk Services',
     description: 'Cost-effective voice communication over IP with unlimited scalability.',
     category: 'Telecom',
@@ -57,6 +62,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '5',
+    slug: 'cloud-storage',
     title: 'Cloud Storage',
     description: 'Secure and scalable cloud storage solutions for your business data.',
     category: 'Infrastructure',
@@ -68,6 +74,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '6',
+    slug: 'cybersecurity',
     title: 'Cybersecurity',
     description: 'Comprehensive security solutions to protect your business from threats.',
     category: 'Security',
@@ -79,6 +86,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '7',
+    slug: 'hrms-platform',
     title: 'HRMS Platform',
     description: 'Automate your HR processes with our all-in-one human resource management system.',
     category: 'Software',
@@ -90,6 +98,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '8',
+    slug: 'toll-free-services',
     title: 'Toll Free Services',
     description: 'Enhance brand image with 1800 toll-free numbers for your customers.',
     category: 'Telecom',
