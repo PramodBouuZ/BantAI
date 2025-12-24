@@ -119,7 +119,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProducts(prodData.map((p: any) => ({
           id: p.id, title: p.title, description: p.description, category: p.category,
           priceRange: p.price_range, features: p.features || [], icon: p.icon || 'globe',
-          rating: Number(p.rating), image: p.image
+          rating: Number(p.rating), image: p.image,
+          vendorName: p.vendor_name, technicalSpecs: p.technical_specs || []
         })));
       }
 
@@ -236,7 +237,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) {
       const { error } = await supabase.from('products').insert({
          id: product.id, title: product.title, description: product.description, category: product.category,
-         price_range: product.priceRange, features: product.features, icon: product.icon, rating: product.rating, image: product.image
+         price_range: product.priceRange, features: product.features, icon: product.icon, rating: product.rating, image: product.image,
+         vendor_name: product.vendorName, technical_specs: product.technicalSpecs
       });
       if (error) addNotification(error.message, 'error');
       fetchData();
@@ -248,7 +250,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.from('products').update({
          title: updatedProduct.title, description: updatedProduct.description, category: updatedProduct.category,
          price_range: updatedProduct.priceRange, features: updatedProduct.features, icon: updatedProduct.icon,
-         rating: updatedProduct.rating, image: updatedProduct.image
+         rating: updatedProduct.rating, image: updatedProduct.image,
+         vendor_name: updatedProduct.vendorName, technical_specs: updatedProduct.technicalSpecs
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
       fetchData();

@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Product, Lead, User, VendorAsset, VendorRegistration } from '../types';
 import { useData } from '../context/DataContext';
 import { 
   Download, Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, Briefcase, FileText, Upload,
   Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, CheckCircle2, IndianRupee, Star, ExternalLink, Globe, Phone, MapPin,
-  Zap, Mail, Camera, UserCheck
+  Zap, Mail, Camera, UserCheck, PlusCircle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -33,7 +32,18 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   // Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [prodForm, setProdForm] = useState<Partial<Product>>({ title: '', description: '', category: '', priceRange: '', image: '', features: [], icon: 'globe', rating: 5 });
+  const [prodForm, setProdForm] = useState<Partial<Product>>({ 
+    title: '', 
+    description: '', 
+    category: '', 
+    priceRange: '', 
+    image: '', 
+    features: [], 
+    icon: 'globe', 
+    rating: 5,
+    vendorName: '',
+    technicalSpecs: [] 
+  });
   const [prodFeaturesText, setProdFeaturesText] = useState('');
   
   const [configForm, setConfigForm] = useState(siteConfig);
@@ -101,7 +111,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
           features: features,
           icon: prodForm.icon || 'globe',
           rating: Number(prodForm.rating) || 5,
-          image: prodForm.image || ''
+          image: prodForm.image || '',
+          vendorName: prodForm.vendorName || '',
+          technicalSpecs: prodForm.technicalSpecs || []
       };
 
       if (editingProduct) await updateProduct(editingProduct.id, pData);
@@ -109,6 +121,28 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
       setIsModalOpen(false);
       setEditingProduct(null);
+  };
+
+  const handleAddTechSpec = () => {
+    setProdForm(prev => ({
+      ...prev,
+      technicalSpecs: [...(prev.technicalSpecs || []), { label: '', value: '' }]
+    }));
+  };
+
+  const handleUpdateTechSpec = (index: number, field: 'label' | 'value', val: string) => {
+    setProdForm(prev => {
+      const newSpecs = [...(prev.technicalSpecs || [])];
+      newSpecs[index] = { ...newSpecs[index], [field]: val };
+      return { ...prev, technicalSpecs: newSpecs };
+    });
+  };
+
+  const handleRemoveTechSpec = (index: number) => {
+    setProdForm(prev => ({
+      ...prev,
+      technicalSpecs: (prev.technicalSpecs || []).filter((_, i) => i !== index)
+    }));
   };
 
   const handleLogoUpload = async () => {
@@ -335,7 +369,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
         <button 
           onClick={() => { 
             setEditingProduct(null); 
-            setProdForm({ title: '', description: '', priceRange: '', features: [], category: categories[0], icon: 'globe', rating: 5 }); 
+            setProdForm({ title: '', description: '', priceRange: '', features: [], category: categories[0], icon: 'globe', rating: 5, vendorName: '', technicalSpecs: [] }); 
             setProdFeaturesText('');
             setIsModalOpen(true); 
           }}
@@ -369,7 +403,10 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 <button 
                   onClick={() => {
                     setEditingProduct(product);
-                    setProdForm(product);
+                    setProdForm({
+                      ...product,
+                      technicalSpecs: product.technicalSpecs || []
+                    });
                     setProdFeaturesText(product.features.join(', '));
                     setIsModalOpen(true);
                   }}
@@ -817,37 +854,87 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 <div className="grid grid-cols-2 gap-6">
                    <div>
                      <label className="block text-xs font-black text-slate-400 uppercase mb-2">Title</label>
-                     <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none" value={prodForm.title} onChange={e => setProdForm({...prodForm, title: e.target.value})} />
+                     <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" value={prodForm.title} onChange={e => setProdForm({...prodForm, title: e.target.value})} />
                    </div>
                    <div>
                      <label className="block text-xs font-black text-slate-400 uppercase mb-2">Price Range</label>
-                     <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none" value={prodForm.priceRange} onChange={e => setProdForm({...prodForm, priceRange: e.target.value})} />
+                     <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-green-600" value={prodForm.priceRange} onChange={e => setProdForm({...prodForm, priceRange: e.target.value})} />
                    </div>
                 </div>
-                <div>
-                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Description</label>
-                   <textarea rows={3} className="w-full bg-slate-50 p-4 rounded-2xl outline-none" value={prodForm.description} onChange={e => setProdForm({...prodForm, description: e.target.value})} />
-                </div>
+                
                 <div className="grid grid-cols-2 gap-6">
                    <div>
                      <label className="block text-xs font-black text-slate-400 uppercase mb-2">Category</label>
-                     <select className="w-full bg-slate-50 p-4 rounded-2xl outline-none appearance-none" value={prodForm.category} onChange={e => setProdForm({...prodForm, category: e.target.value})}>
+                     <select className="w-full bg-slate-50 p-4 rounded-2xl outline-none appearance-none font-bold" value={prodForm.category} onChange={e => setProdForm({...prodForm, category: e.target.value})}>
                         {categories.map(c => <option key={c}>{c}</option>)}
                      </select>
                    </div>
                    <div>
-                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Rating (1-5)</label>
-                     <input type="number" min="1" max="5" step="0.1" className="w-full bg-slate-50 p-4 rounded-2xl outline-none" value={prodForm.rating} onChange={e => setProdForm({...prodForm, rating: Number(e.target.value)})} />
+                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Vendor Branding Override</label>
+                     <input type="text" placeholder="e.g. Jio Business" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" value={prodForm.vendorName} onChange={e => setProdForm({...prodForm, vendorName: e.target.value})} />
                    </div>
                 </div>
+
                 <div>
-                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Features (comma separated)</label>
-                   <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none" placeholder="Feature 1, Feature 2..." value={prodFeaturesText} onChange={e => setProdFeaturesText(e.target.value)} />
+                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Description</label>
+                   <textarea rows={3} className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-medium text-slate-600" value={prodForm.description} onChange={e => setProdForm({...prodForm, description: e.target.value})} />
                 </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                   <div>
+                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Rating (1-5)</label>
+                     <input type="number" min="1" max="5" step="0.1" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" value={prodForm.rating} onChange={e => setProdForm({...prodForm, rating: Number(e.target.value)})} />
+                   </div>
+                   <div>
+                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Features (comma separated)</label>
+                     <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" placeholder="Feature 1, Feature 2..." value={prodFeaturesText} onChange={e => setProdFeaturesText(e.target.value)} />
+                   </div>
+                </div>
+
+                {/* Technical Specifications Management */}
+                <div className="bg-slate-50 p-6 rounded-[1.5rem] border border-slate-100">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Advanced Technical Specs</label>
+                        <button 
+                            type="button"
+                            onClick={handleAddTechSpec}
+                            className="text-blue-600 hover:text-blue-700 font-bold text-xs flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-100"
+                        >
+                            <PlusCircle size={14} /> Add Row
+                        </button>
+                    </div>
+                    <div className="space-y-3">
+                        {prodForm.technicalSpecs?.map((spec, idx) => (
+                            <div key={idx} className="flex gap-2 items-center animate-fade-in">
+                                <input 
+                                    type="text" 
+                                    placeholder="Label (e.g. Deployment)" 
+                                    className="flex-1 bg-white p-3 rounded-xl outline-none text-xs font-bold border border-slate-100"
+                                    value={spec.label}
+                                    onChange={(e) => handleUpdateTechSpec(idx, 'label', e.target.value)}
+                                />
+                                <input 
+                                    type="text" 
+                                    placeholder="Value (e.g. Cloud)" 
+                                    className="flex-1 bg-white p-3 rounded-xl outline-none text-xs font-medium border border-slate-100"
+                                    value={spec.value}
+                                    onChange={(e) => handleUpdateTechSpec(idx, 'value', e.target.value)}
+                                />
+                                <button onClick={() => handleRemoveTechSpec(idx)} className="text-red-400 hover:text-red-600 p-2">
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        ))}
+                        {(!prodForm.technicalSpecs || prodForm.technicalSpecs.length === 0) && (
+                            <p className="text-center text-[10px] text-slate-400 italic py-2">No custom specs added. Page will show default placeholders.</p>
+                        )}
+                    </div>
+                </div>
+
                 <div>
-                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Image</label>
+                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Visual Content</label>
                    <div className="flex gap-4 items-center">
-                      <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden">
+                      <div className="w-24 h-24 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden">
                         {prodForm.image ? <img src={prodForm.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" />}
                       </div>
                       <input 
@@ -857,13 +944,14 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                         id="prod-upload"
                         onChange={(e) => handleImageUpload(e, (base64) => setProdForm({...prodForm, image: base64}))} 
                       />
-                      <label htmlFor="prod-upload" className="cursor-pointer bg-slate-50 text-slate-500 px-6 py-4 rounded-2xl font-bold border-2 border-dashed border-slate-200 hover:bg-slate-100 transition flex items-center gap-2">
-                         <Camera size={20} /> Upload Service Image
+                      <label htmlFor="prod-upload" className="cursor-pointer bg-white text-blue-600 px-6 py-4 rounded-2xl font-bold border-2 border-dashed border-blue-100 hover:bg-blue-50 transition flex items-center gap-2 shadow-sm flex-1 justify-center">
+                         <Camera size={20} /> Upload Professional Banner
                       </label>
                    </div>
                 </div>
+                
                 <button onClick={handleSaveProduct} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-100 transform active:scale-95 transition">
-                  {editingProduct ? 'Update Product' : 'Create Product'}
+                  {editingProduct ? 'Save Marketplace Updates' : 'Publish New Service'}
                 </button>
              </div>
           </div>

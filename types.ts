@@ -9,6 +9,8 @@ export interface Product {
   icon: string;
   rating: number;
   image?: string;
+  vendorName?: string;
+  technicalSpecs?: { label: string; value: string }[];
 }
 
 export interface StatCard {

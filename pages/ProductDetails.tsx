@@ -36,14 +36,14 @@ const ProductDetails: React.FC = () => {
     );
   }
 
-  // Mock Vendor Data (In a real app, this would come from a vendor relationship table)
+  // Fallback Vendor Data (Used if admin hasn't specified one)
   const vendorInfo = {
-    name: product.category === 'Telecom' ? 'Airtel Business Solutions' : 'TechIndia Systems Pvt Ltd',
+    name: product.vendorName || (product.category === 'Telecom' ? 'Airtel Business Solutions' : 'TechIndia Systems Pvt Ltd'),
     verifiedSince: '2021',
     responseTime: '< 2 hours',
-    rating: 4.9,
+    rating: product.rating || 4.9,
     location: 'Noida, Uttar Pradesh',
-    badge: 'Gold Partner'
+    badge: product.vendorName ? 'Certified Partner' : 'Gold Partner'
   };
 
   const seoTitle = `${product.title} Pricing, Features & Reviews | BantConfirm India`;
@@ -52,6 +52,17 @@ const ProductDetails: React.FC = () => {
   const handleAction = (intent: string) => {
     navigate(`/enquiry?product=${product.id}&intent=${intent}`);
   };
+
+  // Use dynamic technical specs if provided, else show defaults
+  const specs = (product.technicalSpecs && product.technicalSpecs.length > 0) 
+    ? product.technicalSpecs 
+    : [
+      { label: 'Deployment', value: 'Cloud, On-Premise, or Hybrid' },
+      { label: 'Support', value: '24/7 Dedicated Account Manager' },
+      { label: 'Compliance', value: 'ISO 27001, GDPR, SOC2 Ready' },
+      { label: 'Integrations', value: 'REST API, Zapier, Webhooks' },
+      { label: 'User Access', value: 'Multi-level Role Based Control (RBAC)' }
+    ];
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-20 font-sans">
@@ -182,26 +193,12 @@ const ProductDetails: React.FC = () => {
              <div className="overflow-hidden rounded-2xl border border-slate-100">
                 <table className="w-full text-left text-sm">
                    <tbody className="divide-y divide-slate-100">
-                      <tr>
-                        <td className="bg-slate-50 p-4 font-black text-slate-500 uppercase tracking-widest w-1/3">Deployment</td>
-                        <td className="p-4 font-bold text-slate-700">Cloud, On-Premise, or Hybrid</td>
-                      </tr>
-                      <tr>
-                        <td className="bg-slate-50 p-4 font-black text-slate-500 uppercase tracking-widest">Support</td>
-                        <td className="p-4 font-bold text-slate-700">24/7 Dedicated Account Manager</td>
-                      </tr>
-                      <tr>
-                        <td className="bg-slate-50 p-4 font-black text-slate-500 uppercase tracking-widest">Compliance</td>
-                        <td className="p-4 font-bold text-slate-700">ISO 27001, GDPR, SOC2 Ready</td>
-                      </tr>
-                      <tr>
-                        <td className="bg-slate-50 p-4 font-black text-slate-500 uppercase tracking-widest">Integrations</td>
-                        <td className="p-4 font-bold text-slate-700">REST API, Zapier, Webhooks</td>
-                      </tr>
-                      <tr>
-                        <td className="bg-slate-50 p-4 font-black text-slate-500 uppercase tracking-widest">User Access</td>
-                        <td className="p-4 font-bold text-slate-700">Multi-level Role Based Control (RBAC)</td>
-                      </tr>
+                      {specs.map((spec, idx) => (
+                        <tr key={idx}>
+                          <td className="bg-slate-50 p-4 font-black text-slate-500 uppercase tracking-widest w-1/3">{spec.label}</td>
+                          <td className="p-4 font-bold text-slate-700">{spec.value}</td>
+                        </tr>
+                      ))}
                    </tbody>
                 </table>
              </div>
