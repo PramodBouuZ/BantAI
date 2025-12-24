@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification } from '../types';
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
@@ -52,8 +51,8 @@ const ADMIN_EMAIL = 'info.bouuz@gmail.com';
 
 const defaultSiteConfig: SiteConfig = {
   siteName: 'BantConfirm',
-  bannerTitle: 'The Premier IT Marketplace for',
-  bannerSubtitle: 'Discover, Compare, and Buy Enterprise-grade IT, Software, and Telecom solutions.',
+  bannerTitle: 'BantConfirm – India’s AI-Powered B2B Marketplace for',
+  bannerSubtitle: 'Find the Right Software, IT Hardware & Business Solutions in India. Verified vendors, transparent pricing, and AI-qualified requirements.',
   adminNotificationEmail: ADMIN_EMAIL,
   socialLinks: { twitter: '#', linkedin: '#', facebook: '#', instagram: '#' }
 };
@@ -113,7 +112,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('categories').select('*'),
         supabase.from('leads').select('*').order('date', { ascending: false }),
         supabase.from('vendor_registrations').select('*').order('date', { ascending: false }),
-        supabase.from('users').select('*') // Assuming a profiles/users table exists
+        supabase.from('users').select('*')
       ]);
 
       if (prodData) {
@@ -221,7 +220,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setLeads(prev => [lead, ...prev]);
         addNotification('Requirement posted successfully!', 'success');
-        // Trigger Admin Notification for New Inquiry
         triggerAdminNotification('New Inquiry Received', { 
             name: lead.name, 
             company: lead.company, 
@@ -319,7 +317,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (!error) {
         addNotification('Vendor application received!', 'success');
-        // Trigger Admin Notification for New Vendor Registration
         triggerAdminNotification('New Vendor Registration', { 
             company: reg.companyName, 
             contact: reg.name, 

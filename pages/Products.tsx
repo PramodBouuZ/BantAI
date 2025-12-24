@@ -48,25 +48,25 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
   return (
     <div className="bg-white min-h-screen pb-24">
       <SEO 
-        title="IT Services Marketplace India - Buy Software, Telecom & Cloud Solutions" 
-        description="India's largest B2B marketplace for IT services. Compare prices for Zoho CRM, Tata Leased Line, Cloud Telephony, and IT Security. Verified Vendors in Delhi, Mumbai, Bangalore."
-        keywords="Buy CRM Software, Cloud Telephony India, Internet Leased Line Price, IT Services Marketplace, Software Company near me, Verified IT Vendors, BantConfirm Services"
+        title="Software, IT Hardware & Business Solutions India - Buy Verified" 
+        description="Compare prices for CRM, ERP, Accounting (Tally, Busy), Cloud Telephony (IVR, Toll-Free), and IT Infrastructure. Verified vendors across Delhi, Mumbai, Bangalore, Noida."
+        keywords="CRM software near me, ERP software nearby, Accounting software vendors near me, Microsoft license sellers near me, IT hardware suppliers nearby, internet leased line providers near me"
       />
 
       <div className="bg-slate-50 py-20 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 text-center animate-fade-in">
-           <span className="bg-yellow-100 text-yellow-800 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide">Complete IT Solutions</span>
-           <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mt-6 mb-6">Software & IT Services</h1>
-           <p className="text-slate-600 max-w-3xl mx-auto mb-10 text-xl leading-relaxed">
-             Find complete software and IT-related services at the best prices for your Indian business. Post your enquiry with BANT parameters or submit a direct enquiry.
+           <span className="bg-yellow-100 text-yellow-800 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide">Marketplace Solutions</span>
+           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mt-6 mb-6">Software & IT Solutions for India</h1>
+           <p className="text-slate-600 max-w-3xl mx-auto mb-10 text-lg md:text-xl leading-relaxed">
+             Find the Right Software, IT Hardware & Business Solutions in India. Search for verified vendors of Tally, Zoho, Airtel, Microsoft Licenses, and more.
            </p>
            
-           <div className="flex justify-center space-x-6">
-             <button onClick={() => handleAction()} className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg transition transform hover:-translate-y-1">
-               Post Enquiry with BANT
+           <div className="flex flex-col sm:flex-row justify-center gap-4">
+             <button onClick={() => handleAction()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg transition transform hover:-translate-y-1">
+               Post Requirement for AI Matching
              </button>
              <button onClick={() => {document.getElementById('product-grid')?.scrollIntoView({behavior: 'smooth'})}} className="bg-white border-2 border-gray-200 text-slate-700 font-bold text-lg px-8 py-4 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition">
-               Browse All Services
+               Explore Catalog
              </button>
            </div>
         </div>
@@ -78,7 +78,7 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={24} />
             <input 
               type="text" 
-              placeholder="Search for services (e.g. CRM, VoIP, Hosting)..." 
+              placeholder="Search Tally, ERP, CRM, Microsoft License..." 
               className="w-full pl-12 pr-6 py-4 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none text-lg transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -142,15 +142,12 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
                           <p className="font-bold text-slate-900 text-2xl mb-5">{product.priceRange}</p>
                           <div className="grid grid-cols-3 gap-4">
                                 <button onClick={() => handleAction(product.id)} className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-base font-bold transition shadow-md hover:shadow-lg text-center flex items-center justify-center">
-                                    Book Now
+                                    Get Quote
                                 </button>
                                 <button onClick={() => toggleCompare(product)} className={`rounded-xl transition shadow-md flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}`} title={isSelected ? 'Remove from compare' : 'Add to compare'}>
                                   <Scale size={20} />
                                 </button>
                           </div>
-                          <button onClick={() => handleAction()} className="w-full mt-3 bg-yellow-500 hover:bg-yellow-600 text-white py-3.5 rounded-xl text-base font-bold transition shadow-md hover:shadow-lg text-center flex items-center justify-center">
-                              Consult
-                          </button>
                       </div>
                   </div>
                 </div>
@@ -160,25 +157,10 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
         ) : (
           <div className="text-center py-20 bg-slate-50 rounded-3xl">
              <div className="text-6xl mb-4">🔍</div>
-             <h3 className="text-2xl font-bold text-slate-900">No services found</h3>
-             <p className="text-slate-500 mt-2">Try adjusting your search or category filters.</p>
+             <h3 className="text-2xl font-bold text-slate-900">No results found</h3>
+             <p className="text-slate-500 mt-2">Try searching for CRM, ERP, Tally, or Microsoft license.</p>
           </div>
         )}
-
-        <div className="mt-20 bg-yellow-50 rounded-3xl p-10 flex flex-col md:flex-row items-center justify-between border border-yellow-100 shadow-sm">
-          <div className="flex items-start space-x-6 mb-8 md:mb-0">
-            <div className="bg-yellow-400 p-4 rounded-2xl text-white shrink-0 shadow-md">
-               <div className="text-3xl">💡</div>
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-2xl mb-2">Can't find what you're looking for?</h3>
-              <p className="text-slate-700 text-lg">Post a custom enquiry with your specific requirements and budget.</p>
-            </div>
-          </div>
-          <button onClick={() => handleAction()} className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition whitespace-nowrap transform hover:-translate-y-1">
-            Custom Enquiry
-          </button>
-        </div>
       </div>
     </div>
   );
