@@ -102,7 +102,13 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
                 <div key={product.id} className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-blue-100 transition duration-300 group hover:-translate-y-2 flex flex-col h-full">
                   <Link to={`/products/${product.slug || product.id}`} className="relative h-56 overflow-hidden block">
                       {product.image ? (
-                          <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                          <img 
+                            src={product.image} 
+                            alt={product.title} 
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                          />
                       ) : (
                           <div className="w-full h-full bg-slate-100 flex items-center justify-center">
                               <Server size={56} className="text-slate-300" />

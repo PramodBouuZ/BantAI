@@ -128,7 +128,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (prodData) {
         // If the database has data, we replace the mock data. 
-        // If the database is empty but initialized, we show an empty marketplace.
         const dbProducts = prodData.map((p: any) => ({
           id: p.id, 
           slug: p.slug || generateSlug(p.title),
@@ -144,8 +143,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           technicalSpecs: p.technical_specs || []
         }));
         
-        // Only override mock data if there are actual items in the DB, 
-        // otherwise stay on mock data for first-time setup experience.
         if (dbProducts.length > 0) {
           setProducts(dbProducts);
         }
@@ -254,13 +251,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       }
     }
-    // Mock successful addition if no supabase
     setLeads(prev => [lead, ...prev]);
     return true;
   };
 
   const addProduct = async (product: Product) => {
-    // Optimistic Update: Add to local state immediately
     setProducts(prev => [product, ...prev]);
     
     if (supabase) {
@@ -279,19 +274,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          technical_specs: product.technicalSpecs
       });
       if (error) {
-        addNotification(error.message, 'error');
-        fetchData(); // Rollback/Refetch
+        if (error.message.includes("slug")) {
+          addNotification("Please run the Supabase SQL fix to enable slugs.", 'error');
+        } else {
+          addNotification(error.message, 'error');
+        }
+        fetchData();
       } else {
         addNotification('Product added to marketplace!', 'success');
-        fetchData(); // Confirm with DB data
+        fetchData();
       }
-    } else {
-      addNotification('Product added locally (Database not connected)', 'info');
     }
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    // Optimistic Update
     setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
 
     if (supabase) {
@@ -319,7 +315,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteProduct = async (id: string) => {
-    // Optimistic Update
     setProducts(prev => prev.filter(p => p.id !== id));
 
     if (supabase) {

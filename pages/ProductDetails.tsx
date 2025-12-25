@@ -94,7 +94,13 @@ const ProductDetails: React.FC = () => {
           <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
             <div className="relative h-80 md:h-[450px] overflow-hidden group">
               {product.image ? (
-                <img src={product.image} alt={product.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <img 
+                  src={product.image} 
+                  alt={product.title} 
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                />
               ) : (
                 <div className="w-full h-full bg-slate-100 flex items-center justify-center">
                   {getIcon(product.icon)}
