@@ -30,12 +30,13 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Inherit from Component directly to ensure 'this.props' is correctly typed and accessible
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fixed: Explicitly use React.Component to ensure 'state' and 'props' are correctly typed and recognized by the compiler
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Explicitly declaring state as a property to resolve property access errors
+  public state: ErrorBoundaryState = { hasError: false };
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    // Initializing state on a properly extended Component
-    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
@@ -59,7 +60,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    // Accessing children via this.props inherited from Component
+    // Using this.props from React.Component extension
     return this.props.children;
   }
 }
@@ -218,7 +219,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     // Thoroughly update all favicon-related link tags for SEO and Browser compatibility
     if (siteConfig?.faviconUrl) {
-      const iconRels = ['icon', 'shortcut icon', 'apple-touch-icon'];
+      const iconRels = ['icon', 'shortcut icon', 'apple-touch-icon', 'icon-48', 'icon-192'];
       iconRels.forEach(rel => {
         let links = document.querySelectorAll(`link[rel*="${rel}"]`);
         if (links.length > 0) {
@@ -226,6 +227,10 @@ const AppContent: React.FC = () => {
         } else {
           const link = document.createElement('link');
           link.rel = rel;
+          // Ensure Google specifically sees a high-res version
+          if (rel === 'icon') {
+            link.setAttribute('sizes', '192x192');
+          }
           link.href = siteConfig.faviconUrl || '/favicon.ico';
           document.head.appendChild(link);
         }
