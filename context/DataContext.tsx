@@ -74,7 +74,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [compareList, setCompareList] = useState<Product[]>([]);
   
-  // Initialize with MOCK data first so site isn't empty during initial load
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [leads, setLeads] = useState<Lead[]>(RECENT_LEADS);
   const [categories, setCategories] = useState<string[]>(['Software', 'Telecom', 'Security', 'Connectivity', 'Infrastructure', 'Consulting']);
@@ -127,7 +126,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]);
 
       if (prodData) {
-        // If the database has data, we replace the mock data. 
         const dbProducts = prodData.map((p: any) => ({
           id: p.id, 
           slug: p.slug || generateSlug(p.title),
@@ -274,8 +272,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          technical_specs: product.technicalSpecs
       });
       if (error) {
-        if (error.message.includes("slug")) {
-          addNotification("Please run the Supabase SQL fix to enable slugs.", 'error');
+        if (error.message.includes("technical_specs") || error.message.includes("column")) {
+          addNotification("Database mismatch: Please run the latest SQL script in your Supabase dashboard.", 'error');
         } else {
           addNotification(error.message, 'error');
         }
@@ -382,6 +380,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addVendorRegistration = async (reg: VendorRegistration) => {
     setVendorRegistrations(prev => [reg, ...prev]);
     if (supabase) {
+      // Fixed: Use camelCase properties companyName and productName from the reg object
       const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
         mobile: reg.mobile, location: reg.location, product_name: reg.productName,
@@ -413,6 +412,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addVendorLogo = async (asset: VendorAsset) => {
     setVendorLogos(prev => [...prev, asset]);
     if (supabase) {
+      // Fixed: Use camelCase property logoUrl from the asset object
       const { error } = await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
       if (error) {
         addNotification(error.message, 'error');
