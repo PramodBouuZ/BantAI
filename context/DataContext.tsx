@@ -132,13 +132,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: p.title, 
           description: p.description, 
           category: p.category,
-          priceRange: p.price_range, 
+          priceRange: p.price_range || p.priceRange || '', 
           features: p.features || [], 
           icon: p.icon || 'globe',
-          rating: Number(p.rating), 
+          rating: Number(p.rating || 5), 
           image: p.image,
-          vendorName: p.vendor_name, 
-          technicalSpecs: p.technical_specs || []
+          vendorName: p.vendor_name || p.vendorName || '', 
+          technicalSpecs: p.technical_specs || p.technicalSpecs || []
         }));
         
         if (dbProducts.length > 0) {
@@ -272,14 +272,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          technical_specs: product.technicalSpecs
       });
       if (error) {
-        if (error.message.includes("technical_specs") || error.message.includes("column")) {
-          addNotification("Database mismatch: Please run the latest SQL script in your Supabase dashboard.", 'error');
+        console.error("Supabase Error:", error);
+        if (error.message.includes("column") || error.code === '42703') {
+          addNotification("Database mismatch detected! Please run the latest SQL script provided in your Supabase SQL Editor.", 'error');
         } else {
-          addNotification(error.message, 'error');
+          addNotification(`Save Failed: ${error.message}`, 'error');
         }
         fetchData();
       } else {
-        addNotification('Product added to marketplace!', 'success');
+        addNotification('Product added successfully!', 'success');
         fetchData();
       }
     }
@@ -380,7 +381,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addVendorRegistration = async (reg: VendorRegistration) => {
     setVendorRegistrations(prev => [reg, ...prev]);
     if (supabase) {
-      // Fixed: Use camelCase properties companyName and productName from the reg object
       const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
         mobile: reg.mobile, location: reg.location, product_name: reg.productName,
@@ -412,7 +412,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addVendorLogo = async (asset: VendorAsset) => {
     setVendorLogos(prev => [...prev, asset]);
     if (supabase) {
-      // Fixed: Use camelCase property logoUrl from the asset object
       const { error } = await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
       if (error) {
         addNotification(error.message, 'error');
