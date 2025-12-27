@@ -1,3 +1,4 @@
+
 // Fixed ErrorBoundary class to properly extend Component and resolve state/props access errors
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
@@ -30,9 +31,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Explicitly use React.Component to ensure 'state' and 'props' are correctly typed and recognized by the compiler
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Explicitly declaring state as a property to resolve property access errors
+// Fixed ErrorBoundary to properly extend the Component class with generic props and state types
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false };
 
   constructor(props: ErrorBoundaryProps) {
@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    // Using this.props from React.Component extension
+    // Fixed: Accessed children via this.props safely
     return this.props.children;
   }
 }
@@ -178,7 +178,6 @@ const AppContent: React.FC = () => {
   const { siteConfig } = useData();
 
   useEffect(() => {
-    // 1. Initial user check
     const checkUser = async () => {
       if (supabase) {
         const { data: { session } } = await supabase.auth.getSession();
@@ -196,7 +195,6 @@ const AppContent: React.FC = () => {
     };
     checkUser();
 
-    // 2. Setup auth listener for real-time login/logout detection
     if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
@@ -217,26 +215,36 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Thoroughly update all favicon-related link tags for SEO and Browser compatibility
+    // FAVICON LOGIC FOR GOOGLE SEARCH - SYNC WITH SQL DATABASE CONFIG
     if (siteConfig?.faviconUrl) {
-      const iconRels = ['icon', 'shortcut icon', 'apple-touch-icon', 'icon-48', 'icon-192'];
-      iconRels.forEach(rel => {
-        let links = document.querySelectorAll(`link[rel*="${rel}"]`);
-        if (links.length > 0) {
-          links.forEach(l => { (l as HTMLLinkElement).href = siteConfig.faviconUrl || '/favicon.ico'; });
-        } else {
-          const link = document.createElement('link');
+      const favUrl = siteConfig.faviconUrl;
+      
+      // Update standard favicon tags
+      const rels = ['icon', 'shortcut icon', 'apple-touch-icon'];
+      rels.forEach(rel => {
+        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
           link.rel = rel;
-          // Ensure Google specifically sees a high-res version
-          if (rel === 'icon') {
-            link.setAttribute('sizes', '192x192');
-          }
-          link.href = siteConfig.faviconUrl || '/favicon.ico';
           document.head.appendChild(link);
         }
+        link.href = favUrl;
       });
+
+      // Inject 192x192 PNG for Google Search "Large Favicon" requirement
+      let googleIcon = document.querySelector('link[sizes="192x192"]') as HTMLLinkElement;
+      if (!googleIcon) {
+        googleIcon = document.createElement('link');
+        googleIcon.rel = 'icon';
+        googleIcon.setAttribute('sizes', '192x192');
+        googleIcon.setAttribute('type', 'image/png');
+        document.head.appendChild(googleIcon);
+      }
+      googleIcon.href = favUrl;
+
+      // Update document title dynamically
       if (siteConfig.siteName) {
-        document.title = siteConfig.siteName + " - India's #1 B2B Marketplace";
+        document.title = `${siteConfig.siteName} – India’s AI-Powered B2B Marketplace`;
       }
     }
   }, [siteConfig]);

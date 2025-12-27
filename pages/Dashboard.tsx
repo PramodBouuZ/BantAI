@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Product, Lead, User, VendorAsset, VendorRegistration } from '../types';
+import { Product, Lead, User, VendorAsset, VendorRegistration, SiteConfig } from '../types';
 import { useData } from '../context/DataContext';
 import { 
   Download, Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, Briefcase, FileText, Upload,
   Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, CheckCircle2, IndianRupee, Star, ExternalLink, Globe, Phone, MapPin,
-  Zap, Mail, Camera, UserCheck, PlusCircle
+  Zap, Mail, Camera, UserCheck, PlusCircle, Trash
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -18,9 +18,83 @@ const generateSlug = (text: string) => {
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-')     // Replace spaces with -
-    .replace(/[^\w-]+/g, '')  // Remove all non-word chars
-    .replace(/--+/g, '-');    // Replace multiple - with single -
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
+};
+
+// Reusable Image Upload Component for the Dashboard
+const ImageUploadZone: React.FC<{
+  label: string;
+  value?: string;
+  onUpload: (base64: string) => void;
+  onClear: () => void;
+  className?: string;
+  aspectRatio?: string;
+}> = ({ label, value, onUpload, onClear, className = "", aspectRatio = "aspect-video" }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        alert('Only PNG, JPG, or JPEG files are allowed.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onUpload(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <label className="block text-xs font-black uppercase text-slate-400 tracking-widest">{label}</label>
+      <div 
+        onClick={() => !value && fileInputRef.current?.click()}
+        className={`relative border-2 border-dashed rounded-2xl transition-all flex flex-col items-center justify-center overflow-hidden group ${
+          value ? 'border-indigo-100 bg-white' : 'border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer'
+        } ${aspectRatio}`}
+      >
+        {value ? (
+          <div className="relative w-full h-full animate-fade-in">
+            <img src={value} alt="Preview" className="w-full h-full object-contain p-2" />
+            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <button 
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                className="p-2 bg-white text-blue-600 rounded-xl hover:scale-110 transition shadow-lg"
+              >
+                <Edit2 size={20} />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onClear(); }}
+                className="p-2 bg-white text-red-600 rounded-xl hover:scale-110 transition shadow-lg"
+              >
+                <Trash2 size={20} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-4">
+            <div className="bg-white p-3 rounded-xl shadow-sm text-slate-400 mx-auto mb-2 inline-block">
+              <Upload size={24} />
+            </div>
+            <p className="text-sm font-bold text-slate-600">Click to upload</p>
+            <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">PNG, JPG, JPEG</p>
+          </div>
+        )}
+        <input 
+          ref={fileInputRef}
+          type="file" 
+          accept="image/png,image/jpeg,image/jpg" 
+          className="hidden" 
+          onChange={handleChange} 
+        />
+      </div>
+    </div>
+  );
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
@@ -61,31 +135,11 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newLogo, setNewLogo] = useState({ name: '', url: '' });
 
-  // Filter users with 'vendor' role for assignment
   const availableVendors = users.filter(u => u.role === 'vendor');
 
-  // Update config form state when siteConfig changes
   useEffect(() => {
     if (siteConfig) setConfigForm(siteConfig);
   }, [siteConfig]);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-        addNotification('Only PNG, JPG, or JPEG files are allowed.', 'error');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        callback(reader.result as string);
-        addNotification('Image processed successfully!', 'success');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleExportLeads = () => {
     const headers = ["ID", "Name", "Mobile", "Email", "Company", "Location", "Service", "Budget", "Need", "Authority", "Timing", "Status", "Assigned Vendor", "Remarks", "Date"];
@@ -495,45 +549,13 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-black uppercase text-slate-400 mb-3 tracking-widest">2. Logo Upload (PNG/JPG)</label>
-            <div 
-              className={`relative border-2 border-dashed rounded-3xl p-10 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden ${
-                newLogo.url ? 'border-green-400 bg-green-50/30' : 'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/30'
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {newLogo.url ? (
-                <div className="text-center animate-fade-in">
-                  <img src={newLogo.url} alt="Preview" className="h-24 w-auto object-contain mx-auto mb-4 drop-shadow-md" />
-                  <p className="text-xs font-black text-green-600 uppercase flex items-center justify-center gap-1">
-                    <CheckCircle2 size={14} /> Ready to Save
-                  </p>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setNewLogo({...newLogo, url: ''}); }}
-                    className="mt-4 text-[10px] font-black uppercase text-red-500 hover:underline"
-                  >
-                    Change Image
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <div className="bg-white p-4 rounded-2xl shadow-sm text-slate-400 mx-auto mb-4 inline-block">
-                    <Upload size={32} />
-                  </div>
-                  <p className="text-sm font-bold text-slate-600 mb-1">Click to select image file</p>
-                  <p className="text-xs text-slate-400">Supported: PNG, JPG, JPEG</p>
-                </div>
-              )}
-              <input 
-                ref={fileInputRef}
-                type="file" 
-                accept="image/png,image/jpeg,image/jpg" 
-                className="hidden" 
-                onChange={(e) => handleImageUpload(e, (base64) => setNewLogo({...newLogo, url: base64}))} 
-              />
-            </div>
-          </div>
+          <ImageUploadZone 
+            label="2. Logo Upload (PNG/JPG)"
+            value={newLogo.url}
+            onUpload={(base64) => setNewLogo({...newLogo, url: base64})}
+            onClear={() => setNewLogo({...newLogo, url: ''})}
+            aspectRatio="aspect-square max-w-[200px]"
+          />
 
           <button 
             onClick={handleLogoUpload}
@@ -611,7 +633,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   );
 
   const renderSettings = () => (
-    <div className="max-w-4xl animate-fade-in">
+    <div className="max-w-5xl animate-fade-in space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
           <h3 className="text-xl font-bold text-slate-900 mb-6">Site Branding</h3>
@@ -632,44 +654,32 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-black uppercase text-slate-400 mb-2">Logo URL</label>
-              <div className="relative">
-                <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.logoUrl || ''} onChange={e => setConfigForm({...configForm, logoUrl: e.target.value})} />
-                <button 
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/*';
-                    input.onchange = (e: any) => handleImageUpload(e, (base64) => setConfigForm({...configForm, logoUrl: base64}));
-                    input.click();
-                  }}
-                  className="absolute right-2 top-2 p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                >
-                  <Camera size={20} />
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase text-slate-400 mb-2">Favicon URL</label>
-              <div className="relative">
-                <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.faviconUrl || ''} onChange={e => setConfigForm({...configForm, faviconUrl: e.target.value})} />
-                <button 
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = 'image/x-icon,image/png,image/jpeg';
-                    input.onchange = (e: any) => handleImageUpload(e, (base64) => setConfigForm({...configForm, faviconUrl: base64}));
-                    input.click();
-                  }}
-                  className="absolute right-2 top-2 p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                >
-                  <Camera size={20} />
-                </button>
-              </div>
-            </div>
+          
+          <div className="grid grid-cols-2 gap-6">
+            <ImageUploadZone 
+              label="Logo Upload"
+              value={configForm.logoUrl}
+              onUpload={(base64) => setConfigForm({...configForm, logoUrl: base64})}
+              onClear={() => setConfigForm({...configForm, logoUrl: ''})}
+              aspectRatio="aspect-square"
+            />
+            <ImageUploadZone 
+              label="Favicon Upload"
+              value={configForm.faviconUrl}
+              onUpload={(base64) => setConfigForm({...configForm, faviconUrl: base64})}
+              onClear={() => setConfigForm({...configForm, faviconUrl: ''})}
+              aspectRatio="aspect-square"
+            />
           </div>
+
+          <ImageUploadZone 
+            label="Hero Banner Image"
+            value={configForm.bannerImage}
+            onUpload={(base64) => setConfigForm({...configForm, bannerImage: base64})}
+            onClear={() => setConfigForm({...configForm, bannerImage: ''})}
+            aspectRatio="aspect-video"
+          />
+
           <div>
             <label className="block text-xs font-black uppercase text-slate-400 mb-2">WhatsApp Number (e.g. +91...)</label>
             <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.whatsappNumber || ''} onChange={e => setConfigForm({...configForm, whatsappNumber: e.target.value})} />
@@ -677,7 +687,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">Social Media & Hero</h3>
+          <h3 className="text-xl font-bold text-slate-900 mb-6">Social Media & Content</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Twitter Profile</label>
@@ -699,14 +709,18 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Banner Title</label>
-            <input type="text" className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none" value={configForm.bannerTitle || ''} onChange={e => setConfigForm({...configForm, bannerTitle: e.target.value})} />
+            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Banner Main Title</label>
+            <textarea rows={2} className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none font-bold" value={configForm.bannerTitle || ''} onChange={e => setConfigForm({...configForm, bannerTitle: e.target.value})} />
+          </div>
+          <div>
+            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Banner Subtitle</label>
+            <textarea rows={3} className="w-full bg-slate-50 p-4 rounded-xl border-none outline-none text-slate-500 font-medium" value={configForm.bannerSubtitle || ''} onChange={e => setConfigForm({...configForm, bannerSubtitle: e.target.value})} />
           </div>
           <button 
             onClick={() => updateSiteConfig(configForm)}
-            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-slate-800 shadow-xl transition transform active:scale-95"
+            className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-lg hover:bg-slate-800 shadow-xl transition transform active:scale-95"
           >
-            Update Site Config
+            Save All Settings
           </button>
         </div>
       </div>
@@ -868,45 +882,44 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
              <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                    <div>
-                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Title</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-2">Title</label>
                      <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" value={prodForm.title} onChange={e => setProdForm({...prodForm, title: e.target.value})} />
                    </div>
                    <div>
-                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Price Range</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-2">Price Range</label>
                      <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-green-600" value={prodForm.priceRange} onChange={e => setProdForm({...prodForm, priceRange: e.target.value})} />
                    </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-6">
                    <div>
-                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Category</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-2">Category</label>
                      <select className="w-full bg-slate-50 p-4 rounded-2xl outline-none appearance-none font-bold" value={prodForm.category} onChange={e => setProdForm({...prodForm, category: e.target.value})}>
                         {categories.map(c => <option key={c}>{c}</option>)}
                      </select>
                    </div>
                    <div>
-                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Vendor Branding Override</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-2">Vendor Branding Override</label>
                      <input type="text" placeholder="e.g. Jio Business" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" value={prodForm.vendorName} onChange={e => setProdForm({...prodForm, vendorName: e.target.value})} />
                    </div>
                 </div>
 
                 <div>
-                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Description</label>
+                   <label className="block text-sm font-bold text-slate-700 mb-2">Description</label>
                    <textarea rows={3} className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-medium text-slate-600" value={prodForm.description} onChange={e => setProdForm({...prodForm, description: e.target.value})} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                    <div>
-                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Rating (1-5)</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-2">Rating (1-5)</label>
                      <input type="number" min="1" max="5" step="0.1" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" value={prodForm.rating} onChange={e => setProdForm({...prodForm, rating: Number(e.target.value)})} />
                    </div>
                    <div>
-                     <label className="block text-xs font-black text-slate-400 uppercase mb-2">Features (comma separated)</label>
+                     <label className="block text-sm font-bold text-slate-700 mb-2">Features (comma separated)</label>
                      <input type="text" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" placeholder="Feature 1, Feature 2..." value={prodFeaturesText} onChange={e => setProdFeaturesText(e.target.value)} />
                    </div>
                 </div>
 
-                {/* Technical Specifications Management */}
                 <div className="bg-slate-50 p-6 rounded-[1.5rem] border border-slate-100">
                     <div className="flex items-center justify-between mb-4">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Advanced Technical Specs</label>
@@ -923,14 +936,14 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                             <div key={idx} className="flex gap-2 items-center animate-fade-in">
                                 <input 
                                     type="text" 
-                                    placeholder="Label (e.g. Deployment)" 
+                                    placeholder="Label" 
                                     className="flex-1 bg-white p-3 rounded-xl outline-none text-xs font-bold border border-slate-100"
                                     value={spec.label}
                                     onChange={(e) => handleUpdateTechSpec(idx, 'label', e.target.value)}
                                 />
                                 <input 
                                     type="text" 
-                                    placeholder="Value (e.g. Cloud)" 
+                                    placeholder="Value" 
                                     className="flex-1 bg-white p-3 rounded-xl outline-none text-xs font-medium border border-slate-100"
                                     value={spec.value}
                                     onChange={(e) => handleUpdateTechSpec(idx, 'value', e.target.value)}
@@ -940,30 +953,16 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                                 </button>
                             </div>
                         ))}
-                        {(!prodForm.technicalSpecs || prodForm.technicalSpecs.length === 0) && (
-                            <p className="text-center text-[10px] text-slate-400 italic py-2">No custom specs added. Page will show default placeholders.</p>
-                        )}
                     </div>
                 </div>
 
-                <div>
-                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Visual Content</label>
-                   <div className="flex gap-4 items-center">
-                      <div className="w-24 h-24 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden">
-                        {prodForm.image ? <img src={prodForm.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" />}
-                      </div>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        id="prod-upload"
-                        onChange={(e) => handleImageUpload(e, (base64) => setProdForm({...prodForm, image: base64}))} 
-                      />
-                      <label htmlFor="prod-upload" className="cursor-pointer bg-white text-blue-600 px-6 py-4 rounded-2xl font-bold border-2 border-dashed border-blue-100 hover:bg-blue-50 transition flex items-center gap-2 shadow-sm flex-1 justify-center">
-                         <Camera size={20} /> Upload Professional Banner
-                      </label>
-                   </div>
-                </div>
+                <ImageUploadZone 
+                   label="Service Product Banner"
+                   value={prodForm.image}
+                   onUpload={(base64) => setProdForm({...prodForm, image: base64})}
+                   onClear={() => setProdForm({...prodForm, image: ''})}
+                   aspectRatio="aspect-video"
+                />
                 
                 <button onClick={handleSaveProduct} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-100 transform active:scale-95 transition">
                   {editingProduct ? 'Save Marketplace Updates' : 'Publish New Service'}

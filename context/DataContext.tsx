@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification } from '../types';
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
@@ -59,15 +60,14 @@ const defaultSiteConfig: SiteConfig = {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Helper to generate a slug from a title
 const generateSlug = (text: string) => {
   return text
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-')     // Replace spaces with -
-    .replace(/[^\w-]+/g, '')  // Remove all non-word chars
-    .replace(/--+/g, '-');    // Replace multiple - with single -
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -94,16 +94,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const triggerAdminNotification = async (subject: string, payload: any) => {
-    const target = siteConfig.adminNotificationEmail || ADMIN_EMAIL;
-    console.log(`[ADMIN NOTIFICATION SENT] To: ${target} | Subject: ${subject} | Details:`, payload);
-  };
-
-  const triggerVendorNotification = async (vendor: User, lead: Lead) => {
-    console.log(`[VENDOR NOTIFICATION] To: ${vendor.email} | Channel: Email & WhatsApp (${vendor.mobile})`);
-    addNotification(`Notification sent to Vendor ${vendor.name}`, 'success');
-  };
-
   const fetchData = useCallback(async () => {
     if (!supabase) return;
     try {
@@ -126,24 +116,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]);
 
       if (prodData) {
-        const dbProducts = prodData.map((p: any) => ({
+        setProducts(prodData.map((p: any) => ({
           id: p.id, 
           slug: p.slug || generateSlug(p.title),
           title: p.title, 
           description: p.description, 
           category: p.category,
-          priceRange: p.price_range || p.priceRange || '', 
+          priceRange: p.price_range || '', 
           features: p.features || [], 
           icon: p.icon || 'globe',
           rating: Number(p.rating || 5), 
           image: p.image,
-          vendorName: p.vendor_name || p.vendorName || '', 
-          technicalSpecs: p.technical_specs || p.technicalSpecs || []
-        }));
-        
-        if (dbProducts.length > 0) {
-          setProducts(dbProducts);
-        }
+          vendorName: p.vendor_name || '', 
+          technicalSpecs: p.technical_specs || []
+        })));
       }
 
       if (configData) {
@@ -159,13 +145,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      if (vLogos && vLogos.length > 0) {
-        setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
-      }
-      
-      if (catData && catData.length > 0) {
-        setCategories(Array.from(new Set([...catData.map((c: any) => c.name)])));
-      }
+      if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
+      if (catData) setCategories(Array.from(new Set(catData.map((c: any) => c.name))));
       
       if (leadData) {
         setLeads(leadData.map((l: any) => ({
@@ -187,7 +168,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })));
       }
 
-      if (vRegData) setVendorRegistrations(vRegData.map((v: any) => ({ ...v, companyName: v.company_name, productName: v.product_name })));
+      if (vRegData) setVendorRegistrations(vRegData.map((v: any) => ({ 
+        ...v, 
+        companyName: v.company_name, 
+        productName: v.product_name 
+      })));
       
       if (userData) {
         setUsers(userData.map((u: any) => ({
@@ -209,15 +194,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     fetchData();
     if (!supabase) return;
-
     const channel = supabase.channel('realtime-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendor_assets' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, fetchData)
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
@@ -238,24 +219,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          status: 'Pending', 
          date: new Date().toISOString().split('T')[0]
       });
-      
       if (error) {
         addNotification(`Database Error: ${error.message}`, 'error');
         return false;
-      } else {
-        setLeads(prev => [lead, ...prev]);
-        addNotification('Requirement posted successfully!', 'success');
-        triggerAdminNotification('New Inquiry Received', lead);
-        return true;
       }
+      setLeads(prev => [lead, ...prev]);
+      addNotification('Requirement posted successfully!', 'success');
+      return true;
     }
-    setLeads(prev => [lead, ...prev]);
     return true;
   };
 
   const addProduct = async (product: Product) => {
-    setProducts(prev => [product, ...prev]);
-    
     if (supabase) {
       const { error } = await supabase.from('products').insert({
          id: product.id, 
@@ -272,23 +247,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          technical_specs: product.technicalSpecs
       });
       if (error) {
-        console.error("Supabase Error:", error);
-        if (error.message.includes("column") || error.code === '42703') {
-          addNotification("Database mismatch detected! Please run the latest SQL script provided in your Supabase SQL Editor.", 'error');
-        } else {
-          addNotification(`Save Failed: ${error.message}`, 'error');
-        }
-        fetchData();
+        addNotification(error.message, 'error');
       } else {
-        addNotification('Product added successfully!', 'success');
+        addNotification('Product added!', 'success');
         fetchData();
       }
     }
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
-
     if (supabase) {
       const { error } = await supabase.from('products').update({
          slug: updatedProduct.slug || generateSlug(updatedProduct.title),
@@ -303,33 +270,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          vendor_name: updatedProduct.vendorName, 
          technical_specs: updatedProduct.technicalSpecs
       }).eq('id', id);
-      if (error) {
-        addNotification(error.message, 'error');
-        fetchData();
-      } else {
-        addNotification('Product updated successfully!', 'success');
-        fetchData();
-      }
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
     }
   };
 
   const deleteProduct = async (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-
     if (supabase) {
       const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) {
-        addNotification(error.message, 'error');
-        fetchData();
-      } else {
-        addNotification('Product removed.', 'info');
-        fetchData();
-      }
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
     }
   };
 
   const updateSiteConfig = async (config: SiteConfig) => {
-    setSiteConfig(config);
     if (supabase) {
       const { error } = await supabase.from('site_config').upsert({
           id: 1, 
@@ -350,79 +304,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateLeadStatus = async (id: string, status: Lead['status']) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     if (supabase) await supabase.from('leads').update({ status }).eq('id', id);
+    fetchData();
   };
 
   const assignLead = async (id: string, vendorId: string) => {
-    if (supabase) {
-        const { error } = await supabase.from('leads').update({ assigned_to: vendorId }).eq('id', id);
-        if (!error) {
-            const vendor = users.find(u => u.id === vendorId);
-            const lead = leads.find(l => l.id === id);
-            if (vendor && lead) {
-                triggerVendorNotification(vendor, lead);
-            }
-        }
-    }
+    if (supabase) await supabase.from('leads').update({ assigned_to: vendorId }).eq('id', id);
     fetchData();
   };
 
   const updateLeadRemarks = async (id: string, remarks: string) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, remarks } : l));
     if (supabase) await supabase.from('leads').update({ remarks }).eq('id', id);
+    fetchData();
   };
 
   const deleteLead = async (id: string) => {
-    setLeads(prev => prev.filter(l => l.id !== id));
     if (supabase) await supabase.from('leads').delete().eq('id', id);
+    fetchData();
   };
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
-    setVendorRegistrations(prev => [reg, ...prev]);
     if (supabase) {
       const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
         mobile: reg.mobile, location: reg.location, product_name: reg.productName,
         message: reg.message, date: reg.date
       });
-      if (!error) {
-        addNotification('Vendor application received!', 'success');
-        triggerAdminNotification('New Vendor Registration', reg);
-      } else {
-        addNotification(`Signup failed: ${error.message}`, 'error');
-        fetchData();
-      }
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
     }
   };
 
   const addCategory = async (category: string) => {
-    setCategories(prev => [...prev, category]);
     if (supabase) await supabase.from('categories').insert({ name: category });
+    fetchData();
   };
 
   const deleteCategory = async (category: string) => {
-    setCategories(prev => prev.filter(c => c !== category));
     if (supabase) await supabase.from('categories').delete().eq('name', category);
+    fetchData();
   };
 
   const addUser = (user: User) => setUsers(prev => [...prev, user]);
   const deleteUser = (id: string) => setUsers(prev => prev.filter(u => u.id !== id));
   
   const addVendorLogo = async (asset: VendorAsset) => {
-    setVendorLogos(prev => [...prev, asset]);
-    if (supabase) {
-      const { error } = await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
-      if (error) {
-        addNotification(error.message, 'error');
-        fetchData();
-      }
-    }
+    if (supabase) await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
+    fetchData();
   };
   
   const deleteVendorLogo = async (id: string) => {
-    setVendorLogos(prev => prev.filter(v => v.id !== id));
     if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
+    fetchData();
   };
   
   const toggleCompare = (product: Product) => {

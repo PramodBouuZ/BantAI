@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, X, Send, Bot, User, Loader2, ArrowRight, Zap } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
@@ -32,7 +33,7 @@ const AIConsultant: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const model = 'gemini-3-flash-preview';
       
-      const context = `
+      const systemInstruction = `
         You are the BantConfirm B2B AI Consultant. 
         Your goal is to help Indian businesses find the right IT/Telecom services.
         Available Categories: ${categories.join(', ')}.
@@ -46,10 +47,13 @@ const AIConsultant: React.FC = () => {
         5. Encourage them to "Post an Enquiry" for custom pricing.
       `;
 
-      // Corrected: Simplified contents to a direct string prompt as per guidelines
+      // Corrected: Using systemInstruction in config for better response quality as per guidelines
       const response = await ai.models.generateContent({
         model,
-        contents: `${context}\n\nUser Question: ${userMsg}`,
+        contents: userMsg,
+        config: {
+          systemInstruction: systemInstruction,
+        },
       });
 
       // Corrected: Directly accessing response.text property (not a method call) as per SDK rules
