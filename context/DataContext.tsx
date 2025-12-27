@@ -204,6 +204,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLead = async (lead: Lead): Promise<boolean> => {
     if (supabase) {
+      console.log("Attempting to insert lead:", lead);
       const { error } = await supabase.from('leads').insert({
          id: lead.id, 
          name: lead.name, 
@@ -220,11 +221,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          date: new Date().toISOString().split('T')[0]
       });
       if (error) {
-        addNotification(`Database Error: ${error.message}`, 'error');
+        console.error("Supabase Lead Insert Error:", error);
+        addNotification(`Database Error: ${error.message}. Please check if 'leads' table exists.`, 'error');
         return false;
       }
       setLeads(prev => [lead, ...prev]);
-      addNotification('Requirement posted successfully!', 'success');
+      addNotification('Requirement posted successfully! Admin has been alerted.', 'success');
       return true;
     }
     return true;
@@ -325,13 +327,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
     if (supabase) {
+      console.log("Attempting vendor registration insert:", reg);
       const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
         mobile: reg.mobile, location: reg.location, product_name: reg.productName,
         message: reg.message, date: reg.date
       });
-      if (error) addNotification(error.message, 'error');
-      else fetchData();
+      if (error) {
+        console.error("Supabase Vendor Registration Error:", error);
+        addNotification(`Registration Error: ${error.message}`, 'error');
+      } else {
+        addNotification('Registration successful! Our team will contact you.', 'success');
+        fetchData();
+      }
     }
   };
 

@@ -32,11 +32,11 @@ interface ErrorBoundaryState {
 }
 
 // Fixed ErrorBoundary to properly extend the Component class with generic props and state types
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState = { hasError: false };
-
+// Using React.Component explicitly ensures that 'this.props' is correctly inherited and recognized by the compiler.
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
@@ -60,7 +60,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    // Fixed: Accessed children via this.props safely
+    // Fixed: Accessed children via this.props which is now correctly inherited from React.Component
     return this.props.children;
   }
 }
