@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification, BlogPost } from '../types';
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
@@ -314,8 +313,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         author: blog.author,
         date: blog.date
       });
-      if (error) addNotification(error.message, 'error');
-      else { addNotification('Blog post published!', 'success'); fetchData(); }
+      if (error) {
+        console.error("Supabase Error:", error);
+        addNotification(`DB Error: ${error.message}. Ensure blogs table exists.`, 'error');
+      }
+      else { 
+        addNotification('Insight article published!', 'success'); 
+        fetchData(); 
+      }
     }
   };
 
@@ -358,7 +363,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated_at: new Date().toISOString()
       });
       if (error) addNotification(error.message, 'error');
-      else addNotification('Site configuration saved.', 'success');
+      else addNotification('Global configuration synced.', 'success');
       fetchData();
     }
   };
@@ -391,7 +396,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: reg.message, date: reg.date
       });
       if (error) addNotification(`Registration Error: ${error.message}`, 'error');
-      else { addNotification('Registration successful!', 'success'); fetchData(); }
+      else { addNotification('Vendor registered!', 'success'); fetchData(); }
     }
   };
 
