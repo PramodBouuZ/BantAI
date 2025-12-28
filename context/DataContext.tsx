@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification, BlogPost } from '../types';
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
@@ -15,40 +16,33 @@ interface DataContextType {
   notifications: AppNotification[];
   compareList: Product[];
   
-  // Product Actions
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   
-  // Blog Actions
   addBlog: (blog: BlogPost) => Promise<void>;
   updateBlog: (id: string, blog: BlogPost) => Promise<void>;
   deleteBlog: (id: string) => Promise<void>;
 
-  // Lead Actions
   addLead: (lead: Lead) => Promise<boolean>;
   updateLeadStatus: (id: string, status: Lead['status']) => Promise<void>;
   assignLead: (id: string, vendorId: string) => Promise<void>;
   updateLeadRemarks: (id: string, remarks: string) => Promise<void>;
   deleteLead: (id: string) => Promise<void>;
   
-  // Config/Category Actions
   updateSiteConfig: (config: SiteConfig) => Promise<void>;
   addCategory: (category: string) => Promise<void>;
   deleteCategory: (category: string) => Promise<void>;
 
-  // User/Vendor Actions
   addUser: (user: User) => void;
   deleteUser: (id: string) => void;
   addVendorLogo: (asset: VendorAsset) => Promise<void>;
   deleteVendorLogo: (id: string) => Promise<void>;
   addVendorRegistration: (reg: VendorRegistration) => Promise<void>;
 
-  // Notification Actions
   addNotification: (message: string, type: AppNotification['type']) => void;
   removeNotification: (id: string) => void;
 
-  // Compare Actions
   toggleCompare: (product: Product) => void;
   clearCompare: () => void;
 }
@@ -143,12 +137,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (blogData) {
         setBlogs(blogData.map((b: any) => ({
           id: b.id,
-          slug: b.slug || generateSlug(b.title),
+          slug: b.slug,
           title: b.title,
           content: b.content,
           category: b.category,
           image: b.image,
-          author: b.author || 'Admin',
+          author: b.author,
           date: b.date
         })));
       }
@@ -245,7 +239,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addNotification(`Database Error: ${error.message}`, 'error');
         return false;
       }
-      setLeads(prev => [lead, ...prev]);
+      fetchData();
       addNotification('Requirement posted successfully!', 'success');
       return true;
     }
@@ -303,6 +297,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addBlog = async (blog: BlogPost) => {
     if (supabase) {
+      // Log the user for debugging RLS
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Attempting blog insert as:", user?.email);
+
       const { error } = await supabase.from('blogs').insert({
         id: blog.id,
         slug: blog.slug || generateSlug(blog.title),
@@ -313,11 +311,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         author: blog.author,
         date: blog.date
       });
+
       if (error) {
         console.error("Supabase Error:", error);
-        addNotification(`DB Error: ${error.message}. Ensure blogs table exists.`, 'error');
-      }
-      else { 
+        if (error.code === '42501') {
+          addNotification("Permission Denied: Your account is not authorized to post blogs. Check Supabase RLS policies.", 'error');
+        } else {
+          addNotification(`Database Error: ${error.message}`, 'error');
+        }
+      } else { 
         addNotification('Insight article published!', 'success'); 
         fetchData(); 
       }
@@ -411,7 +413,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addUser = (user: User) => setUsers(prev => [...prev, user]);
-  const deleteUser = (id: string) => setUsers(prev => prev.filter(u => u.id !== id));
+  const deleteUser = (id: string) => {
+     if(supabase) supabase.from('users').delete().eq('id', id).then(() => fetchData());
+  };
   
   const addVendorLogo = async (asset: VendorAsset) => {
     if (supabase) await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
