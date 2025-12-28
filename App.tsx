@@ -1,4 +1,3 @@
-
 // Fixed ErrorBoundary class to properly extend Component and resolve state/props access errors
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
@@ -32,8 +31,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Correctly extending React Component with proper generics to resolve 'Property state/props does not exist' errors
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Fixed: Correctly extending React.Component with proper generics to resolve 'Property state/props does not exist' errors
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // Explicitly defining state as a class property to ensure TypeScript recognition
   public state: ErrorBoundaryState = { hasError: false };
 
