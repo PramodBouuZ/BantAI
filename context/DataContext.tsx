@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification } from '../types';
+import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification, BlogPost } from '../types';
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
 
@@ -11,6 +11,7 @@ interface DataContextType {
   users: User[];
   vendorLogos: VendorAsset[];
   vendorRegistrations: VendorRegistration[];
+  blogs: BlogPost[];
   siteConfig: SiteConfig;
   notifications: AppNotification[];
   compareList: Product[];
@@ -20,6 +21,11 @@ interface DataContextType {
   updateProduct: (id: string, product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   
+  // Blog Actions
+  addBlog: (blog: BlogPost) => Promise<void>;
+  updateBlog: (id: string, blog: BlogPost) => Promise<void>;
+  deleteBlog: (id: string) => Promise<void>;
+
   // Lead Actions
   addLead: (lead: Lead) => Promise<boolean>;
   updateLeadStatus: (id: string, status: Lead['status']) => Promise<void>;
@@ -81,6 +87,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [users, setUsers] = useState<User[]>([]);
   const [vendorLogos, setVendorLogos] = useState<VendorAsset[]>(MOCK_VENDOR_LOGOS);
   const [vendorRegistrations, setVendorRegistrations] = useState<VendorRegistration[]>([]);
+  const [blogs, setBlogs] = useState<BlogPost[]>([]);
 
   const addNotification = useCallback((message: string, type: AppNotification['type'] = 'info') => {
     const id = Date.now().toString() + Math.random().toString();
@@ -104,7 +111,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { data: catData },
         { data: leadData },
         { data: vRegData },
-        { data: userData }
+        { data: userData },
+        { data: blogData }
       ] = await Promise.all([
         supabase.from('products').select('*'),
         supabase.from('site_config').select('*').maybeSingle(),
@@ -112,7 +120,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('categories').select('*'),
         supabase.from('leads').select('*').order('date', { ascending: false }),
         supabase.from('vendor_registrations').select('*').order('date', { ascending: false }),
-        supabase.from('users').select('*')
+        supabase.from('users').select('*'),
+        supabase.from('blogs').select('*').order('date', { ascending: false })
       ]);
 
       if (prodData) {
@@ -129,6 +138,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           image: p.image,
           vendorName: p.vendor_name || '', 
           technicalSpecs: p.technical_specs || []
+        })));
+      }
+
+      if (blogData) {
+        setBlogs(blogData.map((b: any) => ({
+          id: b.id,
+          slug: b.slug || generateSlug(b.title),
+          title: b.title,
+          content: b.content,
+          category: b.category,
+          image: b.image,
+          author: b.author || 'Admin',
+          date: b.date
         })));
       }
 
@@ -197,6 +219,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const channel = supabase.channel('realtime-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blogs' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -204,7 +227,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLead = async (lead: Lead): Promise<boolean> => {
     if (supabase) {
-      console.log("Attempting to insert lead:", lead);
       const { error } = await supabase.from('leads').insert({
          id: lead.id, 
          name: lead.name, 
@@ -221,12 +243,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          date: new Date().toISOString().split('T')[0]
       });
       if (error) {
-        console.error("Supabase Lead Insert Error:", error);
-        addNotification(`Database Error: ${error.message}. Please check if 'leads' table exists.`, 'error');
+        addNotification(`Database Error: ${error.message}`, 'error');
         return false;
       }
       setLeads(prev => [lead, ...prev]);
-      addNotification('Requirement posted successfully! Admin has been alerted.', 'success');
+      addNotification('Requirement posted successfully!', 'success');
       return true;
     }
     return true;
@@ -248,12 +269,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          vendor_name: product.vendorName, 
          technical_specs: product.technicalSpecs
       });
-      if (error) {
-        addNotification(error.message, 'error');
-      } else {
-        addNotification('Product added!', 'success');
-        fetchData();
-      }
+      if (error) addNotification(error.message, 'error');
+      else { addNotification('Product added!', 'success'); fetchData(); }
     }
   };
 
@@ -280,6 +297,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteProduct = async (id: string) => {
     if (supabase) {
       const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
+    }
+  };
+
+  const addBlog = async (blog: BlogPost) => {
+    if (supabase) {
+      const { error } = await supabase.from('blogs').insert({
+        id: blog.id,
+        slug: blog.slug || generateSlug(blog.title),
+        title: blog.title,
+        content: blog.content,
+        category: blog.category,
+        image: blog.image,
+        author: blog.author,
+        date: blog.date
+      });
+      if (error) addNotification(error.message, 'error');
+      else { addNotification('Blog post published!', 'success'); fetchData(); }
+    }
+  };
+
+  const updateBlog = async (id: string, blog: BlogPost) => {
+    if (supabase) {
+      const { error } = await supabase.from('blogs').update({
+        slug: blog.slug || generateSlug(blog.title),
+        title: blog.title,
+        content: blog.content,
+        category: blog.category,
+        image: blog.image,
+        author: blog.author,
+        date: blog.date
+      }).eq('id', id);
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
+    }
+  };
+
+  const deleteBlog = async (id: string) => {
+    if (supabase) {
+      const { error } = await supabase.from('blogs').delete().eq('id', id);
       if (error) addNotification(error.message, 'error');
       else fetchData();
     }
@@ -327,19 +385,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
     if (supabase) {
-      console.log("Attempting vendor registration insert:", reg);
       const { error } = await supabase.from('vendor_registrations').insert({
         id: reg.id, name: reg.name, company_name: reg.companyName, email: reg.email,
         mobile: reg.mobile, location: reg.location, product_name: reg.productName,
         message: reg.message, date: reg.date
       });
-      if (error) {
-        console.error("Supabase Vendor Registration Error:", error);
-        addNotification(`Registration Error: ${error.message}`, 'error');
-      } else {
-        addNotification('Registration successful! Our team will contact you.', 'success');
-        fetchData();
-      }
+      if (error) addNotification(`Registration Error: ${error.message}`, 'error');
+      else { addNotification('Registration successful!', 'success'); fetchData(); }
     }
   };
 
@@ -381,8 +433,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{
-      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations, notifications, compareList,
+      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations, blogs, notifications, compareList,
       addProduct, updateProduct, deleteProduct,
+      addBlog, updateBlog, deleteBlog,
       addLead, updateLeadStatus, assignLead, updateLeadRemarks, deleteLead,
       updateSiteConfig, addCategory, deleteCategory,
       addUser, deleteUser, addVendorLogo, deleteVendorLogo,

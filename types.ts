@@ -14,6 +14,17 @@ export interface Product {
   technicalSpecs?: { label: string; value: string }[];
 }
 
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  category: 'Service' | 'Product' | 'Marketplace' | 'Industry News';
+  image: string;
+  author: string;
+  date: string;
+}
+
 export interface StatCard {
   title: string;
   value: string;

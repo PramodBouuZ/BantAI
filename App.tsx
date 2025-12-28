@@ -15,6 +15,7 @@ import Features from './pages/Features';
 import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
 import Comparison from './pages/Comparison';
+import Blog from './pages/Blog';
 import AIConsultant from './components/AIConsultant';
 import { User } from './types';
 import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
@@ -31,11 +32,11 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed ErrorBoundary to properly extend the Component class with generic props and state types
-// Using React.Component explicitly ensures that 'this.props' is correctly inherited and recognized by the compiler.
+// Fixed: Correctly extending React.Component with proper generics to resolve 'Property state/props does not exist' errors
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    // Properly initializing state within the class that extends React.Component
     this.state = { hasError: false };
   }
 
@@ -48,6 +49,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   render() {
+    // Correctly accessing state inherited from React.Component
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -60,7 +62,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         </div>
       );
     }
-    // Fixed: Accessed children via this.props which is now correctly inherited from React.Component
+    // Correctly accessing props inherited from React.Component
     return this.props.children;
   }
 }
@@ -68,184 +70,88 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 // --- Toast Notification Component ---
 const ToastContainer: React.FC = () => {
     const { notifications, removeNotification } = useData();
-
     return (
         <div className="fixed top-24 right-4 z-[100] flex flex-col gap-3 pointer-events-none">
             {notifications.map((n) => (
-                <div 
-                    key={n.id} 
-                    className={`
-                        pointer-events-auto bg-white rounded-xl shadow-2xl p-4 min-w-[300px] max-w-sm flex items-start transform transition-all animate-slide-left border-l-4
-                        ${n.type === 'success' ? 'border-green-500' : n.type === 'error' ? 'border-red-500' : n.type === 'warning' ? 'border-yellow-500' : 'border-blue-500'}
-                    `}
-                >
-                    <div className={`mr-3 mt-0.5 ${n.type === 'success' ? 'text-green-500' : n.type === 'error' ? 'text-red-500' : n.type === 'warning' ? 'text-yellow-500' : 'text-blue-500'}`}>
-                        {n.type === 'success' ? <Check size={20} /> : n.type === 'error' ? <AlertCircle size={20} /> : <Info size={20} />}
-                    </div>
-                    <div className="flex-1">
-                        <p className="text-sm font-bold text-slate-800">{n.type === 'success' ? 'Success' : n.type === 'error' ? 'Error' : 'Notification'}</p>
-                        <p className="text-sm text-slate-600 leading-snug">{n.message}</p>
-                    </div>
+                <div key={n.id} className={`pointer-events-auto bg-white rounded-xl shadow-2xl p-4 min-w-[300px] max-w-sm flex items-start transform transition-all animate-slide-left border-l-4 ${n.type === 'success' ? 'border-green-500' : n.type === 'error' ? 'border-red-500' : n.type === 'warning' ? 'border-yellow-500' : 'border-blue-500'}`}>
+                    <div className={`mr-3 mt-0.5 ${n.type === 'success' ? 'text-green-500' : n.type === 'error' ? 'text-red-500' : n.type === 'warning' ? 'text-yellow-500' : 'text-blue-500'}`}>{n.type === 'success' ? <Check size={20} /> : n.type === 'error' ? <AlertCircle size={20} /> : <Info size={20} />}</div>
+                    <div className="flex-1"><p className="text-sm font-bold text-slate-800">{n.type === 'success' ? 'Success' : n.type === 'error' ? 'Error' : 'Notification'}</p><p className="text-sm text-slate-600 leading-snug">{n.message}</p></div>
                     <button onClick={() => removeNotification(n.id)} className="ml-3 text-slate-400 hover:text-slate-600"><X size={16} /></button>
                 </div>
             ))}
-            <style>{`
-                @keyframes slideLeft {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                .animate-slide-left {
-                    animation: slideLeft 0.3s ease-out forwards;
-                }
-            `}</style>
+            <style>{`@keyframes slideLeft { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } .animate-slide-left { animation: slideLeft 0.3s ease-out forwards; }`}</style>
         </div>
     );
 }
 
-// --- Compare Tray Component ---
 const CompareTray: React.FC = () => {
   const { compareList, toggleCompare, clearCompare } = useData();
   const navigate = useNavigate();
-
   if (compareList.length === 0) return null;
-
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 max-w-2xl w-full mx-4 animate-slide-up flex items-center justify-between">
       <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
-         <div className="flex items-center justify-center bg-indigo-50 w-12 h-12 rounded-xl text-indigo-600 shrink-0">
-            <Scale size={24} />
-         </div>
-         {compareList.map(item => (
-           <div key={item.id} className="relative group shrink-0">
-              <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden border border-gray-200">
-                 {item.image ? <img src={item.image} className="w-full h-full object-cover" alt={item.title}/> : <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">IMG</div>}
-              </div>
-              <button onClick={() => toggleCompare(item)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition">
-                <X size={12} />
-              </button>
-           </div>
-         ))}
-         {Array.from({ length: 3 - compareList.length }).map((_, i) => (
-            <div key={i} className="w-12 h-12 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-xs text-gray-300 font-bold shrink-0">
-               +
-            </div>
-         ))}
+         <div className="flex items-center justify-center bg-indigo-50 w-12 h-12 rounded-xl text-indigo-600 shrink-0"><Scale size={24} /></div>
+         {compareList.map(item => (<div key={item.id} className="relative group shrink-0"><div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden border border-gray-200">{item.image ? <img src={item.image} className="w-full h-full object-cover" alt={item.title}/> : <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">IMG</div>}</div><button onClick={() => toggleCompare(item)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition"><X size={12} /></button></div>))}
       </div>
-
-      <div className="flex items-center gap-3 pl-4 border-l border-gray-100 ml-4">
-         <button onClick={clearCompare} className="text-slate-500 hover:text-red-500 text-sm font-medium px-2 transition">Clear</button>
-         <button onClick={() => navigate('/compare')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">
-           Compare ({compareList.length})
-         </button>
-      </div>
+      <div className="flex items-center gap-3 pl-4 border-l border-gray-100 ml-4"><button onClick={clearCompare} className="text-slate-500 hover:text-red-500 text-sm font-medium px-2 transition">Clear</button><button onClick={() => navigate('/compare')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md transition whitespace-nowrap">Compare ({compareList.length})</button></div>
     </div>
   );
 };
 
-// --- Layout Component ---
 const MainLayout = ({ currentUser, setCurrentUser }: { currentUser: User | null, setCurrentUser: (u: User | null) => void }) => {
   const { siteConfig } = useData();
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 font-sans text-slate-900 relative">
       <Navbar currentUser={currentUser} setCurrentUser={setCurrentUser} />
-      <div className="flex-grow">
-        <Outlet />
-      </div>
+      <div className="flex-grow"><Outlet /></div>
       <CompareTray />
       <AIConsultant />
       <Footer />
-      
-      {siteConfig.whatsappNumber && (
-        <a 
-          href={`https://wa.me/${siteConfig.whatsappNumber.replace(/[^0-9]/g, '')}`} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl z-50 transition-transform hover:scale-110 flex items-center justify-center"
-          title="Chat with us"
-        >
-          <MessageCircle size={32} fill="white" />
-        </a>
-      )}
+      {siteConfig.whatsappNumber && (<a href={`https://wa.me/${siteConfig.whatsappNumber.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-2xl z-50 transition-transform hover:scale-110 flex items-center justify-center" title="Chat with us"><MessageCircle size={32} fill="white" /></a>)}
     </div>
   );
 };
 
-// --- Main App Component ---
 const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const isLoggedIn = currentUser !== null;
   const { siteConfig } = useData();
-
   useEffect(() => {
     const checkUser = async () => {
       if (supabase) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const meta = session.user.user_metadata || {};
-          setCurrentUser({
-            id: session.user.id,
-            name: meta.full_name || meta.name || 'User',
-            email: session.user.email || '',
-            role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any,
-            joinedDate: session.user.created_at
-          });
+          setCurrentUser({ id: session.user.id, name: meta.full_name || meta.name || 'User', email: session.user.email || '', role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any, joinedDate: session.user.created_at });
         }
       }
     };
     checkUser();
-
     if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
           const meta = session.user.user_metadata || {};
-          setCurrentUser({
-            id: session.user.id,
-            name: meta.full_name || meta.name || 'User',
-            email: session.user.email || '',
-            role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any,
-            joinedDate: session.user.created_at
-          });
-        } else if (event === 'SIGNED_OUT') {
-          setCurrentUser(null);
-        }
+          setCurrentUser({ id: session.user.id, name: meta.full_name || meta.name || 'User', email: session.user.email || '', role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any, joinedDate: session.user.created_at });
+        } else if (event === 'SIGNED_OUT') { setCurrentUser(null); }
       });
       return () => subscription.unsubscribe();
     }
   }, []);
 
   useEffect(() => {
-    // FAVICON LOGIC FOR GOOGLE SEARCH - SYNC WITH SQL DATABASE CONFIG
     if (siteConfig?.faviconUrl) {
       const favUrl = siteConfig.faviconUrl;
-      
-      // Update standard favicon tags
       const rels = ['icon', 'shortcut icon', 'apple-touch-icon'];
       rels.forEach(rel => {
         let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = rel;
-          document.head.appendChild(link);
-        }
+        if (!link) { link = document.createElement('link'); link.rel = rel; document.head.appendChild(link); }
         link.href = favUrl;
       });
-
-      // Inject 192x192 PNG for Google Search "Large Favicon" requirement
       let googleIcon = document.querySelector('link[sizes="192x192"]') as HTMLLinkElement;
-      if (!googleIcon) {
-        googleIcon = document.createElement('link');
-        googleIcon.rel = 'icon';
-        googleIcon.setAttribute('sizes', '192x192');
-        googleIcon.setAttribute('type', 'image/png');
-        document.head.appendChild(googleIcon);
-      }
+      if (!googleIcon) { googleIcon = document.createElement('link'); googleIcon.rel = 'icon'; googleIcon.setAttribute('sizes', '192x192'); googleIcon.setAttribute('type', 'image/png'); document.head.appendChild(googleIcon); }
       googleIcon.href = favUrl;
-
-      // Update document title dynamically
-      if (siteConfig.siteName) {
-        document.title = `${siteConfig.siteName} – India’s AI-Powered B2B Marketplace`;
-      }
+      if (siteConfig.siteName) { document.title = `${siteConfig.siteName} – India’s AI-Powered B2B Marketplace`; }
     }
   }, [siteConfig]);
 
@@ -258,6 +164,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
           <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
           <Route path="/products/:id" element={<ProductDetails />} />
+          <Route path="/blog" element={<Blog />} />
           <Route path="/compare" element={<Comparison />} />
           <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
           <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
@@ -265,13 +172,7 @@ const AppContent: React.FC = () => {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/features" element={<Features />} />
-          <Route path="*" element={
-            <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
-              <h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2>
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h3>
-              <button onClick={() => window.history.back()} className="text-indigo-600 font-bold hover:underline mt-4">Go Back</button>
-            </div>
-          } />
+          <Route path="*" element={<div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center"><h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2><h3 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h3><button onClick={() => window.history.back()} className="text-indigo-600 font-bold hover:underline mt-4">Go Back</button></div>} />
         </Route>
         <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
       </Routes>
@@ -280,24 +181,12 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  return (
-    <ErrorBoundary>
-      <HelmetProvider>
-        <DataProvider>
-          <Router>
-            <AppContent />
-          </Router>
-        </DataProvider>
-      </HelmetProvider>
-    </ErrorBoundary>
-  );
+  return (<ErrorBoundary><HelmetProvider><DataProvider><Router><AppContent /></Router></DataProvider></HelmetProvider></ErrorBoundary>);
 };
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  React.useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+  React.useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return null;
 }
 

@@ -64,9 +64,6 @@ const Footer: React.FC = () => {
                   <social.icon size={18} />
                 </a>
               ))}
-              {socialLinks.length === 0 && (
-                 <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Connect with us</p>
-              )}
             </div>
           </div>
 
@@ -76,7 +73,6 @@ const Footer: React.FC = () => {
               <li><Link to="/features" className="hover:text-yellow-400 transition">Features</Link></li>
               <li><Link to="/products" className="hover:text-yellow-400 transition">Marketplace</Link></li>
               <li><Link to="/enquiry" className="hover:text-yellow-400 transition">Pricing</Link></li>
-              <li><Link to="/security" className="hover:text-yellow-400 transition">Security (ISO 27001)</Link></li>
             </ul>
           </div>
 
@@ -84,9 +80,7 @@ const Footer: React.FC = () => {
             <h4 className="font-bold mb-6 text-white text-lg">Company</h4>
             <ul className="space-y-3 text-sm text-slate-400">
               <li><Link to="/about" className="hover:text-yellow-400 transition">About Us</Link></li>
-              <li><Link to="/careers" className="hover:text-yellow-400 transition">Careers</Link></li>
-              <li><Link to="/blog" className="hover:text-yellow-400 transition">Blog</Link></li>
-              <li><Link to="/press" className="hover:text-yellow-400 transition">Press Kit</Link></li>
+              <li><Link to="/blog" className="hover:text-yellow-400 transition text-blue-400 font-bold underline decoration-2 underline-offset-4">Blog & Insights</Link></li>
             </ul>
           </div>
 
@@ -94,9 +88,7 @@ const Footer: React.FC = () => {
             <h4 className="font-bold mb-6 text-white text-lg">Support</h4>
             <ul className="space-y-3 text-sm text-slate-400">
               <li><Link to="/contact" className="hover:text-yellow-400 transition">Contact Us</Link></li>
-              <li><Link to="/help" className="hover:text-yellow-400 transition">Help Center</Link></li>
-              <li><Link to="/api" className="hover:text-yellow-400 transition">API Reference</Link></li>
-              <li><Link to="/community" className="hover:text-yellow-400 transition">Vendor Community</Link></li>
+              <li><Link to="/vendor-register" className="hover:text-yellow-400 transition">Partner Onboarding</Link></li>
             </ul>
           </div>
         </div>
@@ -106,7 +98,6 @@ const Footer: React.FC = () => {
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-white">Terms of Service</Link>
-            <Link to="/cookies" className="hover:text-white">Cookie Settings</Link>
           </div>
         </div>
       </div>
