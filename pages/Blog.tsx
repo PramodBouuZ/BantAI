@@ -35,7 +35,7 @@ const Blog: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {blogs.map((post) => (
               <article key={post.id} className="group bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col h-full hover:-translate-y-2">
-                <div className="relative h-64 overflow-hidden">
+                <Link to={`/blog/${post.slug}`} className="relative h-64 overflow-hidden block">
                   {post.image ? (
                     <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   ) : (
@@ -46,7 +46,7 @@ const Blog: React.FC = () => {
                   <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-[10px] font-black uppercase text-blue-600 tracking-widest shadow-sm">
                     {post.category}
                   </div>
-                </div>
+                </Link>
                 
                 <div className="p-8 flex-grow flex flex-col">
                   <div className="flex items-center gap-4 text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-4">
@@ -54,18 +54,20 @@ const Blog: React.FC = () => {
                     <span className="flex items-center gap-1.5"><User size={12} /> By {post.author}</span>
                   </div>
                   
-                  <h2 className="text-2xl font-black text-slate-900 mb-4 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
-                    {post.title}
-                  </h2>
+                  <Link to={`/blog/${post.slug}`}>
+                    <h2 className="text-2xl font-black text-slate-900 mb-4 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
+                      {post.title}
+                    </h2>
+                  </Link>
                   
                   <p className="text-slate-500 text-sm mb-8 line-clamp-3 leading-relaxed font-medium">
                     {post.content}
                   </p>
                   
                   <div className="mt-auto pt-6 border-t border-slate-50">
-                    <button className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest group/btn transition-all">
+                    <Link to={`/blog/${post.slug}`} className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest group/btn transition-all">
                       Read Full Article <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </article>

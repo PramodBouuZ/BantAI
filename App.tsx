@@ -14,6 +14,7 @@ import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
 import Comparison from './pages/Comparison';
 import Blog from './pages/Blog';
+import BlogDetails from './pages/BlogDetails';
 import AIConsultant from './components/AIConsultant';
 import { User } from './types';
 import { MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
@@ -30,12 +31,12 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed ErrorBoundary to correctly inherit props and state types from React.Component
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Use property initializer for state to avoid constructor-related type issues
-  public state: ErrorBoundaryState = { hasError: false };
-
-  // Note: Constructor removed as it was redundant and super(props) sometimes causes issues with this.props detection in strict TypeScript environments
+// Fixed: Explicitly use React.Component to ensure 'props' property is correctly inherited and typed
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -58,7 +59,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    // this.props is now correctly recognized by inheriting from Component<ErrorBoundaryProps, ErrorBoundaryState>
     return this.props.children;
   }
 }
@@ -173,6 +173,7 @@ const AppContent: React.FC = () => {
           <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
           <Route path="/products/:id" element={<ProductDetails />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogDetails />} />
           <Route path="/compare" element={<Comparison />} />
           <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
           <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
