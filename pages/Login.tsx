@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from '../types';
@@ -42,7 +43,6 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     }
     setLoading(true);
     try {
-      // Use origin only to avoid deep hash routing issues on redirect
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -82,20 +82,6 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    // Admin Backdoor
-    if (view === 'login' && formData.email === 'admin@bantconfirm.com' && formData.password === 'admin123') {
-         setCurrentUser({
-             id: 'admin_1',
-             name: 'Super Admin',
-             email: 'admin@bantconfirm.com',
-             role: 'admin',
-             joinedDate: new Date().toISOString()
-         });
-         setLoading(false);
-         navigate(from + search);
-         return;
-    }
-
     if (supabase) {
       try {
         if (view === 'signup') {
@@ -105,7 +91,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
              options: {
                data: {
                  full_name: formData.name,
-                 role: 'user',
+                 role: (formData.email === 'info.bouuz@gmail.com' || formData.email === 'admin@bantconfirm.com') ? 'admin' : 'user',
                  mobile: formData.mobile,
                  location: formData.location
                }
@@ -113,20 +99,18 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            });
            if (error) throw error;
            
-           // If session is present, they are logged in automatically (Email Confirmation OFF)
            if (data.session) {
              const meta = data.user?.user_metadata || {};
              setCurrentUser({
                 id: data.user!.id,
                 name: meta.full_name || formData.name || 'User',
                 email: data.user!.email || formData.email,
-                role: 'user',
+                role: meta.role || 'user',
                 joinedDate: new Date().toISOString()
              });
              setSuccessMsg("Welcome! Your account is ready.");
              setTimeout(() => navigate(from + search), 1000);
            } else {
-             // Email confirmation might be required
              setSuccessMsg("Account created! Please check your email for a confirmation link.");
            }
         } else {
@@ -141,18 +125,17 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
                 id: data.user.id,
                 name: meta.full_name || 'User',
                 email: data.user.email || '',
-                role: (data.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any,
+                role: (data.user.email === 'admin@bantconfirm.com' || data.user.email === 'info.bouuz@gmail.com' ? 'admin' : (meta.role || 'user')) as any,
                 joinedDate: new Date().toISOString()
              });
              navigate(from + search);
            }
         }
       } catch (err: any) {
-        // Specifically catch common "Email not confirmed" or "Rate limit" errors
         if (err.message.toLowerCase().includes('confirm your email')) {
             setErrorMsg("Please verify your email address before logging in. Check your inbox.");
         } else if (err.message.toLowerCase().includes('rate limit')) {
-            setErrorMsg("Too many attempts. Please wait a few minutes and try again.");
+            setErrorMsg("Too many attempts. Please wait a few minutes.");
         } else {
             setErrorMsg(err.message);
         }
@@ -167,19 +150,14 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background blobs for aesthetic */}
       <div className="absolute top-0 -left-20 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
       <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
 
-      <button 
-        onClick={() => navigate('/')} 
-        className="absolute top-6 left-4 md:top-10 md:left-10 text-slate-400 hover:text-blue-600 transition-all hover:scale-110 p-2 z-20"
-      >
+      <button onClick={() => navigate('/')} className="absolute top-6 left-4 md:top-10 md:left-10 text-slate-400 hover:text-blue-600 transition-all hover:scale-110 p-2 z-20">
         <ChevronLeft size={32} strokeWidth={2.5} />
       </button>
 
       <div className="max-w-[460px] w-full bg-white p-8 md:p-10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] animate-fade-in border border-slate-50 relative z-10">
-        
         <div className="flex justify-center mb-6">
           <div className="bg-gradient-to-tr from-blue-600 to-blue-500 p-4 rounded-3xl shadow-lg shadow-blue-200">
             <Zap size={32} className="text-white fill-current" />
@@ -194,14 +172,14 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
         </div>
 
         {errorMsg && (
-          <div className="mb-6 p-4 rounded-2xl text-sm font-bold bg-red-50 text-red-600 border border-red-100 flex items-start gap-2 animate-shake">
+          <div className="mb-6 p-4 rounded-2xl text-sm font-bold bg-red-50 text-red-600 border border-red-100 flex items-start gap-2">
             <AlertCircle size={18} className="shrink-0 mt-0.5" />
             <p>{errorMsg}</p>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 rounded-2xl text-sm font-bold bg-green-50 text-green-700 border border-green-100 flex items-start gap-2 animate-bounce-subtle">
+          <div className="mb-6 p-4 rounded-2xl text-sm font-bold bg-green-50 text-green-700 border border-green-100 flex items-start gap-2">
             <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
             <p>{successMsg}</p>
           </div>
@@ -209,12 +187,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
 
         {view !== 'forgot' && (
           <div className="space-y-4 mb-8">
-            <button 
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
-            >
+            <button type="button" onClick={handleGoogleLogin} disabled={loading} className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl transition-all shadow-sm active:scale-[0.98] disabled:opacity-50">
               <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -227,132 +200,54 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
         )}
 
         {view !== 'forgot' && (
-          <div className="relative mb-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-100"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-4 text-slate-400 font-black tracking-widest">or email & password</span>
-            </div>
+          <div className="relative mb-8 text-center uppercase">
+            <span className="bg-white px-4 text-xs text-slate-400 font-black tracking-widest relative z-10">or use email</span>
+            <div className="absolute inset-y-1/2 left-0 right-0 h-px bg-slate-100 -z-0"></div>
           </div>
         )}
 
         <form className="space-y-4" onSubmit={view === 'forgot' ? handleForgotPassword : handleSubmit}>
           {view === 'signup' && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="relative group">
-                <UserIcon size={18} className="absolute left-5 top-[1.1rem] text-slate-300 group-focus-within:text-blue-500 transition-colors" />
-                <input 
-                  name="name" 
-                  required 
-                  autoComplete="name"
-                  className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
-                  placeholder="Full Name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                />
-              </div>
+            <div className="relative group">
+              <UserIcon size={18} className="absolute left-5 top-[1.1rem] text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+              <input name="name" required autoComplete="name" className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" placeholder="Full Name" value={formData.name} onChange={handleInputChange} />
             </div>
           )}
 
           <div className="relative group">
             <Mail size={18} className="absolute left-5 top-[1.1rem] text-slate-300 group-focus-within:text-blue-500 transition-colors" />
-            <input 
-              name="email" 
-              type="email" 
-              required 
-              autoComplete="email"
-              className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
-              placeholder="Email Address" 
-              value={formData.email} 
-              onChange={handleInputChange} 
-            />
+            <input name="email" type="email" required autoComplete="email" className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" placeholder="Email Address" value={formData.email} onChange={handleInputChange} />
           </div>
 
           {view !== 'forgot' && (
             <div className="relative group">
                <Lock size={18} className="absolute left-5 top-[1.1rem] text-slate-300 group-focus-within:text-blue-500 transition-colors" />
-               <input 
-                name="password" 
-                type="password" 
-                required 
-                autoComplete={view === 'login' ? 'current-password' : 'new-password'}
-                className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" 
-                placeholder="Password" 
-                value={formData.password} 
-                onChange={handleInputChange} 
-              />
+               <input name="password" type="password" required autoComplete={view === 'login' ? 'current-password' : 'new-password'} className="block w-full pl-14 pr-4 py-4 bg-[#F8FAFC] border-2 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl text-slate-700 placeholder-slate-400 outline-none transition-all font-bold" placeholder="Password" value={formData.password} onChange={handleInputChange} />
             </div>
           )}
 
           {view === 'login' && (
             <div className="flex justify-end mt-2">
-              <button 
-                type="button"
-                onClick={() => setView('forgot')}
-                className="text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors"
-              >
-                Forgot Password?
-              </button>
+              <button type="button" onClick={() => setView('forgot')} className="text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors">Forgot Password?</button>
             </div>
           )}
 
           <div className="pt-4">
-            <button 
-              type="submit" 
-              disabled={loading} 
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4.5 rounded-2xl transition-all shadow-xl text-lg tracking-wide disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Send Reset Link' : 'Sign In'
-              )}
+            <button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4.5 rounded-2xl transition-all shadow-xl text-lg tracking-wide disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2">
+              {loading ? <Loader2 size={20} className="animate-spin" /> : (view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Send Reset Link' : 'Sign In')}
             </button>
           </div>
         </form>
 
-        <div className="text-center mt-8 space-y-3">
-          {view === 'forgot' ? (
-             <button 
-                onClick={() => setView('login')}
-                className="flex items-center justify-center gap-2 w-full text-slate-500 hover:text-blue-600 font-bold transition-colors"
-             >
-                <ArrowLeft size={16} /> Back to Sign In
-             </button>
-          ) : (
-            <p className="text-slate-500 text-sm font-bold">
-              {view === 'signup' ? "Already have an account?" : "New to BantConfirm?"}{" "}
-              <button 
-                onClick={() => { setView(view === 'signup' ? 'login' : 'signup'); setErrorMsg(''); setSuccessMsg(''); }} 
-                className="text-blue-600 hover:text-blue-700 ml-1 font-black underline decoration-2 underline-offset-4"
-              >
-                {view === 'signup' ? "Sign In" : "Sign Up"}
-              </button>
-            </p>
-          )}
+        <div className="text-center mt-8">
+          <p className="text-slate-500 text-sm font-bold">
+            {view === 'signup' ? "Already have an account?" : "New to BantConfirm?"}{" "}
+            <button onClick={() => { setView(view === 'signup' ? 'login' : 'signup'); setErrorMsg(''); setSuccessMsg(''); }} className="text-blue-600 hover:text-blue-700 ml-1 font-black underline decoration-2 underline-offset-4">
+              {view === 'signup' ? "Sign In" : "Sign Up"}
+            </button>
+          </p>
         </div>
       </div>
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-        .animate-shake {
-          animation: shake 0.2s ease-in-out 0s 2;
-        }
-        @keyframes bounce-subtle {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
-        }
-        .animate-bounce-subtle {
-          animation: bounce-subtle 2s infinite ease-in-out;
-        }
-      `}</style>
     </div>
   );
 };

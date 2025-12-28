@@ -1,4 +1,3 @@
-// Fixed ErrorBoundary class to properly extend Component and resolve state/props access errors
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
@@ -17,7 +16,7 @@ import Comparison from './pages/Comparison';
 import Blog from './pages/Blog';
 import AIConsultant from './components/AIConsultant';
 import { User } from './types';
-import { Construction, Briefcase, FileText, Newspaper, MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
+import { MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { HelmetProvider } from 'react-helmet-async';
 import { supabase } from './lib/supabase';
@@ -31,13 +30,12 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Fixed: Changed React.Component to Component (imported directly) to resolve 'Property props does not exist' error
+// Fixed ErrorBoundary to correctly inherit props and state types from React.Component
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Use property initializer for state to avoid constructor-related type issues
   public state: ErrorBoundaryState = { hasError: false };
 
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-  }
+  // Note: Constructor removed as it was redundant and super(props) sometimes causes issues with this.props detection in strict TypeScript environments
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -48,7 +46,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   public render() {
-    // Correctly accessing state inherited from Component
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
@@ -61,7 +58,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         </div>
       );
     }
-    // Correctly accessing props inherited from Component
+    // this.props is now correctly recognized by inheriting from Component<ErrorBoundaryProps, ErrorBoundaryState>
     return this.props.children;
   }
 }
@@ -116,13 +113,20 @@ const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const isLoggedIn = currentUser !== null;
   const { siteConfig } = useData();
+  
   useEffect(() => {
     const checkUser = async () => {
       if (supabase) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const meta = session.user.user_metadata || {};
-          setCurrentUser({ id: session.user.id, name: meta.full_name || meta.name || 'User', email: session.user.email || '', role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any, joinedDate: session.user.created_at });
+          setCurrentUser({ 
+            id: session.user.id, 
+            name: meta.full_name || meta.name || 'User', 
+            email: session.user.email || '', 
+            role: (session.user.email === 'admin@bantconfirm.com' || session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (meta.role || 'user')) as any, 
+            joinedDate: session.user.created_at 
+          });
         }
       }
     };
@@ -131,8 +135,16 @@ const AppContent: React.FC = () => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
           const meta = session.user.user_metadata || {};
-          setCurrentUser({ id: session.user.id, name: meta.full_name || meta.name || 'User', email: session.user.email || '', role: (session.user.email === 'admin@bantconfirm.com' ? 'admin' : (meta.role || 'user')) as any, joinedDate: session.user.created_at });
-        } else if (event === 'SIGNED_OUT') { setCurrentUser(null); }
+          setCurrentUser({ 
+            id: session.user.id, 
+            name: meta.full_name || meta.name || 'User', 
+            email: session.user.email || '', 
+            role: (session.user.email === 'admin@bantconfirm.com' || session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (meta.role || 'user')) as any, 
+            joinedDate: session.user.created_at 
+          });
+        } else if (event === 'SIGNED_OUT') { 
+          setCurrentUser(null); 
+        }
       });
       return () => subscription.unsubscribe();
     }
@@ -147,9 +159,6 @@ const AppContent: React.FC = () => {
         if (!link) { link = document.createElement('link'); link.rel = rel; document.head.appendChild(link); }
         link.href = favUrl;
       });
-      let googleIcon = document.querySelector('link[sizes="192x192"]') as HTMLLinkElement;
-      if (!googleIcon) { googleIcon = document.createElement('link'); googleIcon.rel = 'icon'; googleIcon.setAttribute('sizes', '192x192'); googleIcon.setAttribute('type', 'image/png'); document.head.appendChild(googleIcon); }
-      googleIcon.href = favUrl;
       if (siteConfig.siteName) { document.title = `${siteConfig.siteName} – India’s AI-Powered B2B Marketplace`; }
     }
   }, [siteConfig]);
