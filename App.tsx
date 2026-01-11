@@ -1,5 +1,5 @@
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -19,7 +19,7 @@ import AIConsultant from './components/AIConsultant';
 import { User } from './types';
 import { MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
-import { HelmetProvider } from 'react-helmet-async';
+import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { supabase } from './lib/supabase';
 
 // --- Error Boundary to catch runtime crashes ---
@@ -150,21 +150,13 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (siteConfig?.faviconUrl) {
-      const favUrl = siteConfig.faviconUrl;
-      const rels = ['icon', 'shortcut icon', 'apple-touch-icon'];
-      rels.forEach(rel => {
-        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
-        if (!link) { link = document.createElement('link'); link.rel = rel; document.head.appendChild(link); }
-        link.href = favUrl;
-      });
-      if (siteConfig.siteName) { document.title = `${siteConfig.siteName} – India’s AI-Powered B2B Marketplace`; }
-    }
-  }, [siteConfig]);
-
   return (
     <>
+      <Helmet>
+        <title>{`${siteConfig.siteName} – India’s AI-Powered B2B Marketplace`}</title>
+        {siteConfig.faviconUrl && <link rel="icon" href={siteConfig.faviconUrl} />}
+        {siteConfig.faviconUrl && <link rel="apple-touch-icon" href={siteConfig.faviconUrl} />}
+      </Helmet>
       <ScrollToTop />
       <ToastContainer />
       <Routes>
