@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import { CheckCircle2, Search, ArrowRight, Server, Phone, Database, Globe, Wifi, Shield, Star, Zap, Scale } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO';
+import { optimizeImage } from '../services/imageOptimizer';
 
 interface ProductsProps {
   isLoggedIn: boolean;
@@ -103,7 +104,7 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
                   <Link to={`/products/${product.slug || product.id}`} className="relative h-56 overflow-hidden block">
                       {product.image ? (
                           <img 
-                            src={product.image} 
+                            src={optimizeImage(product.image, 400, 300, 80)}
                             alt={product.title} 
                             loading="lazy"
                             decoding="async"
