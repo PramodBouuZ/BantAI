@@ -7,6 +7,7 @@ import {
   UserCheck, Award, CreditCard, Info
 } from 'lucide-react';
 import SEO from '../components/SEO';
+import NotFound from '../components/NotFound';
 
 const getIcon = (iconName: string) => {
   switch (iconName) {
@@ -28,13 +29,9 @@ const ProductDetails: React.FC = () => {
   // Find product by slug OR by ID for backward compatibility
   const product = products.find(p => p.slug === id || p.id === id);
 
+  // If a product is not found, render the NotFound component for a consistent user experience
   if (!product) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <h2 className="text-3xl font-bold text-slate-900 mb-4">Product Not Found</h2>
-        <Link to="/products" className="text-blue-600 hover:underline">Browse all products</Link>
-      </div>
-    );
+    return <NotFound />;
   }
 
   // Fallback Vendor Data (Used if admin hasn't specified one)

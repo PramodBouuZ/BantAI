@@ -7,6 +7,7 @@ import {
   Linkedin, Twitter, Facebook, ArrowRight, Sparkles 
 } from 'lucide-react';
 import SEO from '../components/SEO';
+import NotFound from '../components/NotFound';
 
 const BlogDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -15,16 +16,9 @@ const BlogDetails: React.FC = () => {
 
   const post = blogs.find(b => b.slug === slug);
 
+  // If a blog post is not found, render the NotFound component for a consistent user experience
   if (!post) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-        <h1 className="text-6xl font-black text-slate-100 mb-4 tracking-tighter">404</h1>
-        <h2 className="text-2xl font-black text-slate-900 mb-6 uppercase tracking-widest">Article Not Found</h2>
-        <Link to="/blog" className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:bg-blue-700 transition">
-          Return to Insights
-        </Link>
-      </div>
-    );
+    return <NotFound />;
   }
 
   // Related posts (excluding current)
