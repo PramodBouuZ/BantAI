@@ -4,8 +4,18 @@ import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNo
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
 
-interface DataContextType {
+interface PaginatedProducts {
   products: Product[];
+  hasMore: boolean;
+}
+
+interface PaginatedProducts {
+  // products: Product[]; // REMOVED
+  hasMore: boolean;
+}
+
+interface DataContextType {
+  // products: Product[]; // REMOVED
   leads: Lead[];
   categories: string[];
   users: User[];
@@ -16,9 +26,13 @@ interface DataContextType {
   notifications: AppNotification[];
   compareList: Product[];
   
-  addProduct: (product: Product) => Promise<void>;
-  updateProduct: (id: string, product: Product) => Promise<void>;
-  deleteProduct: (id: string) => Promise<void>;
+  addProduct: (product: Product) => Promise<boolean>;
+  updateProduct: (id: string, product: Product) => Promise<boolean>;
+  deleteProduct: (id: string) => Promise<boolean>;
+
+  fetchProducts: (options: { page?: number; pageSize?: number; category?: string; searchQuery?: string; }) => Promise<PaginatedProducts>;
+  fetchProductBySlug: (slug: string) => Promise<Product | null>;
+  fetchSimilarProducts: (category: string, currentProductId: string) => Promise<Product[]>;
   
   addBlog: (blog: BlogPost) => Promise<void>;
   updateBlog: (id: string, blog: BlogPost) => Promise<void>;
