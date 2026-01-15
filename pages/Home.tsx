@@ -249,7 +249,9 @@ const SEOFooterLinks = () => {
 }
 
 const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
-  const { products, siteConfig, categories, toggleCompare, compareList } = useData();
+  const { fetchProducts, siteConfig, categories, toggleCompare, compareList } = useData();
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [chartData, setChartData] = useState(initialChartData);
   const [activeLeads, setActiveLeads] = useState(247);
   const [dealsClosed, setDealsClosed] = useState(86032); 
@@ -260,6 +262,14 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   useEffect(() => {
+    const loadFeatured = async () => {
+      setIsLoading(true);
+      const { products } = await fetchProducts({ page: 1, pageSize: 6 });
+      setFeaturedProducts(products);
+      setIsLoading(false);
+    };
+    loadFeatured();
+
     const interval = setInterval(() => {
       setChartData(prev => {
         const newData = [...prev];
@@ -272,7 +282,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
       if (Math.random() > 0.8) setDealsClosed(prev => prev + Math.floor(Math.random() * 500));
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchProducts]);
 
   const formatINR = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -291,10 +301,10 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
     }
   };
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = featuredProducts.filter(product => {
+    if (isLoading) return false;
     const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.features.some(f => f.toLowerCase().includes(searchQuery.toLowerCase()));
+                          product.description.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -392,12 +402,15 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
 
   const isProductSelected = (id: string) => compareList.some(p => p.id === id);
 
+  const seoTitle = "BantConfirm: India's #1 B2B Marketplace for IT & Software";
+  const seoDesc = "Find verified vendors for CRM, Cloud Telephony, IT Hardware & more on BantConfirm, India's leading B2B marketplace. Get AI-qualified leads & transparent pricing.";
+
   return (
     <div className="overflow-hidden">
       <SEO 
-        title={siteConfig.bannerTitle ? `${siteConfig.bannerTitle} Software, IT Hardware & Services` : "BantConfirm – India’s AI-Powered B2B Marketplace"}
-        description="BantConfirm connects businesses with verified software, IT hardware, cloud telephony, and enterprise solutions across India. Use AI to find Tally, CRM, ERP, and Microsoft licensing near you."
-        keywords="CRM software near me, ERP software nearby, Accounting software vendors near me, Cloud telephony providers near me, IT hardware suppliers nearby, Internet leased line providers near me, SIP trunk providers near me, Microsoft license sellers near me"
+        title={seoTitle}
+        description={seoDesc}
+        keywords="B2B marketplace India, IT solutions, business software, CRM India, cloud telephony, IT hardware procurement, verified vendors"
         schema={organizationSchema}
       />
       
@@ -420,8 +433,8 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
           </div>
           
           <h1 id="hero-title" className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 mb-8 leading-[1.1]">
-            {siteConfig.bannerTitle || "BantConfirm – India’s AI-Powered B2B Marketplace for"} <br />
-            <span className="text-blue-600">Software, IT Hardware & Services</span>
+            India's #1 B2B Marketplace for<br />
+            <span className="text-blue-600">IT, Software & Telecom Solutions</span>
           </h1>
           
           <p className="max-w-3xl mx-auto text-lg md:text-xl lg:text-2xl text-slate-600 mb-12 leading-relaxed">

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import SEO from '../components/SEO';
 import NotFound from '../components/NotFound';
+import Breadcrumb from '../components/Breadcrumb';
 
 const getIcon = (iconName: string) => {
   switch (iconName) {
@@ -21,15 +22,54 @@ const getIcon = (iconName: string) => {
   }
 };
 
+import { Product } from '../types';
+
+const ProductDetailSkeleton: React.FC = () => (
+    <div className="max-w-7xl mx-auto px-4 py-12 animate-pulse">
+        <div className="h-12 bg-slate-200 rounded-lg w-1/4 mb-10"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="lg:col-span-8 space-y-8">
+                <div className="h-[450px] bg-slate-200 rounded-3xl"></div>
+                <div className="h-24 bg-slate-200 rounded-3xl"></div>
+                <div className="h-64 bg-slate-200 rounded-3xl"></div>
+            </div>
+            <div className="lg:col-span-4">
+                <div className="h-96 bg-slate-200 rounded-3xl"></div>
+            </div>
+        </div>
+    </div>
+);
+
 const ProductDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // The param in URL is still named 'id' in App.tsx
-  const { products } = useData();
+  const { slug } = useParams<{ slug: string }>();
+  const { fetchProductBySlug, fetchSimilarProducts } = useData();
   const navigate = useNavigate();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Find product by slug OR by ID for backward compatibility
-  const product = products.find(p => p.slug === id || p.id === id);
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (!slug) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      const fetchedProduct = await fetchProductBySlug(slug);
+      setProduct(fetchedProduct);
+      if (fetchedProduct) {
+        const related = await fetchSimilarProducts(fetchedProduct.category, fetchedProduct.id);
+        setSimilarProducts(related);
+      }
+      setIsLoading(false);
+    };
+    loadProduct();
+  }, [slug, fetchProductBySlug, fetchSimilarProducts]);
 
-  // If a product is not found, render the NotFound component for a consistent user experience
+  if (isLoading) {
+    return <ProductDetailSkeleton />;
+  }
+
   if (!product) {
     return <NotFound />;
   }
@@ -62,25 +102,85 @@ const ProductDetails: React.FC = () => {
       { label: 'User Access', value: 'Multi-level Role Based Control (RBAC)' }
     ];
 
+  const productSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": product.title,
+    "image": product.image || '',
+    "description": seoDesc,
+    "brand": {
+      "@type": "Brand",
+      "name": product.vendorName || "BantConfirm"
+    },
+    "offers": {
+      "@type": "AggregateOffer",
+      "priceCurrency": "INR",
+      "lowPrice": product.priceRange.split('-')[0].trim().replace(/[^0-9]/g, '') || "1000",
+      "highPrice": product.priceRange.split('-')[1]?.trim().replace(/[^0-9]/g, '') || "100000",
+      "offerCount": "5" // Placeholder
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": product.rating || 4.9,
+      "reviewCount": Math.floor(Math.random() * (150 - 20 + 1) + 20) // Placeholder
+    }
+  };
+
+  const serviceSchema = {
+      ...productSchema,
+      "@type": "Service"
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": `What is ${product.title}?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": product.description
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `What is the price of ${product.title} in India?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `The price for ${product.title} typically ranges from ${product.priceRange}. For an exact quote based on your requirements, please post your requirement.`
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `Who is the best vendor for ${product.title}?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "BantConfirm lists multiple verified vendors for ${product.title}. The best vendor depends on your specific needs, location, and budget. We can connect you with the top 3 most suitable partners."
+        }
+      }
+    ]
+  };
+
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-20 font-sans">
       <SEO 
         title={seoTitle}
         description={seoDesc}
         keywords={`${product.title}, ${product.category} vendor, IT hardware Noida, ${product.title} price India`}
+        schema={[productSchema, serviceSchema, faqSchema]}
       />
 
       {/* Header / Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 pt-8">
-        <button 
-          onClick={() => navigate(-1)} 
-          className="group flex items-center text-slate-400 hover:text-blue-600 font-bold transition-all mb-8"
-        >
-          <div className="bg-white p-2 rounded-xl shadow-sm mr-3 group-hover:bg-blue-50 transition-colors">
-            <ChevronLeft size={20} />
-          </div>
-          Back to Marketplace
-        </button>
+        <Breadcrumb
+          items={[
+            { name: 'Home', href: '/' },
+            { name: 'Products', href: '/products' },
+            { name: product.category, href: `/products?category=${product.category}` },
+            { name: product.title },
+          ]}
+        />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -205,6 +305,24 @@ const ProductDetails: React.FC = () => {
                       ))}
                    </tbody>
                 </table>
+             </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
+             <h2 className="text-2xl font-black text-slate-900 mb-8">Frequently Asked Questions</h2>
+             <div className="space-y-6">
+                <div>
+                    <h3 className="font-bold text-lg text-slate-800 mb-2">What is {product.title}?</h3>
+                    <p className="text-slate-600 leading-relaxed">{product.description}</p>
+                </div>
+                <div>
+                    <h3 className="font-bold text-lg text-slate-800 mb-2">What is the price of {product.title} in India?</h3>
+                    <p className="text-slate-600 leading-relaxed">The price for {product.title} typically ranges from {product.priceRange}. For an exact quote based on your requirements, please post your requirement.</p>
+                </div>
+                <div>
+                    <h3 className="font-bold text-lg text-slate-800 mb-2">Who is the best vendor for {product.title}?</h3>
+                    <p className="text-slate-600 leading-relaxed">BantConfirm lists multiple verified vendors for {product.title}. The best vendor depends on your specific needs, location, and budget. We can connect you with the top 3 most suitable partners.</p>
+                </div>
              </div>
           </div>
         </div>

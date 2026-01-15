@@ -1,0 +1,10 @@
+# Allow all reputable search engine crawlers
+User-agent: *
+Allow: /
+
+# Disallow access to admin or sensitive areas if they exist
+# Disallow: /admin/
+# Disallow: /login/
+
+# Point crawlers to the XML sitemap for efficient discovery
+Sitemap: https://www.bantconfirm.com/sitemap.xml

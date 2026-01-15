@@ -9,10 +9,6 @@ interface PaginatedProducts {
   hasMore: boolean;
 }
 
-interface PaginatedProducts {
-  // products: Product[]; // REMOVED
-  hasMore: boolean;
-}
 
 interface DataContextType {
   // products: Product[]; // REMOVED

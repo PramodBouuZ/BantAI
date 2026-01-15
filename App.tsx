@@ -157,6 +157,26 @@ const AppContent: React.FC = () => {
         <title>{`${siteConfig.siteName} – India’s AI-Powered B2B Marketplace`}</title>
         {siteConfig.faviconUrl && <link rel="icon" href={siteConfig.faviconUrl} />}
         {siteConfig.faviconUrl && <link rel="apple-touch-icon" href={siteConfig.faviconUrl} />}
+
+        {/* Google Analytics 4 (GA4) Tracking Snippet */}
+        {import.meta.env.VITE_GA_MEASUREMENT_ID && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.VITE_GA_MEASUREMENT_ID}`}></script>
+            <script>
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${import.meta.env.VITE_GA_MEASUREMENT_ID}');
+              `}
+            </script>
+          </>
+        )}
+
+        {/* Google Search Console Meta Tag */}
+        {import.meta.env.VITE_GSC_VERIFICATION_CODE && (
+          <meta name="google-site-verification" content={import.meta.env.VITE_GSC_VERIFICATION_CODE} />
+        )}
       </Helmet>
       <ScrollToTop />
       <ToastContainer />
