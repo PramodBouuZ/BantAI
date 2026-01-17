@@ -68,27 +68,37 @@ const Footer: React.FC = () => {
           </div>
 
           <div>
-            <h4 className="font-bold mb-6 text-white text-lg">Product</h4>
+            <h4 className="font-bold mb-6 text-white text-lg uppercase tracking-wider text-sm">Popular Categories</h4>
             <ul className="space-y-3 text-sm text-slate-400">
-              <li><Link to="/features" className="hover:text-yellow-400 transition">Features</Link></li>
-              <li><Link to="/products" className="hover:text-yellow-400 transition">Marketplace</Link></li>
-              <li><Link to="/enquiry" className="hover:text-yellow-400 transition">Pricing</Link></li>
+              <li><Link to="/products?category=CRM" className="hover:text-yellow-400 transition">CRM Software</Link></li>
+              <li><Link to="/products?category=Cloud%20Telephony" className="hover:text-yellow-400 transition">Cloud Telephony</Link></li>
+              <li><Link to="/products?category=ERP" className="hover:text-yellow-400 transition">ERP Solutions</Link></li>
+              <li><Link to="/products?category=IT%20Hardware" className="hover:text-yellow-400 transition">IT Hardware</Link></li>
+              <li><Link to="/products?category=Telecom" className="hover:text-yellow-400 transition">Telecom Services</Link></li>
+              <li><Link to="/products?category=Accounting" className="hover:text-yellow-400 transition">Accounting Software</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold mb-6 text-white text-lg">Company</h4>
+            <h4 className="font-bold mb-6 text-white text-lg uppercase tracking-wider text-sm">Solutions by City</h4>
+            <ul className="space-y-3 text-sm text-slate-400">
+              <li><Link to="/products?city=Delhi" className="hover:text-yellow-400 transition">IT Solutions in Delhi</Link></li>
+              <li><Link to="/products?city=Mumbai" className="hover:text-yellow-400 transition">IT Solutions in Mumbai</Link></li>
+              <li><Link to="/products?city=Bangalore" className="hover:text-yellow-400 transition">IT Solutions in Bangalore</Link></li>
+              <li><Link to="/products?city=Pune" className="hover:text-yellow-400 transition">IT Solutions in Pune</Link></li>
+              <li><Link to="/products?city=Hyderabad" className="hover:text-yellow-400 transition">IT Solutions in Hyderabad</Link></li>
+              <li><Link to="/products?city=Noida" className="hover:text-yellow-400 transition">IT Solutions in Noida</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-bold mb-6 text-white text-lg uppercase tracking-wider text-sm">Company</h4>
             <ul className="space-y-3 text-sm text-slate-400">
               <li><Link to="/about" className="hover:text-yellow-400 transition">About Us</Link></li>
-              <li><Link to="/blog" className="hover:text-yellow-400 transition text-blue-400 font-bold underline decoration-2 underline-offset-4">Blog & Insights</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-6 text-white text-lg">Support</h4>
-            <ul className="space-y-3 text-sm text-slate-400">
+              <li><Link to="/blog" className="hover:text-yellow-400 transition">Blog & Insights</Link></li>
               <li><Link to="/contact" className="hover:text-yellow-400 transition">Contact Us</Link></li>
               <li><Link to="/vendor-register" className="hover:text-yellow-400 transition">Partner Onboarding</Link></li>
+              <li><Link to="/features" className="hover:text-yellow-400 transition">Features</Link></li>
             </ul>
           </div>
         </div>

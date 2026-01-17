@@ -386,6 +386,30 @@ const ProductDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Similar Products Section */}
+      {similarProducts.length > 0 && (
+        <div className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4">
+                <h2 className="text-3xl font-black text-slate-900 mb-10 text-center">Related Solutions You Might Like</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {similarProducts.map((p) => (
+                        <Link to={`/products/${p.slug}`} key={p.id} className="bg-white border border-slate-100 rounded-3xl p-6 group hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                            <div className="flex items-center gap-6">
+                                <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0">
+                                    {getIcon(p.icon)}
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-lg text-slate-800 group-hover:text-blue-600 transition-colors">{p.title}</h3>
+                                    <p className="text-sm text-slate-500 mt-1">{p.priceRange}</p>
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

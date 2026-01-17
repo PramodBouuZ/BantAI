@@ -22,6 +22,23 @@ const getIcon = (iconName: string) => {
 };
 
 import { ProductGridSkeleton } from '../components/SkeletonLoader';
+import SEOContentBlock from '../components/SEOContentBlock';
+
+// Category-specific SEO content
+const categorySEOContent: { [key: string]: { title: string; content: string } } = {
+  'CRM': {
+    title: "Choosing the Right CRM in India",
+    content: "<p>A Customer Relationship Management (CRM) system is vital for managing interactions with current and potential customers. In India, businesses from startups to large enterprises use CRMs like Salesforce, Zoho, and homegrown solutions to streamline sales processes, improve customer service, and drive growth. When selecting a CRM, consider factors like business size, industry-specific needs, integration capabilities with existing software (like Tally or Busy), and scalability. A good CRM provides a centralized database for lead and contact management, sales pipeline visualization, and detailed analytics on team performance. For MSMEs, cloud-based CRMs offer an affordable and flexible solution without the need for extensive IT infrastructure.</p>"
+  },
+  'Cloud Telephony': {
+    title: "The Power of Cloud Telephony for Indian Businesses",
+    content: "<p>Cloud Telephony solutions, including IVR, Toll-Free Numbers, and SIP Trunking, have revolutionized business communication in India. Unlike traditional EPABX systems, cloud solutions are hosted on the internet, offering unparalleled flexibility, scalability, and cost-effectiveness. Key benefits include remote work enablement, professional call management with IVR, and national presence with a single Toll-Free number. Providers like Airtel, Tata, and others offer robust platforms that integrate with CRMs to provide a unified view of customer interactions. This technology is crucial for businesses in sectors like e-commerce, healthcare, and finance that rely on efficient and reliable customer communication.</p>"
+  },
+  'ERP': {
+    title: "Understanding ERP Solutions for Manufacturing and SMEs",
+    content: "<p>Enterprise Resource Planning (ERP) software integrates core business processes such as finance, HR, manufacturing, and supply chain into a single system. For SMEs and manufacturing units in India, implementing an ERP like SAP Business One, Tally.ERP 9, or custom-built solutions can lead to significant improvements in efficiency and decision-making. An ERP provides real-time data, automates repetitive tasks, and ensures regulatory compliance (e.g., GST). Choosing the right ERP involves assessing your specific modules needs, whether it's for inventory management, production planning, or financial accounting. Cloud ERPs are gaining popularity for their lower upfront costs and easier implementation.</p>"
+  }
+};
 
 const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
   const { categories, toggleCompare, compareList, fetchProducts } = useData();
@@ -35,21 +52,27 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
 
   const loadProducts = useCallback(async (loadPage: number, currentCategory: string, currentQuery: string) => {
     setIsLoading(true);
-    const { products: newProducts, hasMore: newHasMore } = await fetchProducts({
-      page: loadPage,
-      pageSize: 12,
-      category: currentCategory,
-      searchQuery: currentQuery,
-    });
+    try {
+      const { products: newProducts, hasMore: newHasMore } = await fetchProducts({
+        page: loadPage,
+        pageSize: 12,
+        category: currentCategory,
+        searchQuery: currentQuery,
+      });
 
-    if (loadPage === 1) {
-      setProducts(newProducts);
-    } else {
-      setProducts(prev => [...prev, ...newProducts]);
+      if (loadPage === 1) {
+        setProducts(newProducts);
+      } else {
+        setProducts(prev => [...prev, ...newProducts]);
+      }
+      setHasMore(newHasMore);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      setProducts([]);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
     }
-
-    setHasMore(newHasMore);
-    setIsLoading(false);
   }, [fetchProducts]);
 
   // Effect for initial load and when filters change
@@ -218,6 +241,14 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
           </div>
         )}
       </div>
+
+      {/* Render SEO Content Block if a specific category is selected */}
+      {category !== 'All Categories' && categorySEOContent[category] && (
+        <SEOContentBlock
+          title={categorySEOContent[category].title}
+          content={categorySEOContent[category].content}
+        />
+      )}
     </div>
   );
 };
