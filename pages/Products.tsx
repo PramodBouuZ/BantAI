@@ -98,8 +98,15 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
     }
   };
 
-  const seoTitle = "All IT Solutions & Business Software | Verified Vendors India";
-  const seoDesc = "Explore all business solutions on BantConfirm. Browse categories like CRM, ERP, Cloud Telephony, and IT Hardware from a network of verified vendors across India.";
+  const isCategoryView = category && category !== 'All Categories';
+
+  const seoTitle = isCategoryView
+    ? `${category} Solutions in India | Verified Vendors – BantConfirm`
+    : "All IT Solutions & Business Software | Verified Vendors India";
+
+  const seoDesc = isCategoryView
+    ? `Explore top ${category} solutions in India. Compare products, pricing, and verified providers. Post your requirement on BantConfirm.com.`
+    : "Explore all business solutions on BantConfirm. Browse categories like CRM, ERP, Cloud Telephony, and IT Hardware from a network of verified vendors across India.";
 
   return (
     <div className="bg-white min-h-screen pb-24">

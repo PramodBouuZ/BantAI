@@ -15,6 +15,7 @@ import VendorRegister from './pages/VendorRegister';
 import Comparison from './pages/Comparison';
 import Blog from './pages/Blog';
 import BlogDetails from './pages/BlogDetails';
+import LocationPage from './pages/LocationPage';
 import NotFound from './components/NotFound';
 import AIConsultant from './components/AIConsultant';
 import { User } from './types';
@@ -184,9 +185,11 @@ const AppContent: React.FC = () => {
         <Route element={<MainLayout currentUser={currentUser} setCurrentUser={setCurrentUser} />}>
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
           <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
+          <Route path="/products/:slug" element={<ProductDetails />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetails />} />
+          <Route path="/city/:city" element={<LocationPage />} />
+          <Route path="/state/:state" element={<LocationPage />} />
           <Route path="/compare" element={<Comparison />} />
           <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
           <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />

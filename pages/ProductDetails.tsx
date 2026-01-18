@@ -9,6 +9,7 @@ import {
 import SEO from '../components/SEO';
 import NotFound from '../components/NotFound';
 import Breadcrumb from '../components/Breadcrumb';
+import { generateProductKeywords, generateFaqs } from '../lib/seo';
 
 const getIcon = (iconName: string) => {
   switch (iconName) {
@@ -44,11 +45,11 @@ const ProductDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const { fetchProductBySlug, fetchSimilarProducts } = useData();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [product, setProduct] = React.useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = React.useState<Product[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const loadProduct = async () => {
       if (!slug) {
         setIsLoading(false);
@@ -84,8 +85,9 @@ const ProductDetails: React.FC = () => {
     badge: product.vendorName ? 'Certified Partner' : 'Gold Partner'
   };
 
-  const seoTitle = `${product.title} Pricing, Features & Reviews | BantConfirm India`;
-  const seoDesc = `Explore ${product.title} on BantConfirm. Pricing starts at ${product.priceRange}. Compare features, view vendor details, and book a free demo today.`;
+  const seoTitle = `${product.title} Providers in India | Price & Verified Vendors – BantConfirm`;
+  const seoDesc = `Compare verified ${product.title} vendors in India. Check pricing, features, and support. Post your requirement on BantConfirm.com and get matched instantly.`;
+  const seoKeywords = generateProductKeywords(product.title);
 
   const handleAction = (intent: string) => {
     navigate(`/enquiry?product=${product.id}&intent=${intent}`);
@@ -103,32 +105,23 @@ const ProductDetails: React.FC = () => {
     ];
 
   const productSchema = {
-    "@context": "https://schema.org/",
+    "@context": "https://schema.org",
     "@type": "Product",
     "name": product.title,
-    "image": product.image || '',
-    "description": seoDesc,
+    "description": product.description,
+    "image": [product.image || ''],
     "brand": {
       "@type": "Brand",
-      "name": product.vendorName || "BantConfirm"
+      "name": "BantConfirm"
     },
+    "category": product.category,
     "offers": {
-      "@type": "AggregateOffer",
+      "@type": "Offer",
       "priceCurrency": "INR",
-      "lowPrice": product.priceRange.split('-')[0].trim().replace(/[^0-9]/g, '') || "1000",
-      "highPrice": product.priceRange.split('-')[1]?.trim().replace(/[^0-9]/g, '') || "100000",
-      "offerCount": "5" // Placeholder
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": product.rating || 4.9,
-      "reviewCount": Math.floor(Math.random() * (150 - 20 + 1) + 20) // Placeholder
+      "price": product.priceRange.split('-')[0].trim().replace(/[^0-9]/g, '') || "0",
+      "availability": "https://schema.org/InStock",
+      "url": `https://bantconfirm.com/products/${product.slug}`
     }
-  };
-
-  const serviceSchema = {
-      ...productSchema,
-      "@type": "Service"
   };
 
   const faqSchema = {
@@ -167,8 +160,8 @@ const ProductDetails: React.FC = () => {
       <SEO 
         title={seoTitle}
         description={seoDesc}
-        keywords={`${product.title}, ${product.category} vendor, IT hardware Noida, ${product.title} price India`}
-        schema={[productSchema, serviceSchema, faqSchema]}
+        keywords={seoKeywords}
+        schema={[productSchema, faqSchema]}
       />
 
       {/* Header / Breadcrumb */}
@@ -218,111 +211,95 @@ const ProductDetails: React.FC = () => {
                 </div>
               </div>
 
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 leading-tight">{product.title}</h1>
+              <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 leading-tight">{product.title} – Verified Providers & Pricing in India</h1>
               <p className="text-xl text-slate-500 leading-relaxed mb-10">{product.description}</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-8 border-y border-slate-100">
-                <div>
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Core Benefits</h3>
-                  <ul className="space-y-4">
-                    {product.features.map((feature, i) => (
-                      <li key={i} className="flex items-start bg-slate-50 p-4 rounded-2xl border border-slate-100 group hover:border-blue-200 transition-colors">
-                        <div className="bg-white p-1 rounded-lg mr-4 shadow-sm text-green-500 shrink-0">
-                          <CheckCircle2 size={18} />
-                        </div>
-                        <span className="font-bold text-slate-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Pricing Packages</h3>
-                  <div className="bg-blue-600 p-8 rounded-[2rem] text-white shadow-xl shadow-blue-100 relative overflow-hidden">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full"></div>
-                    <div className="text-sm font-bold opacity-80 mb-2">Estimated Starting At</div>
-                    <div className="text-3xl font-black mb-6">{product.priceRange}</div>
-                    <div className="flex items-center gap-2 text-xs font-bold bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm">
-                      <CreditCard size={14} /> GST Compliant Billing Available
-                    </div>
+            </div>
+          </div>
+
+          {/* What is Product Section */}
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-6">What is {product.title}?</h2>
+            <div className="prose prose-lg max-w-none text-slate-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: product.longDescription || `<p>${product.description}</p>` }} />
+          </div>
+
+          {/* Top Features Section */}
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-8">Top Features of {product.title}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {product.features.map((feature, i) => (
+                <div key={i} className="flex items-start">
+                  <div className="bg-green-50 text-green-600 p-2 rounded-xl mr-4 shadow-sm shrink-0">
+                    <CheckCircle2 size={22} />
                   </div>
+                  <span className="font-bold text-slate-700 text-lg">{feature}</span>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Vendor Information Section */}
+          {/* Pricing Section */}
           <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-6">{product.title} Pricing in India</h2>
+            <div className="bg-blue-50 p-8 rounded-3xl border border-blue-100 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3 mb-1">
-                  <Building2 className="text-blue-600" /> Vendor Information
-                </h2>
-                <p className="text-slate-400 font-medium">Connect directly with certified technology providers</p>
+                <p className="text-sm font-bold text-blue-800 uppercase tracking-wider">Starting From</p>
+                <p className="text-4xl font-black text-slate-900 mt-2">{product.priceRange}</p>
               </div>
-              <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-2xl border border-green-100 font-black text-xs uppercase tracking-wider">
-                <Award size={18} /> {vendorInfo.badge}
+              <button onClick={() => handleAction('quote')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl shadow-lg transition transform hover:-translate-y-1">
+                Get Best Price Quote
+              </button>
+            </div>
+          </div>
+
+          {/* Best Use Cases Section */}
+          {product.useCases && product.useCases.length > 0 && (
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-8">Best Use Cases for {product.title}</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                {product.useCases.map((useCase, i) => (
+                   <div key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="font-bold text-slate-700">{useCase}</p>
+                   </div>
+                ))}
               </div>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Verified Vendors Section */}
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-6">Verified Vendors for {product.title} on BantConfirm</h2>
+            <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+              BantConfirm connects you with a network of verified and trusted vendors for {product.title}. Each partner is vetted for quality, reliability, and customer support.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Company Name</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Primary Partner</p>
                 <p className="font-black text-slate-800 text-lg">{vendorInfo.name}</p>
-                <div className="flex items-center gap-1.5 mt-2 text-blue-600 font-bold text-xs">
-                  <UserCheck size={14} /> Verified Since {vendorInfo.verifiedSince}
-                </div>
               </div>
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Primary Location</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Location</p>
                 <p className="font-black text-slate-800 text-lg">{vendorInfo.location}</p>
-                <div className="flex items-center gap-1.5 mt-2 text-slate-500 font-bold text-xs uppercase tracking-tighter">
-                  <MapPin size={14} /> Serviceable Area: PAN India
-                </div>
-              </div>
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Avg. Response Time</p>
-                <p className="font-black text-slate-800 text-lg">{vendorInfo.responseTime}</p>
-                <div className="flex items-center gap-1.5 mt-2 text-yellow-600 font-bold text-xs uppercase tracking-tighter">
-                  <Clock size={14} /> High Response Priority
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Technical Specifications Table */}
+          {/* Compare Similar Solutions Section (Placeholder) */}
           <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
-             <h2 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3">
-               <Info className="text-indigo-600" /> Technical Specifications
-             </h2>
-             <div className="overflow-hidden rounded-2xl border border-slate-100">
-                <table className="w-full text-left text-sm">
-                   <tbody className="divide-y divide-slate-100">
-                      {specs.map((spec, idx) => (
-                        <tr key={idx}>
-                          <td className="bg-slate-50 p-4 font-black text-slate-500 uppercase tracking-widest w-1/3">{spec.label}</td>
-                          <td className="p-4 font-bold text-slate-700">{spec.value}</td>
-                        </tr>
-                      ))}
-                   </tbody>
-                </table>
-             </div>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-6">Compare Similar Solutions</h2>
+            {/* The existing "Related Products" logic will be used here */}
           </div>
 
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
-             <h2 className="text-2xl font-black text-slate-900 mb-8">Frequently Asked Questions</h2>
+          {/* Dynamic FAQ Section */}
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100" id="faq-section">
+             <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-8">FAQs – {product.title}</h2>
              <div className="space-y-6">
-                <div>
-                    <h3 className="font-bold text-lg text-slate-800 mb-2">What is {product.title}?</h3>
-                    <p className="text-slate-600 leading-relaxed">{product.description}</p>
-                </div>
-                <div>
-                    <h3 className="font-bold text-lg text-slate-800 mb-2">What is the price of {product.title} in India?</h3>
-                    <p className="text-slate-600 leading-relaxed">The price for {product.title} typically ranges from {product.priceRange}. For an exact quote based on your requirements, please post your requirement.</p>
-                </div>
-                <div>
-                    <h3 className="font-bold text-lg text-slate-800 mb-2">Who is the best vendor for {product.title}?</h3>
-                    <p className="text-slate-600 leading-relaxed">BantConfirm lists multiple verified vendors for {product.title}. The best vendor depends on your specific needs, location, and budget. We can connect you with the top 3 most suitable partners.</p>
-                </div>
+                {generateFaqs(product).map((faq, i) => (
+                  <div key={i} className="border-b border-slate-100 pb-6">
+                      <h3 className="font-black text-lg text-slate-800 mb-2">{faq.question}</h3>
+                      <p className="text-slate-600 leading-relaxed">{faq.answer}</p>
+                  </div>
+                ))}
              </div>
           </div>
         </div>

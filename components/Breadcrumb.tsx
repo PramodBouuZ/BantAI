@@ -12,15 +12,34 @@ interface BreadcrumbProps {
 }
 
 const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
+  // The new schema structure is very specific and less dynamic.
+  // This component will now need to be used carefully, as it assumes a 3-level structure.
+  // For the product page, it will be: Home > Products > {ProductName}
+  const itemListElement = [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://bantconfirm.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Products",
+      "item": "https://bantconfirm.com/products"
+    },
+    items.length > 2 ? { // Assuming the last item is the current product page
+      "@type": "ListItem",
+      "position": 3,
+      "name": items[items.length - 1].name,
+      "item": `https://bantconfirm.com${items[items.length - 1].href}`
+    } : null
+  ].filter(Boolean); // Filter out null if there's no 3rd item
+
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "itemListElement": items.map((item, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "name": item.name,
-      "item": item.href ? `https://www.bantconfirm.com${item.href}` : undefined
-    }))
+    "itemListElement": itemListElement
   };
 
   return (
