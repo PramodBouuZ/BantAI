@@ -38,7 +38,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '3',
-    slug: 'internet-leased-line',
+    slug: 'internet-lease-line',
     title: 'Internet Leased Line',
     description: 'Dedicated high-speed internet connectivity with guaranteed bandwidth for offices.',
     category: 'Connectivity',

@@ -61,6 +61,11 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://bantconfirm.com/products/internet-lease-line</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://bantconfirm.com/products/sip-trunk-services</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
