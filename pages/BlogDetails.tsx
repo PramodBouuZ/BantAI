@@ -10,10 +10,19 @@ import SEO from '../components/SEO';
 
 const BlogDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { blogs } = useData();
+  const { blogs, isLoading } = useData();
   const navigate = useNavigate();
 
   const post = blogs.find(b => b.slug === slug);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-600 font-bold">Loading article...</p>
+      </div>
+    );
+  }
 
   if (!post) {
     return (

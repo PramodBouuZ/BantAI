@@ -15,6 +15,7 @@ interface DataContextType {
   siteConfig: SiteConfig;
   notifications: AppNotification[];
   compareList: Product[];
+  isLoading: boolean;
   
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, product: Product) => Promise<void>;
@@ -81,6 +82,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [vendorLogos, setVendorLogos] = useState<VendorAsset[]>(MOCK_VENDOR_LOGOS);
   const [vendorRegistrations, setVendorRegistrations] = useState<VendorRegistration[]>([]);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const addNotification = useCallback((message: string, type: AppNotification['type'] = 'info') => {
     const id = Date.now().toString() + Math.random().toString();
@@ -94,26 +96,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const fetchData = useCallback(async () => {
-    if (!supabase) return;
+  const fetchPublicData = useCallback(async () => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const [
         { data: prodData },
         { data: configData },
         { data: vLogos },
         { data: catData },
-        { data: leadData },
-        { data: vRegData },
-        { data: userData },
         { data: blogData }
       ] = await Promise.all([
         supabase.from('products').select('*'),
         supabase.from('site_config').select('*').maybeSingle(),
         supabase.from('vendor_assets').select('*'),
         supabase.from('categories').select('*'),
-        supabase.from('leads').select('*').order('date', { ascending: false }),
-        supabase.from('vendor_registrations').select('*').order('date', { ascending: false }),
-        supabase.from('users').select('*'),
         supabase.from('blogs').select('*').order('date', { ascending: false })
       ]);
 
@@ -163,6 +162,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
       if (catData) setCategories(Array.from(new Set(catData.map((c: any) => c.name))));
       
+    } catch (err) {
+      console.error("Fetch public data failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchAdminData = useCallback(async () => {
+    if (!supabase) return;
+    try {
+      const [
+        { data: leadData },
+        { data: vRegData },
+        { data: userData }
+      ] = await Promise.all([
+        supabase.from('leads').select('*').order('date', { ascending: false }),
+        supabase.from('vendor_registrations').select('*').order('date', { ascending: false }),
+        supabase.from('users').select('*')
+      ]);
+
       if (leadData) {
         setLeads(leadData.map((l: any) => ({
           id: l.id,
@@ -202,21 +221,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })));
       }
     } catch (err) {
-      console.error("Fetch data failed:", err);
+      console.error("Fetch admin data failed (Expected if not admin):", err);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
+    fetchPublicData();
     if (!supabase) return;
+
+    const checkAdminAndFetch = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const email = session.user.email;
+        if (email === 'admin@bantconfirm.com' || email === 'info.bouuz@gmail.com') {
+          fetchAdminData();
+        }
+      }
+    };
+
+    checkAdminAndFetch();
+
     const channel = supabase.channel('realtime-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'blogs' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchAdminData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchPublicData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blogs' }, fetchPublicData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchPublicData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchData]);
+  }, [fetchPublicData, fetchAdminData]);
 
   const addLead = async (lead: Lead): Promise<boolean> => {
     if (supabase) {
@@ -239,7 +271,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addNotification(`Database Error: ${error.message}`, 'error');
         return false;
       }
-      fetchData();
+      fetchAdminData();
       addNotification('Requirement posted successfully!', 'success');
       return true;
     }
@@ -263,7 +295,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          technical_specs: product.technicalSpecs
       });
       if (error) addNotification(error.message, 'error');
-      else { addNotification('Product added!', 'success'); fetchData(); }
+      else { addNotification('Product added!', 'success'); fetchPublicData(); }
     }
   };
 
@@ -283,7 +315,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          technical_specs: updatedProduct.technicalSpecs
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else fetchPublicData();
     }
   };
 
@@ -291,7 +323,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else fetchPublicData();
     }
   };
 
@@ -321,7 +353,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else { 
         addNotification('Insight article published!', 'success'); 
-        fetchData(); 
+        fetchPublicData();
       }
     }
   };
@@ -338,7 +370,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         date: blog.date
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else fetchPublicData();
     }
   };
 
@@ -346,7 +378,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) {
       const { error } = await supabase.from('blogs').delete().eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else fetchPublicData();
     }
   };
 
@@ -366,28 +398,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) addNotification(error.message, 'error');
       else addNotification('Global configuration synced.', 'success');
-      fetchData();
+      fetchPublicData();
     }
   };
 
   const updateLeadStatus = async (id: string, status: Lead['status']) => {
     if (supabase) await supabase.from('leads').update({ status }).eq('id', id);
-    fetchData();
+    fetchAdminData();
   };
 
   const assignLead = async (id: string, vendorId: string) => {
     if (supabase) await supabase.from('leads').update({ assigned_to: vendorId }).eq('id', id);
-    fetchData();
+    fetchAdminData();
   };
 
   const updateLeadRemarks = async (id: string, remarks: string) => {
     if (supabase) await supabase.from('leads').update({ remarks }).eq('id', id);
-    fetchData();
+    fetchAdminData();
   };
 
   const deleteLead = async (id: string) => {
     if (supabase) await supabase.from('leads').delete().eq('id', id);
-    fetchData();
+    fetchAdminData();
   };
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
@@ -398,33 +430,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: reg.message, date: reg.date
       });
       if (error) addNotification(`Registration Error: ${error.message}`, 'error');
-      else { addNotification('Vendor registered!', 'success'); fetchData(); }
+      else { addNotification('Vendor registered!', 'success'); fetchAdminData(); }
     }
   };
 
   const addCategory = async (category: string) => {
     if (supabase) await supabase.from('categories').insert({ name: category });
-    fetchData();
+    fetchPublicData();
   };
 
   const deleteCategory = async (category: string) => {
     if (supabase) await supabase.from('categories').delete().eq('name', category);
-    fetchData();
+    fetchPublicData();
   };
 
   const addUser = (user: User) => setUsers(prev => [...prev, user]);
   const deleteUser = (id: string) => {
-     if(supabase) supabase.from('users').delete().eq('id', id).then(() => fetchData());
+     if(supabase) supabase.from('users').delete().eq('id', id).then(() => fetchAdminData());
   };
   
   const addVendorLogo = async (asset: VendorAsset) => {
     if (supabase) await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
-    fetchData();
+    fetchPublicData();
   };
   
   const deleteVendorLogo = async (id: string) => {
     if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
-    fetchData();
+    fetchPublicData();
   };
   
   const toggleCompare = (product: Product) => {
@@ -449,7 +481,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateSiteConfig, addCategory, deleteCategory,
       addUser, deleteUser, addVendorLogo, deleteVendorLogo,
       addVendorRegistration, addNotification, removeNotification,
-      toggleCompare, clearCompare
+    toggleCompare, clearCompare, isLoading
     }}>
       {children}
     </DataContext.Provider>

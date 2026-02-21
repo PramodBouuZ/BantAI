@@ -22,11 +22,20 @@ const getIcon = (iconName: string) => {
 
 const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>(); // The param in URL is still named 'id' in App.tsx
-  const { products } = useData();
+  const { products, isLoading } = useData();
   const navigate = useNavigate();
 
   // Find product by slug OR by ID for backward compatibility
   const product = products.find(p => p.slug === id || p.id === id);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-600 font-bold">Loading product details...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
