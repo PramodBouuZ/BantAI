@@ -12,6 +12,8 @@ import Login from './pages/Login';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Features from './pages/Features';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 import ProductDetails from './pages/ProductDetails';
 import VendorRegister from './pages/VendorRegister';
 import Comparison from './pages/Comparison';
@@ -209,6 +211,8 @@ const AppContent: React.FC = () => {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/features" element={<Features />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center"><h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2><h3 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h3><button onClick={() => window.history.back()} className="text-indigo-600 font-bold hover:underline mt-4">Go Back</button></div>} />
         </Route>
         <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
