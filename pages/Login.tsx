@@ -14,7 +14,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   const location = useLocation();
   
   // Parse redirect location
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname;
   const search = location.state?.from?.search || '';
   
   const [view, setView] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -91,7 +91,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
              options: {
                data: {
                  full_name: formData.name,
-                 role: (formData.email === 'info.bouuz@gmail.com' || formData.email === 'admin@bantconfirm.com') ? 'admin' : 'user',
+                   role: 'user', // Every new signup must be role = "user"
                  mobile: formData.mobile,
                  location: formData.location
                }
@@ -101,15 +101,18 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            
            if (data.session) {
              const meta = data.user?.user_metadata || {};
+             const role = data.user!.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
              setCurrentUser({
                 id: data.user!.id,
                 name: meta.full_name || formData.name || 'User',
                 email: data.user!.email || formData.email,
-                role: meta.role || 'user',
+                role: role as any,
                 joinedDate: new Date().toISOString()
              });
              setSuccessMsg("Welcome! Your account is ready.");
-             setTimeout(() => navigate(from + search), 1000);
+
+             const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
+             setTimeout(() => navigate(targetPath + search), 1000);
            } else {
              setSuccessMsg("Account created! Please check your email for a confirmation link.");
            }
@@ -121,14 +124,17 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            if (error) throw error;
            if (data.user) {
              const meta = data.user.user_metadata || {};
+             const role = data.user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
              setCurrentUser({
                 id: data.user.id,
                 name: meta.full_name || 'User',
                 email: data.user.email || '',
-                role: (data.user.email === 'admin@bantconfirm.com' || data.user.email === 'info.bouuz@gmail.com' ? 'admin' : (meta.role || 'user')) as any,
+                role: role as any,
                 joinedDate: new Date().toISOString()
              });
-             navigate(from + search);
+
+             const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
+             navigate(targetPath + search);
            }
         }
       } catch (err: any) {
