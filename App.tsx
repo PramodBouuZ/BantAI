@@ -1,10 +1,12 @@
 import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import Dashboard from './pages/Dashboard';
+import UserDashboard from './pages/UserDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 import BantForm from './components/BantForm';
 import Login from './pages/Login';
 import About from './pages/About';
@@ -120,11 +122,14 @@ const AppContent: React.FC = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const meta = session.user.user_metadata || {};
+          // Only info.bouuz@gmail.com can be admin
+          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+
           setCurrentUser({ 
             id: session.user.id, 
             name: meta.full_name || meta.name || 'User', 
             email: session.user.email || '', 
-            role: (session.user.email === 'admin@bantconfirm.com' || session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (meta.role || 'user')) as any, 
+            role: role as any,
             joinedDate: session.user.created_at 
           });
         }
@@ -135,11 +140,14 @@ const AppContent: React.FC = () => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
           const meta = session.user.user_metadata || {};
+          // Only info.bouuz@gmail.com can be admin
+          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+
           setCurrentUser({ 
             id: session.user.id, 
             name: meta.full_name || meta.name || 'User', 
             email: session.user.email || '', 
-            role: (session.user.email === 'admin@bantconfirm.com' || session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (meta.role || 'user')) as any, 
+            role: role as any,
             joinedDate: session.user.created_at 
           });
         } else if (event === 'SIGNED_OUT') { 
@@ -167,7 +175,35 @@ const AppContent: React.FC = () => {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetails />} />
           <Route path="/compare" element={<Comparison />} />
-          <Route path="/dashboard" element={<Dashboard currentUser={currentUser} />} />
+
+          {/* Role-Based Dashboard Routing */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute currentUser={currentUser}>
+              {currentUser?.role === 'admin' ?
+                <Navigate to="/admin" replace /> :
+                <Navigate to="/user/dashboard" replace />
+              }
+            </ProtectedRoute>
+          } />
+
+          <Route path="/user/dashboard" element={
+            <ProtectedRoute currentUser={currentUser}>
+              <UserDashboard currentUser={currentUser} />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin" element={
+            <ProtectedRoute currentUser={currentUser} requiredRole="admin">
+              <Dashboard currentUser={currentUser} />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin/*" element={
+            <ProtectedRoute currentUser={currentUser} requiredRole="admin">
+              <Dashboard currentUser={currentUser} />
+            </ProtectedRoute>
+          } />
+
           <Route path="/enquiry" element={<BantForm isLoggedIn={isLoggedIn} currentUser={currentUser} />} />
           <Route path="/vendor-register" element={<VendorRegister />} />
           <Route path="/about" element={<About />} />

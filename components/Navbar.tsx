@@ -58,7 +58,12 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentUser }) => {
             <Link to="/features" className={`text-lg transition-colors ${isActive('/features')}`}>Features</Link>
             
             {currentUser && (
-              <Link to="/dashboard" className={`text-lg transition-colors ${isActive('/dashboard')}`}>Dashboard</Link>
+              <Link
+                to={currentUser.role === 'admin' ? "/admin" : "/user/dashboard"}
+                className={`text-lg transition-colors ${isActive(currentUser.role === 'admin' ? '/admin' : '/user/dashboard')}`}
+              >
+                Dashboard
+              </Link>
             )}
             
             <div className="h-6 w-px bg-gray-200 mx-2"></div>
@@ -107,7 +112,13 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentUser }) => {
             <Link to="/features" onClick={() => setIsOpen(false)} className="block px-4 py-3 text-xl text-gray-800 hover:bg-blue-50 hover:text-blue-600 rounded-xl font-medium">Features</Link>
             
             {currentUser && (
-              <Link to="/dashboard" onClick={() => setIsOpen(false)} className="block px-4 py-3 text-xl text-gray-800 hover:bg-blue-50 hover:text-blue-600 rounded-xl font-medium">Dashboard</Link>
+              <Link
+                to={currentUser.role === 'admin' ? "/admin" : "/user/dashboard"}
+                onClick={() => setIsOpen(false)}
+                className="block px-4 py-3 text-xl text-gray-800 hover:bg-blue-50 hover:text-blue-600 rounded-xl font-medium"
+              >
+                Dashboard
+              </Link>
             )}
             
             {!currentUser ? (
