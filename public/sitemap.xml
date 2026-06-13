@@ -46,6 +46,16 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://bantconfirm.com/privacy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://bantconfirm.com/terms</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://bantconfirm.com/products/crm-solutions</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

@@ -101,7 +101,9 @@ async function generateSitemap() {
     '/features',
     '/vendor-register',
     '/compare',
-    '/login'
+    '/login',
+    '/privacy',
+    '/terms'
   ];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
