@@ -26,11 +26,10 @@ function loadEnv() {
 }
 
 // Fallback data if Supabase fetch fails or environment variables are missing
-// Updated to include 'internet-lease-line' per user requirement
 const fallbackProducts = [
   'crm-solutions', 'cloud-telephony', 'internet-leased-line',
-  'internet-lease-line', 'sip-trunk-services', 'cloud-storage',
-  'cybersecurity', 'hrms-platform', 'toll-free-services'
+  'sip-trunk-services', 'cloud-storage', 'cybersecurity',
+  'hrms-platform', 'toll-free-services'
 ];
 
 async function generateSitemap() {
@@ -38,6 +37,8 @@ async function generateSitemap() {
 
   let productSlugs = [...fallbackProducts];
   let blogSlugs = [];
+  let categorySlugs = [];
+  let locationSlugs = [];
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
@@ -73,9 +74,12 @@ async function generateSitemap() {
         }).on('error', reject);
       });
 
-      const [products, blogs] = await Promise.all([
-        fetchSupabase('products').catch(e => { console.error(`Error fetching products: ${e.message}`); return null; }),
-        fetchSupabase('blogs').catch(e => { console.error(`Error fetching blogs: ${e.message}`); return null; })
+      const [products, blogs, categories, cities, states] = await Promise.all([
+        fetchSupabase('products').catch(() => null),
+        fetchSupabase('blogs').catch(() => null),
+        fetchSupabase('categories').catch(() => null),
+        fetchSupabase('cities').catch(() => null),
+        fetchSupabase('states').catch(() => null)
       ]);
 
       if (Array.isArray(products) && products.length > 0) {
@@ -84,26 +88,25 @@ async function generateSitemap() {
       if (Array.isArray(blogs) && blogs.length > 0) {
         blogSlugs = blogs.map(b => b.slug).filter(Boolean);
       }
-      console.log(`Included ${productSlugs.length} products and ${blogSlugs.length} blogs.`);
+      if (Array.isArray(categories) && categories.length > 0) {
+        categorySlugs = categories.map(c => c.slug).filter(Boolean);
+      }
+      if (Array.isArray(cities) && cities.length > 0) {
+        locationSlugs = [...locationSlugs, ...cities.map(c => c.slug).filter(Boolean)];
+      }
+      if (Array.isArray(states) && states.length > 0) {
+        locationSlugs = [...locationSlugs, ...states.map(s => s.slug).filter(Boolean)];
+      }
+
+      console.log(`Included ${productSlugs.length} products, ${blogSlugs.length} blogs, ${categorySlugs.length} categories, and ${locationSlugs.length} locations.`);
     } catch (err) {
-      console.error('Unexpected error fetching from Supabase, using fallback products:', err.message);
+      console.error('Unexpected error fetching from Supabase:', err.message);
     }
-  } else {
-    console.log('Supabase environment variables not found (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Using fallback products.');
   }
 
   const staticRoutes = [
-    '',
-    '/products',
-    '/blog',
-    '/about',
-    '/contact',
-    '/features',
-    '/vendor-register',
-    '/compare',
-    '/login',
-    '/privacy',
-    '/terms'
+    '', '/products', '/blog', '/about', '/contact', '/features',
+    '/vendor-register', '/compare', '/login', '/privacy', '/terms'
   ];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -123,12 +126,20 @@ ${blogSlugs.map(slug => `  <url>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>`).join('\n')}
+${categorySlugs.map(slug => `  <url>
+    <loc>${BASE_URL}/category/${slug}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`).join('\n')}
+${locationSlugs.map(slug => `  <url>
+    <loc>${BASE_URL}/${slug}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>`).join('\n')}
 </urlset>`;
 
   const publicPath = path.join(__dirname, '../public');
-  if (!fs.existsSync(publicPath)) {
-    fs.mkdirSync(publicPath, { recursive: true });
-  }
+  if (!fs.existsSync(publicPath)) fs.mkdirSync(publicPath, { recursive: true });
 
   fs.writeFileSync(path.join(publicPath, 'sitemap.xml'), sitemap.trim());
   console.log(`Sitemap successfully generated at ${path.join(publicPath, 'sitemap.xml')}`);

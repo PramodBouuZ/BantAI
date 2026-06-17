@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification, BlogPost } from '../types';
+import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification, BlogPost, Category, City, State, SEOData } from '../types';
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
 
@@ -8,6 +8,9 @@ interface DataContextType {
   products: Product[];
   leads: Lead[];
   categories: string[];
+  categoryObjects: Category[];
+  cities: City[];
+  states: State[];
   users: User[];
   vendorLogos: VendorAsset[];
   vendorRegistrations: VendorRegistration[];
@@ -31,8 +34,18 @@ interface DataContextType {
   deleteLead: (id: string) => Promise<void>;
   
   updateSiteConfig: (config: SiteConfig) => Promise<void>;
+
   addCategory: (category: string) => Promise<void>;
+  updateCategory: (id: string, category: Category) => Promise<void>;
   deleteCategory: (category: string) => Promise<void>;
+
+  addCity: (city: City) => Promise<void>;
+  updateCity: (id: string, city: City) => Promise<void>;
+  deleteCity: (id: string) => Promise<void>;
+
+  addState: (state: State) => Promise<void>;
+  updateState: (id: string, state: State) => Promise<void>;
+  deleteState: (id: string) => Promise<void>;
 
   addUser: (user: User) => void;
   deleteUser: (id: string) => void;
@@ -69,6 +82,38 @@ const generateSlug = (text: string) => {
     .replace(/--+/g, '-');
 };
 
+const mapSEOToCamel = (item: any): SEOData => ({
+  metaTitle: item.meta_title,
+  metaDescription: item.meta_description,
+  keywords: item.keywords,
+  canonicalUrl: item.canonical_url,
+  ogTitle: item.og_title,
+  ogDescription: item.og_description,
+  ogImage: item.og_image,
+  twitterTitle: item.twitter_title,
+  twitterDescription: item.twitter_description,
+  twitterImage: item.twitter_image,
+  focusKeywords: item.focus_keywords,
+  seoScore: item.seo_score,
+  schemaMarkup: item.schema_markup
+});
+
+const mapSEOToSnake = (item: SEOData) => ({
+  meta_title: item.metaTitle,
+  meta_description: item.metaDescription,
+  keywords: item.keywords,
+  canonical_url: item.canonicalUrl,
+  og_title: item.ogTitle,
+  og_description: item.ogDescription,
+  og_image: item.ogImage,
+  twitter_title: item.twitterTitle,
+  twitter_description: item.twitterDescription,
+  twitter_image: item.twitterImage,
+  focus_keywords: item.focusKeywords,
+  seo_score: item.seoScore,
+  schema_markup: item.schemaMarkup
+});
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [compareList, setCompareList] = useState<Product[]>([]);
@@ -76,6 +121,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [leads, setLeads] = useState<Lead[]>(RECENT_LEADS);
   const [categories, setCategories] = useState<string[]>(['Software', 'Telecom', 'Security', 'Connectivity', 'Infrastructure', 'Consulting']);
+  const [categoryObjects, setCategoryObjects] = useState<Category[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(defaultSiteConfig);
   const [users, setUsers] = useState<User[]>([]);
   const [vendorLogos, setVendorLogos] = useState<VendorAsset[]>(MOCK_VENDOR_LOGOS);
@@ -105,7 +153,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { data: leadData },
         { data: vRegData },
         { data: userData },
-        { data: blogData }
+        { data: blogData },
+        { data: cityData },
+        { data: stateData }
       ] = await Promise.all([
         supabase.from('products').select('*'),
         supabase.from('site_config').select('*').maybeSingle(),
@@ -114,7 +164,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('leads').select('*').order('date', { ascending: false }),
         supabase.from('vendor_registrations').select('*').order('date', { ascending: false }),
         supabase.from('users').select('*'),
-        supabase.from('blogs').select('*').order('date', { ascending: false })
+        supabase.from('blogs').select('*').order('date', { ascending: false }),
+        supabase.from('cities').select('*'),
+        supabase.from('states').select('*')
       ]);
 
       if (prodData) {
@@ -130,7 +182,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           rating: Number(p.rating || 5), 
           image: p.image,
           vendorName: p.vendor_name || '', 
-          technicalSpecs: p.technical_specs || []
+          technicalSpecs: p.technical_specs || [],
+          ...mapSEOToCamel(p)
         })));
       }
 
@@ -143,7 +196,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           category: b.category,
           image: b.image,
           author: b.author,
-          date: b.date
+          date: b.date,
+          ...mapSEOToCamel(b)
+        })));
+      }
+
+      if (cityData) {
+        setCities(cityData.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug || generateSlug(c.name),
+          stateId: c.state_id,
+          ...mapSEOToCamel(c)
+        })));
+      }
+
+      if (stateData) {
+        setStates(stateData.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          slug: s.slug || generateSlug(s.name),
+          ...mapSEOToCamel(s)
         })));
       }
 
@@ -156,12 +229,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           faviconUrl: configData.favicon_url,
           whatsappNumber: configData.whatsapp_number,
           adminNotificationEmail: configData.admin_notification_email || ADMIN_EMAIL,
-          socialLinks: configData.social_links || defaultSiteConfig.socialLinks
+          socialLinks: configData.social_links || defaultSiteConfig.socialLinks,
+          ...mapSEOToCamel(configData)
         });
       }
 
       if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
-      if (catData) setCategories(Array.from(new Set(catData.map((c: any) => c.name))));
+
+      if (catData) {
+        setCategories(Array.from(new Set(catData.map((c: any) => c.name))));
+        setCategoryObjects(catData.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug || generateSlug(c.name),
+          description: c.description,
+          icon: c.icon,
+          ...mapSEOToCamel(c)
+        })));
+      }
       
       if (leadData) {
         setLeads(leadData.map((l: any) => ({
@@ -214,6 +299,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'blogs' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cities' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'states' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
@@ -260,7 +348,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          rating: product.rating, 
          image: product.image,
          vendor_name: product.vendorName, 
-         technical_specs: product.technicalSpecs
+         technical_specs: product.technicalSpecs,
+         ...mapSEOToSnake(product)
       });
       if (error) addNotification(error.message, 'error');
       else { addNotification('Product added!', 'success'); fetchData(); }
@@ -280,7 +369,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          rating: updatedProduct.rating, 
          image: updatedProduct.image,
          vendor_name: updatedProduct.vendorName, 
-         technical_specs: updatedProduct.technicalSpecs
+         technical_specs: updatedProduct.technicalSpecs,
+         ...mapSEOToSnake(updatedProduct)
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
       else fetchData();
@@ -297,10 +387,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addBlog = async (blog: BlogPost) => {
     if (supabase) {
-      // Log the user for debugging RLS
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log("Attempting blog insert as:", user?.email);
-
       const { error } = await supabase.from('blogs').insert({
         id: blog.id,
         slug: blog.slug || generateSlug(blog.title),
@@ -309,20 +395,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         category: blog.category,
         image: blog.image,
         author: blog.author,
-        date: blog.date
+        date: blog.date,
+        ...mapSEOToSnake(blog)
       });
 
-      if (error) {
-        console.error("Supabase Error:", error);
-        if (error.code === '42501') {
-          addNotification("Permission Denied: Your account is not authorized to post blogs. Check Supabase RLS policies.", 'error');
-        } else {
-          addNotification(`Database Error: ${error.message}`, 'error');
-        }
-      } else { 
-        addNotification('Insight article published!', 'success'); 
-        fetchData(); 
-      }
+      if (error) addNotification(`Database Error: ${error.message}`, 'error');
+      else { addNotification('Insight article published!', 'success'); fetchData(); }
     }
   };
 
@@ -335,7 +413,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         category: blog.category,
         image: blog.image,
         author: blog.author,
-        date: blog.date
+        date: blog.date,
+        ...mapSEOToSnake(blog)
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
       else fetchData();
@@ -362,7 +441,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           whatsapp_number: config.whatsappNumber, 
           admin_notification_email: config.adminNotificationEmail,
           social_links: config.socialLinks, 
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          ...mapSEOToSnake(config)
       });
       if (error) addNotification(error.message, 'error');
       else addNotification('Global configuration synced.', 'success');
@@ -403,12 +483,91 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addCategory = async (category: string) => {
-    if (supabase) await supabase.from('categories').insert({ name: category });
+    if (supabase) await supabase.from('categories').insert({
+      name: category,
+      slug: generateSlug(category)
+    });
     fetchData();
+  };
+
+  const updateCategory = async (id: string, category: Category) => {
+    if (supabase) {
+      const { error } = await supabase.from('categories').update({
+        name: category.name,
+        slug: category.slug || generateSlug(category.name),
+        description: category.description,
+        icon: category.icon,
+        ...mapSEOToSnake(category)
+      }).eq('id', id);
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
+    }
   };
 
   const deleteCategory = async (category: string) => {
     if (supabase) await supabase.from('categories').delete().eq('name', category);
+    fetchData();
+  };
+
+  const addCity = async (city: City) => {
+    if (supabase) {
+      const { error } = await supabase.from('cities').insert({
+        id: city.id,
+        name: city.name,
+        slug: city.slug || generateSlug(city.name),
+        state_id: city.stateId,
+        ...mapSEOToSnake(city)
+      });
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
+    }
+  };
+
+  const updateCity = async (id: string, city: City) => {
+    if (supabase) {
+      const { error } = await supabase.from('cities').update({
+        name: city.name,
+        slug: city.slug || generateSlug(city.name),
+        state_id: city.stateId,
+        ...mapSEOToSnake(city)
+      }).eq('id', id);
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
+    }
+  };
+
+  const deleteCity = async (id: string) => {
+    if (supabase) await supabase.from('cities').delete().eq('id', id);
+    fetchData();
+  };
+
+  const addState = async (state: State) => {
+    if (supabase) {
+      const { error } = await supabase.from('states').insert({
+        id: state.id,
+        name: state.name,
+        slug: state.slug || generateSlug(state.name),
+        ...mapSEOToSnake(state)
+      });
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
+    }
+  };
+
+  const updateState = async (id: string, state: State) => {
+    if (supabase) {
+      const { error } = await supabase.from('states').update({
+        name: state.name,
+        slug: state.slug || generateSlug(state.name),
+        ...mapSEOToSnake(state)
+      }).eq('id', id);
+      if (error) addNotification(error.message, 'error');
+      else fetchData();
+    }
+  };
+
+  const deleteState = async (id: string) => {
+    if (supabase) await supabase.from('states').delete().eq('id', id);
     fetchData();
   };
 
@@ -442,11 +601,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{
-      products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations, blogs, notifications, compareList,
+      products, leads, categories, categoryObjects, cities, states, siteConfig, users, vendorLogos, vendorRegistrations, blogs, notifications, compareList,
       addProduct, updateProduct, deleteProduct,
       addBlog, updateBlog, deleteBlog,
       addLead, updateLeadStatus, assignLead, updateLeadRemarks, deleteLead,
-      updateSiteConfig, addCategory, deleteCategory,
+      updateSiteConfig, addCategory, updateCategory, deleteCategory,
+      addCity, updateCity, deleteCity,
+      addState, updateState, deleteState,
       addUser, deleteUser, addVendorLogo, deleteVendorLogo,
       addVendorRegistration, addNotification, removeNotification,
       toggleCompare, clearCompare

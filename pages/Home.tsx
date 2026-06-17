@@ -173,6 +173,7 @@ const VendorTicker = () => {
 }
 
 const SEOFooterLinks = () => {
+  const { categoryObjects, cities, states } = useData();
   return (
     <section className="bg-white border-t border-gray-100 py-16">
       <div className="max-w-7xl mx-auto px-4 text-xs md:text-sm text-slate-500">
@@ -180,16 +181,19 @@ const SEOFooterLinks = () => {
           
           {/* Software & Enterprise Solutions */}
           <div>
-            <h5 className="font-bold text-slate-800 mb-4 uppercase tracking-wider border-b border-slate-100 pb-2">Software Solutions</h5>
+            <h5 className="font-bold text-slate-800 mb-4 uppercase tracking-wider border-b border-slate-100 pb-2">Solutions & Categories</h5>
             <ul className="space-y-2 leading-relaxed">
-              <li><Link to="/products" className="hover:text-blue-600">Sales CRM & Lead Management</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">SME ERP & Manufacturing ERP</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Tally Software & Busy Accounting</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Marg ERP & Vyapar Software</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">HRMS & Payroll Solutions</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Inventory Management Software</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Billing & Invoicing Software</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Project Management Software</Link></li>
+              {categoryObjects.slice(0, 8).map(cat => (
+                <li key={cat.id}><Link to={`/category/${cat.slug}`} className="hover:text-blue-600">{cat.name}</Link></li>
+              ))}
+              {!categoryObjects.length && (
+                <>
+                  <li><Link to="/products" className="hover:text-blue-600">Sales CRM & Lead Management</Link></li>
+                  <li><Link to="/products" className="hover:text-blue-600">SME ERP & Manufacturing ERP</Link></li>
+                  <li><Link to="/products" className="hover:text-blue-600">Tally Software & Busy Accounting</Link></li>
+                  <li><Link to="/products" className="hover:text-blue-600">HRMS & Payroll Solutions</Link></li>
+                </>
+              )}
             </ul>
           </div>
 
@@ -202,8 +206,6 @@ const SEOFooterLinks = () => {
               <li><Link to="/products" className="hover:text-blue-600">Toll-Free Number Providers</Link></li>
               <li><Link to="/products" className="hover:text-blue-600">Internet Leased Line (ILL) India</Link></li>
               <li><Link to="/products" className="hover:text-blue-600">Networking & Firewall Security</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Servers & Storage Solutions</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Data Center Services</Link></li>
               <li><Link to="/products" className="hover:text-blue-600">AI Voice Agents & WhatsApp API</Link></li>
             </ul>
           </div>
@@ -212,25 +214,32 @@ const SEOFooterLinks = () => {
           <div>
              <h5 className="font-bold text-slate-800 mb-4 uppercase tracking-wider border-b border-slate-100 pb-2">Availability Near You</h5>
              <ul className="space-y-2 leading-relaxed">
-              <li><Link to="/products" className="hover:text-blue-600">Software Vendors in Delhi/Noida</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">IT Services in Mumbai/Pune</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">CRM Software in Bangalore</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">ERP Vendors in Chennai/Hyderabad</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Business Software in Ahmedabad</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Telecom Solutions in Gurgaon</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Microsoft License Resellers India</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">IT Support in Kolkata/Lucknow</Link></li>
+              {cities.slice(0, 8).map(city => (
+                <li key={city.id}><Link to={`/${city.slug}`} className="hover:text-blue-600">Verified Vendors in {city.name}</Link></li>
+              ))}
+              {!cities.length && (
+                <>
+                  <li><Link to="/products" className="hover:text-blue-600">Software Vendors in Delhi/Noida</Link></li>
+                  <li><Link to="/products" className="hover:text-blue-600">IT Services in Mumbai/Pune</Link></li>
+                  <li><Link to="/products" className="hover:text-blue-600">CRM Software in Bangalore</Link></li>
+                </>
+              )}
             </ul>
           </div>
 
           {/* About & Enterprise Licensing */}
           <div>
-             <h5 className="font-bold text-slate-800 mb-4 uppercase tracking-wider border-b border-slate-100 pb-2">Microsoft Licensing</h5>
+             <h5 className="font-bold text-slate-800 mb-4 uppercase tracking-wider border-b border-slate-100 pb-2">Top States</h5>
              <ul className="space-y-2 leading-relaxed mb-6">
-              <li><Link to="/products" className="hover:text-blue-600">Microsoft 365 License Reseller</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Windows Server License India</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">SQL Server License Solutions</Link></li>
-              <li><Link to="/products" className="hover:text-blue-600">Enterprise Software Licensing</Link></li>
+              {states.slice(0, 4).map(state => (
+                <li key={state.id}><Link to={`/${state.slug}`} className="hover:text-blue-600">Best Services in {state.name}</Link></li>
+              ))}
+              {!states.length && (
+                <>
+                  <li><Link to="/products" className="hover:text-blue-600">Microsoft 365 License Reseller</Link></li>
+                  <li><Link to="/products" className="hover:text-blue-600">Windows Server License India</Link></li>
+                </>
+              )}
             </ul>
              <h5 className="font-bold text-slate-800 mb-2 uppercase tracking-wider">About BantConfirm</h5>
              <p className="text-[10px] leading-relaxed">
@@ -369,25 +378,42 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
     }
   };
 
-  const organizationSchema = {
+  const combinedSchemas = {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "BantConfirm",
-    "url": "https://bantconfirm.com",
-    "logo": "https://bantconfirm.com/logo.png",
-    "sameAs": [
-      siteConfig.socialLinks?.twitter,
-      siteConfig.socialLinks?.linkedin,
-      siteConfig.socialLinks?.facebook,
-      siteConfig.socialLinks?.instagram
-    ].filter(Boolean),
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "telephone": "+91-9999999999",
-      "contactType": "customer service",
-      "areaServed": "IN",
-      "availableLanguage": ["en", "hi"]
-    }
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://bantconfirm.com/#organization",
+        "name": "BantConfirm",
+        "url": "https://bantconfirm.com",
+        "logo": "https://bantconfirm.com/logo.png",
+        "sameAs": [
+          siteConfig.socialLinks?.twitter,
+          siteConfig.socialLinks?.linkedin,
+          siteConfig.socialLinks?.facebook,
+          siteConfig.socialLinks?.instagram
+        ].filter(Boolean),
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+91-9999999999",
+          "contactType": "customer service",
+          "areaServed": "IN",
+          "availableLanguage": ["en", "hi"]
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://bantconfirm.com/#website",
+        "url": "https://bantconfirm.com",
+        "name": "BantConfirm",
+        "publisher": { "@id": "https://bantconfirm.com/#organization" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://bantconfirm.com/products?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]
   };
 
   const isProductSelected = (id: string) => compareList.some(p => p.id === id);
@@ -395,10 +421,11 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
   return (
     <div className="overflow-hidden">
       <SEO 
-        title={siteConfig.bannerTitle ? `${siteConfig.bannerTitle} Software, IT Hardware & Services` : "BantConfirm – India’s AI-Powered B2B Marketplace"}
-        description="BantConfirm connects businesses with verified software, IT hardware, cloud telephony, and enterprise solutions across India. Use AI to find Tally, CRM, ERP, and Microsoft licensing near you."
-        keywords="CRM software near me, ERP software nearby, Accounting software vendors near me, Cloud telephony providers near me, IT hardware suppliers nearby, Internet leased line providers near me, SIP trunk providers near me, Microsoft license sellers near me"
-        schema={organizationSchema}
+        title={siteConfig.metaTitle || siteConfig.bannerTitle || "BantConfirm – India’s AI-Powered B2B Marketplace"}
+        description={siteConfig.metaDescription || "BantConfirm connects businesses with verified software, IT hardware, cloud telephony, and enterprise solutions across India. Use AI to find Tally, CRM, ERP, and Microsoft licensing near you."}
+        keywords={siteConfig.keywords || "CRM software near me, ERP software nearby, Accounting software vendors near me, Cloud telephony providers near me, IT hardware suppliers nearby, Internet leased line providers near me, SIP trunk providers near me, Microsoft license sellers near me"}
+        schemaMarkup={combinedSchemas}
+        {...siteConfig}
       />
       
       <NewsTicker />

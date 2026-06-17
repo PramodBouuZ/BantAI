@@ -21,12 +21,12 @@ const getIcon = (iconName: string) => {
 };
 
 const ProductDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // The param in URL is still named 'id' in App.tsx
+  const { slug } = useParams<{ slug: string }>();
   const { products } = useData();
   const navigate = useNavigate();
 
   // Find product by slug OR by ID for backward compatibility
-  const product = products.find(p => p.slug === id || p.id === id);
+  const product = products.find(p => p.slug === slug || p.id === slug);
 
   if (!product) {
     return (
@@ -47,8 +47,8 @@ const ProductDetails: React.FC = () => {
     badge: product.vendorName ? 'Certified Partner' : 'Gold Partner'
   };
 
-  const seoTitle = `${product.title} Pricing, Features & Reviews | BantConfirm India`;
-  const seoDesc = `Explore ${product.title} on BantConfirm. Pricing starts at ${product.priceRange}. Compare features, view vendor details, and book a free demo today.`;
+  const seoTitle = product.metaTitle || `${product.title} Pricing, Features & Reviews | BantConfirm India`;
+  const seoDesc = product.metaDescription || `Explore ${product.title} on BantConfirm. Pricing starts at ${product.priceRange}. Compare features, view vendor details, and book a free demo today.`;
 
   const handleAction = (intent: string) => {
     navigate(`/enquiry?product=${product.id}&intent=${intent}`);
@@ -65,12 +65,40 @@ const ProductDetails: React.FC = () => {
       { label: 'User Access', value: 'Multi-level Role Based Control (RBAC)' }
     ];
 
+  const productSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": product.title,
+    "image": product.image,
+    "description": product.description,
+    "brand": {
+      "@type": "Brand",
+      "name": vendorInfo.name
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": product.rating,
+      "bestRating": "5",
+      "worstRating": "1",
+      "ratingCount": "120"
+    },
+    "offers": {
+      "@type": "Offer",
+      "priceCurrency": "INR",
+      "price": product.priceRange.replace(/[^0-9]/g, ''),
+      "availability": "https://schema.org/InStock"
+    }
+  };
+
   return (
     <div className="bg-[#F8FAFC] min-h-screen pb-20 font-sans">
       <SEO 
         title={seoTitle}
         description={seoDesc}
-        keywords={`${product.title}, ${product.category} vendor, IT hardware Noida, ${product.title} price India`}
+        keywords={product.keywords || `${product.title}, ${product.category} vendor, IT hardware Noida, ${product.title} price India`}
+        type="product"
+        schemaMarkup={product.schemaMarkup || productSchema}
+        {...product}
       />
 
       {/* Header / Breadcrumb */}
