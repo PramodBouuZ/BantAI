@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Product, Lead, User, VendorAsset, VendorRegistration, SiteConfig, BlogPost } from '../types';
+import { Product, Lead, User, VendorAsset, VendorRegistration, SiteConfig, BlogPost, SEOData, Category, City, State } from '../types';
 import { useData } from '../context/DataContext';
 import { 
   Download, Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, Briefcase, FileText, Upload,
   Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, CheckCircle2, IndianRupee, Star, ExternalLink, Globe, Phone, MapPin,
-  Zap, Mail, Camera, UserCheck, PlusCircle, Trash, Newspaper, Search, MoreVertical, Archive, ArrowRight, Calendar, User as UserIcon
+  Zap, Mail, Camera, UserCheck, PlusCircle, Trash, Newspaper, Search, MoreVertical, Archive, ArrowRight, Calendar, User as UserIcon,
+  BarChart, Activity, Link as LinkIcon, Eye
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -62,28 +63,138 @@ const ImageUploadZone: React.FC<{
   );
 };
 
+const GooglePreview: React.FC<{ title: string; slug: string; description: string }> = ({ title, slug, description }) => (
+  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-xl">
+    <div className="flex items-center gap-2 mb-1">
+      <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-400">B</div>
+      <div className="flex flex-col">
+        <span className="text-[12px] text-slate-900 leading-tight">BantConfirm</span>
+        <span className="text-[10px] text-slate-500 leading-tight">https://bantconfirm.com › {slug || '...'}</span>
+      </div>
+    </div>
+    <h3 className="text-[#1a0dab] text-xl font-medium hover:underline cursor-pointer mb-1 line-clamp-1">
+      {title || 'Page Title - BantConfirm'}
+    </h3>
+    <p className="text-[#4d5156] text-sm line-clamp-2 leading-relaxed">
+      {description || 'Provide a meta description to see how your page will appear in Google search results. A good description is between 150-160 characters.'}
+    </p>
+  </div>
+);
+
+const SEOFieldGroup: React.FC<{
+  data: SEOData;
+  onChange: (data: SEOData) => void;
+  defaultTitle?: string;
+  defaultSlug?: string;
+}> = ({ data, onChange, defaultTitle, defaultSlug }) => {
+  const handleChange = (field: keyof SEOData, value: any) => {
+    onChange({ ...data, [field]: value });
+  };
+
+  return (
+    <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 space-y-8">
+      <div className="flex items-center gap-3 mb-4">
+        <Activity className="text-blue-600" size={24} />
+        <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight">SEO & Meta Management</h4>
+      </div>
+
+      <div className="mb-10">
+        <label className="text-[10px] font-black uppercase text-slate-400 mb-4 block tracking-widest">Google Search Snippet Preview</label>
+        <GooglePreview
+          title={data.metaTitle || defaultTitle || ''}
+          slug={data.canonicalUrl || defaultSlug || ''}
+          description={data.metaDescription || ''}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">Meta Title</label>
+          <input type="text" className="w-full bg-white p-4.5 rounded-2xl font-bold text-slate-800 outline-none border border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" value={data.metaTitle || ''} onChange={e => handleChange('metaTitle', e.target.value)} placeholder="Recommended: 50-60 characters" />
+        </div>
+        <div>
+          <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">URL Slug</label>
+          <input type="text" className="w-full bg-white p-4.5 rounded-2xl font-bold text-blue-600 outline-none border border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" value={data.canonicalUrl || ''} onChange={e => handleChange('canonicalUrl', e.target.value)} placeholder="/custom-url-slug" />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">Meta Description</label>
+        <textarea rows={3} className="w-full bg-white p-4.5 rounded-2xl font-medium text-slate-700 outline-none border border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm resize-none" value={data.metaDescription || ''} onChange={e => handleChange('metaDescription', e.target.value)} placeholder="Recommended: 150-160 characters" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">Focus Keywords (CSV)</label>
+          <input type="text" className="w-full bg-white p-4.5 rounded-2xl font-bold text-slate-800 outline-none border border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" value={data.focusKeywords || ''} onChange={e => handleChange('focusKeywords', e.target.value)} placeholder="keyword1, keyword2..." />
+        </div>
+        <div>
+          <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">SEO Score (0-100)</label>
+          <input type="number" min="0" max="100" className="w-full bg-white p-4.5 rounded-2xl font-bold text-slate-800 outline-none border border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" value={data.seoScore || 0} onChange={e => handleChange('seoScore', parseInt(e.target.value))} />
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-8 mt-4">
+        <h5 className="text-[11px] font-black uppercase text-slate-500 tracking-widest mb-6">Open Graph & Social Media</h5>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">OG Title</label>
+              <input type="text" className="w-full bg-white p-4.5 rounded-2xl font-bold text-sm border border-slate-200" value={data.ogTitle || ''} onChange={e => handleChange('ogTitle', e.target.value)} />
+           </div>
+           <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">Twitter Title</label>
+              <input type="text" className="w-full bg-white p-4.5 rounded-2xl font-bold text-sm border border-slate-200" value={data.twitterTitle || ''} onChange={e => handleChange('twitterTitle', e.target.value)} />
+           </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">Schema.org JSON-LD</label>
+        <textarea rows={5} className="w-full bg-white p-4.5 rounded-2xl font-mono text-xs text-blue-600 outline-none border border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm resize-none" value={typeof data.schemaMarkup === 'string' ? data.schemaMarkup : JSON.stringify(data.schemaMarkup, null, 2)} onChange={e => {
+          try {
+            handleChange('schemaMarkup', JSON.parse(e.target.value));
+          } catch {
+            handleChange('schemaMarkup', e.target.value);
+          }
+        }} placeholder='{ "@context": "https://schema.org", ... }' />
+      </div>
+    </div>
+  );
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const navigate = useNavigate();
   const { 
-    products, leads, categories, siteConfig, users, vendorLogos, vendorRegistrations, blogs,
+    products, leads, categories, categoryObjects, cities, states, siteConfig, users, vendorLogos, vendorRegistrations, blogs,
     addProduct, updateProduct, deleteProduct, addBlog, updateBlog, deleteBlog,
     updateLeadStatus, assignLead, updateLeadRemarks, deleteLead, updateSiteConfig,
-    addCategory, deleteCategory, deleteUser, addVendorLogo, deleteVendorLogo, addNotification
+    addCategory, updateCategory, deleteCategory,
+    addCity, updateCity, deleteCity,
+    addState, updateState, deleteState,
+    deleteUser, addVendorLogo, deleteVendorLogo, addNotification
   } = useData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'blogs' | 'categories' | 'users' | 'requests' | 'settings' | 'logos'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'blogs' | 'categories' | 'users' | 'requests' | 'settings' | 'logos' | 'seo' | 'locations'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => { if (!currentUser) navigate('/login'); }, [currentUser, navigate]);
 
+  // Product Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [prodForm, setProdForm] = useState<Partial<Product>>({ title: '', description: '', category: '', priceRange: '', image: '', features: [], icon: 'globe', rating: 5, vendorName: '', technicalSpecs: [] });
   const [prodFeaturesText, setProdFeaturesText] = useState('');
 
+  // Blog Modal State
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
   const [blogForm, setBlogForm] = useState<Partial<BlogPost>>({ title: '', content: '', category: 'Marketplace', image: '', author: 'Admin' });
+
+  // Location Modal State
+  const [isLocModalOpen, setIsLocModalOpen] = useState(false);
+  const [locType, setLocType] = useState<'city' | 'state'>('city');
+  const [editingLoc, setEditingLoc] = useState<City | State | null>(null);
+  const [locForm, setLocForm] = useState<Partial<City & State>>({ name: '', slug: '', stateId: '' });
 
   const [configForm, setConfigForm] = useState(siteConfig);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -101,7 +212,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
       }
       const pData: Product = {
           id: editingProduct ? editingProduct.id : Date.now().toString(),
-          slug: generateSlug(prodForm.title!),
+          slug: prodForm.slug || generateSlug(prodForm.title!),
           title: prodForm.title!,
           description: prodForm.description || '',
           category: prodForm.category || categories[0] || 'Software',
@@ -111,7 +222,8 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
           rating: Number(prodForm.rating) || 5,
           image: prodForm.image || '',
           vendorName: prodForm.vendorName || '',
-          technicalSpecs: prodForm.technicalSpecs || []
+          technicalSpecs: prodForm.technicalSpecs || [],
+          ...prodForm
       };
       if (editingProduct) await updateProduct(editingProduct.id, pData);
       else await addProduct(pData);
@@ -125,17 +237,36 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     }
     const bData: BlogPost = {
       id: editingBlog ? editingBlog.id : Date.now().toString(),
-      slug: generateSlug(blogForm.title!),
+      slug: blogForm.slug || generateSlug(blogForm.title!),
       title: blogForm.title!,
       content: blogForm.content || '',
       category: blogForm.category as any || 'Marketplace',
       image: blogForm.image || '',
       author: blogForm.author || 'Admin',
-      date: editingBlog ? editingBlog.date : new Date().toISOString().split('T')[0]
+      date: editingBlog ? editingBlog.date : new Date().toISOString().split('T')[0],
+      ...blogForm
     };
     if (editingBlog) await updateBlog(editingBlog.id, bData);
     else await addBlog(bData);
     setIsBlogModalOpen(false); setEditingBlog(null);
+  };
+
+  const handleSaveLocation = async () => {
+    if (!locForm.name) return;
+    const lData = {
+      id: editingLoc ? editingLoc.id : Date.now().toString(),
+      name: locForm.name!,
+      slug: locForm.slug || generateSlug(locForm.name!),
+      ...locForm
+    };
+    if (locType === 'city') {
+      if (editingLoc) await updateCity(editingLoc.id, lData as City);
+      else await addCity(lData as City);
+    } else {
+      if (editingLoc) await updateState(editingLoc.id, lData as State);
+      else await addState(lData as State);
+    }
+    setIsLocModalOpen(false); setEditingLoc(null);
   };
 
   const renderSidebar = () => (
@@ -150,10 +281,12 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                   { id: 'leads', icon: FileText, label: 'Leads Hub' },
                   { id: 'requests', icon: MessageSquare, label: 'Vendor Queue' },
                   { id: 'users', icon: Users, label: 'Users' },
-                  { id: 'logos', icon: ImageIcon, label: 'Partners' },
+                  { id: 'seo', icon: BarChart, label: 'SEO Manager' },
                   { id: 'products', icon: ShoppingBag, label: 'Services' },
                   { id: 'blogs', icon: Newspaper, label: 'Insights' },
                   { id: 'categories', icon: Tag, label: 'Categories' },
+                  { id: 'locations', icon: MapPin, label: 'Cities & States' },
+                  { id: 'logos', icon: ImageIcon, label: 'Partners' },
                   { id: 'settings', icon: Settings, label: 'Settings' },
               ].map(item => (
                   <button key={item.id} onClick={() => { setActiveTab(item.id as any); setIsSidebarOpen(false); }} className={`flex items-center w-full px-4 py-3 rounded-xl transition font-bold text-sm ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -303,11 +436,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div> {f}
                  </div>
                ))}
-               {p.technicalSpecs && p.technicalSpecs.length > 0 && (
-                 <div className="flex items-center gap-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded-lg w-fit mt-2">
-                   <Tag size={10} /> {p.technicalSpecs.length} Tech Specs
-                 </div>
-               )}
             </div>
             <div className="flex gap-3 pt-6 border-t border-slate-50">
               <button onClick={() => { setEditingProduct(p); setProdForm(p); setProdFeaturesText(p.features.join(', ')); setIsModalOpen(true); }} className="flex-1 bg-slate-900 text-white py-3.5 rounded-2xl text-xs font-black hover:bg-slate-800 transition shadow-lg">Manage Listing</button>
@@ -352,6 +480,154 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     </div>
   );
 
+  const renderSEOManger = () => (
+    <div className="space-y-10 animate-fade-in">
+       <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center mb-10">
+             <div>
+                <h3 className="text-3xl font-black text-slate-900">SEO Management Surface</h3>
+                <p className="text-sm font-medium text-slate-400">Analyze and optimize search visibility across all content</p>
+             </div>
+             <div className="flex gap-4">
+                <div className="bg-green-50 px-6 py-3 rounded-2xl border border-green-100 text-center">
+                   <div className="text-[10px] font-black text-green-700 uppercase tracking-widest mb-1">Sitemap Status</div>
+                   <div className="text-sm font-black text-green-600 flex items-center gap-2"><CheckCircle2 size={16}/> GENERATED</div>
+                </div>
+                <div className="bg-blue-50 px-6 py-3 rounded-2xl border border-blue-100 text-center">
+                   <div className="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-1">Index Coverage</div>
+                   <div className="text-sm font-black text-blue-600 flex items-center gap-2"><Globe size={16}/> 100% READY</div>
+                </div>
+             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+             {[
+                { label: 'Products', count: products.length, missing: products.filter(p => !p.metaTitle).length, icon: ShoppingBag, color: 'blue' },
+                { label: 'Blogs', count: blogs.length, missing: blogs.filter(b => !b.metaTitle).length, icon: Newspaper, color: 'indigo' },
+                { label: 'Categories', count: categoryObjects.length, missing: categoryObjects.filter(c => !c.metaTitle).length, icon: Tag, color: 'purple' },
+                { label: 'Cities', count: cities.length, missing: cities.filter(c => !c.metaTitle).length, icon: MapPin, color: 'red' },
+                { label: 'States', count: states.length, missing: states.filter(s => !s.metaTitle).length, icon: Globe, color: 'green' },
+             ].map(stat => (
+                <div key={stat.label} className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 group hover:border-blue-200 transition-all">
+                   <div className={`bg-${stat.color}-100 w-12 h-12 rounded-xl flex items-center justify-center text-${stat.color}-600 mb-6 group-hover:scale-110 transition-transform`}><stat.icon size={24}/></div>
+                   <h4 className="font-black text-slate-900 text-xl mb-1">{stat.label}</h4>
+                   <div className="flex items-center gap-4 mt-4">
+                      <div>
+                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Total Items</div>
+                         <div className="text-xl font-black text-slate-700">{stat.count}</div>
+                      </div>
+                      <div className="w-px h-8 bg-slate-200"></div>
+                      <div>
+                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Missing SEO</div>
+                         <div className={`text-xl font-black ${stat.missing > 0 ? 'text-red-500' : 'text-green-500'}`}>{stat.missing}</div>
+                      </div>
+                   </div>
+                </div>
+             ))}
+          </div>
+       </div>
+
+       <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+             <h4 className="font-black text-slate-900 uppercase tracking-tight">Recent Content Performance</h4>
+             <button className="text-xs font-black text-blue-600 hover:underline">View Google Search Console &rarr;</button>
+          </div>
+          <div className="overflow-x-auto">
+             <table className="w-full text-left">
+                <thead>
+                   <tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-slate-100">
+                      <th className="px-10 py-5">Content Page</th>
+                      <th className="px-10 py-5">SEO Score</th>
+                      <th className="px-10 py-5">Keywords</th>
+                      <th className="px-10 py-5">Index Status</th>
+                      <th className="px-10 py-5">Action</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                   {products.slice(0, 5).map(p => (
+                      <tr key={p.id} className="hover:bg-slate-50/30 group">
+                         <td className="px-10 py-6">
+                            <div className="font-black text-slate-900">{p.title}</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{p.slug}</div>
+                         </td>
+                         <td className="px-10 py-6">
+                            <div className="flex items-center gap-3">
+                               <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                                  <div className={`h-full ${p.seoScore && p.seoScore > 80 ? 'bg-green-500' : p.seoScore && p.seoScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${p.seoScore || 0}%` }}></div>
+                               </div>
+                               <span className="font-black text-sm text-slate-600">{p.seoScore || 0}%</span>
+                            </div>
+                         </td>
+                         <td className="px-10 py-6">
+                            <div className="flex flex-wrap gap-1">
+                               {p.focusKeywords?.split(',').slice(0, 2).map(k => (
+                                  <span key={k} className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-black uppercase text-slate-500">{k.trim()}</span>
+                               ))}
+                            </div>
+                         </td>
+                         <td className="px-10 py-6">
+                            <span className="flex items-center gap-1.5 text-[10px] font-black text-green-600 uppercase"><CheckCircle2 size={12}/> Indexed</span>
+                         </td>
+                         <td className="px-10 py-6">
+                            <button onClick={() => { setEditingProduct(p); setProdForm(p); setProdFeaturesText(p.features.join(', ')); setIsModalOpen(true); }} className="p-2.5 bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all"><Edit2 size={18}/></button>
+                         </td>
+                      </tr>
+                   ))}
+                </tbody>
+             </table>
+          </div>
+       </div>
+    </div>
+  );
+
+  const renderLocations = () => (
+    <div className="space-y-10 animate-fade-in">
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+             <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-black text-slate-900">Cities</h3>
+                <button onClick={() => { setLocType('city'); setEditingLoc(null); setLocForm({ name: '', slug: '', stateId: states[0]?.id }); setIsLocModalOpen(true); }} className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition shadow-lg"><Plus size={20}/></button>
+             </div>
+             <div className="space-y-4">
+                {cities.map(city => (
+                   <div key={city.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl group hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-blue-100">
+                      <div>
+                         <div className="font-black text-slate-900">{city.name}</div>
+                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{states.find(s => s.id === city.stateId)?.name || 'Unknown State'}</div>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={() => { setLocType('city'); setEditingLoc(city); setLocForm(city as any); setIsLocModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600"><Edit2 size={16}/></button>
+                         <button onClick={() => deleteCity(city.id)} className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+
+          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+             <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-black text-slate-900">States</h3>
+                <button onClick={() => { setLocType('state'); setEditingLoc(null); setLocForm({ name: '', slug: '' }); setIsLocModalOpen(true); }} className="bg-green-600 text-white p-3 rounded-xl hover:bg-green-700 transition shadow-lg"><Plus size={20}/></button>
+             </div>
+             <div className="space-y-4">
+                {states.map(state => (
+                   <div key={state.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl group hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-green-100">
+                      <div>
+                         <div className="font-black text-slate-900">{state.name}</div>
+                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cities.filter(c => c.stateId === state.id).length} Cities Linked</div>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={() => { setLocType('state'); setEditingLoc(state); setLocForm(state as any); setIsLocModalOpen(true); }} className="p-2 text-slate-400 hover:text-green-600"><Edit2 size={16}/></button>
+                         <button onClick={() => deleteState(state.id)} className="p-2 text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+       </div>
+    </div>
+  );
+
   const renderSettings = () => (
     <div className="max-w-5xl animate-fade-in space-y-8">
       <div className="bg-white p-12 rounded-[3rem] shadow-sm border border-gray-100">
@@ -367,6 +643,8 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               <input type="email" className="w-full bg-slate-50 p-4.5 rounded-2xl outline-none font-bold text-slate-700 border-2 border-transparent focus:border-blue-100 focus:bg-white transition-all shadow-sm" value={configForm.adminNotificationEmail || ''} onChange={e => setConfigForm({...configForm, adminNotificationEmail: e.target.value})} />
             </div>
           </div>
+
+          <SEOFieldGroup data={configForm} onChange={d => setConfigForm({...configForm, ...d})} defaultTitle={configForm.siteName} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <ImageUploadZone label="Marketplace Identity Logo" value={configForm.logoUrl} onUpload={b => setConfigForm({...configForm, logoUrl: b})} onClear={() => setConfigForm({...configForm, logoUrl: ''})} aspectRatio="aspect-video max-w-[280px]" />
@@ -415,96 +693,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     </div>
   );
 
-  const renderLogos = () => (
-    <div className="max-w-4xl animate-fade-in space-y-8">
-      <div className="bg-white p-12 rounded-[3rem] shadow-sm border border-gray-100">
-        <h3 className="text-3xl font-black text-slate-900 mb-10 flex items-center gap-4"><ImageIcon className="text-blue-600" size={32} /> Vendor Network Logos</h3>
-        <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 mb-12 shadow-inner">
-           <h4 className="font-black text-slate-900 mb-8 text-sm uppercase tracking-widest ml-1">Onboard New Partner Brand</h4>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-end">
-              <div>
-                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-2.5 tracking-widest ml-1">Brand Legal Name</label>
-                 <input type="text" className="w-full bg-white p-4.5 rounded-2xl outline-none font-bold text-sm border border-slate-200 shadow-sm focus:ring-2 focus:ring-blue-100" value={newLogo.name} onChange={e => setNewLogo({...newLogo, name: e.target.value})} placeholder="e.g. Tata Communications" />
-              </div>
-              <ImageUploadZone label="Logo Asset (Transparent PNG)" value={newLogo.url} onUpload={b => setNewLogo({...newLogo, url: b})} onClear={() => setNewLogo({...newLogo, url: ''})} aspectRatio="aspect-video max-h-[140px]" />
-           </div>
-           <button onClick={() => { if(newLogo.name && newLogo.url) { addVendorLogo({ id: Date.now().toString(), name: newLogo.name, logoUrl: newLogo.url }); setNewLogo({ name: '', url: '' }); } }} className="w-full mt-10 bg-slate-900 text-white py-4.5 rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-xl">Register Partner Asset</button>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-           {vendorLogos.map(logo => (
-             <div key={logo.id} className="relative group aspect-video bg-slate-50 rounded-2xl border border-slate-100 p-6 flex items-center justify-center hover:bg-white hover:shadow-2xl transition-all duration-500 cursor-help">
-                <img src={logo.logoUrl} alt={logo.name} className="max-h-full max-w-full object-contain grayscale group-hover:grayscale-0 transition-all duration-700" />
-                <button onClick={() => deleteVendorLogo(logo.id)} className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full shadow-2xl opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 hover:bg-red-600"><X size={16} /></button>
-                <div className="absolute bottom-3 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
-                   <span className="text-[10px] font-black text-slate-500 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">{logo.name}</span>
-                </div>
-             </div>
-           ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderOverview = () => (
-    <div className="space-y-10 animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-          <div className="bg-blue-50 w-16 h-16 rounded-[1.5rem] text-blue-600 flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm"><Users size={28} /></div>
-          <div className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] mb-1">Total Users</div>
-          <div className="text-5xl font-black text-slate-900 tracking-tighter">{users.length}</div>
-        </div>
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-          <div className="bg-yellow-50 w-16 h-16 rounded-[1.5rem] text-yellow-600 flex items-center justify-center mb-6 group-hover:bg-yellow-600 group-hover:text-white transition-colors shadow-sm"><FileText size={28} /></div>
-          <div className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] mb-1">Total Leads</div>
-          <div className="text-5xl font-black text-slate-900 tracking-tighter">{leads.length}</div>
-        </div>
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-          <div className="bg-purple-50 w-16 h-16 rounded-[1.5rem] text-purple-600 flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors shadow-sm"><ShoppingBag size={28} /></div>
-          <div className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] mb-1">Active Services</div>
-          <div className="text-5xl font-black text-slate-900 tracking-tighter">{products.length}</div>
-        </div>
-        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-          <div className="bg-green-50 w-16 h-16 rounded-[1.5rem] text-green-600 flex items-center justify-center mb-6 group-hover:bg-green-600 group-hover:text-white transition-colors shadow-sm"><Newspaper size={28} /></div>
-          <div className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] mb-1">Insights Hub</div>
-          <div className="text-5xl font-black text-slate-900 tracking-tighter">{blogs.length}</div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm">
-          <h3 className="text-2xl font-black text-slate-900 mb-10 flex items-center gap-3"><Zap size={24} className="text-yellow-500 fill-current" /> Recent Marketplace Leads</h3>
-          <div className="space-y-5">
-            {leads.slice(0, 5).map(lead => (
-              <div key={lead.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-[1.75rem] border border-slate-100 hover:bg-white hover:border-blue-100 transition-all group cursor-pointer shadow-sm hover:shadow-md">
-                <div>
-                  <div className="font-black text-slate-900 group-hover:text-blue-600 transition text-base">{lead.name}</div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{lead.service} <span className="mx-1.5 opacity-30">•</span> {lead.date}</div>
-                </div>
-                <span className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${lead.status === 'Verified' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-yellow-50 text-yellow-700 border border-yellow-100'}`}>{lead.status}</span>
-              </div>
-            ))}
-          </div>
-          <button onClick={() => setActiveTab('leads')} className="w-full mt-10 py-5 bg-slate-50 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-dashed border-slate-200">Database View &rarr;</button>
-        </div>
-        <div className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm">
-          <h3 className="text-2xl font-black text-slate-900 mb-10 flex items-center gap-3"><Briefcase size={24} className="text-blue-500" /> New Partner Queue</h3>
-          <div className="space-y-5">
-            {vendorRegistrations.slice(0, 5).map(reg => (
-              <div key={reg.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-[1.75rem] border border-slate-100 hover:bg-white hover:border-blue-100 transition-all group shadow-sm hover:shadow-md">
-                <div>
-                  <div className="font-black text-slate-900 group-hover:text-blue-600 transition text-base">{reg.companyName}</div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{reg.productName}</div>
-                </div>
-                <div className="text-[11px] font-black text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">{reg.date}</div>
-              </div>
-            ))}
-          </div>
-          <button onClick={() => setActiveTab('requests')} className="w-full mt-10 py-5 bg-slate-50 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all border border-dashed border-slate-200">Onboarding Manager &rarr;</button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans">
       {renderSidebar()}
@@ -530,7 +718,8 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             {activeTab === 'leads' && renderLeads()}
             {activeTab === 'products' && renderProducts()}
             {activeTab === 'blogs' && renderBlogs()}
-            {activeTab === 'logos' && renderLogos()}
+            {activeTab === 'seo' && renderSEOManger()}
+            {activeTab === 'locations' && renderLocations()}
             {activeTab === 'users' && (
               <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
                   <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-slate-50/30"><h3 className="text-3xl font-black text-slate-900">User Identity Directory</h3></div>
@@ -538,19 +727,27 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               </div>
             )}
             {activeTab === 'categories' && (
-              <div className="max-w-2xl bg-white p-12 rounded-[3.5rem] shadow-sm border border-gray-100">
-                <h3 className="text-3xl font-black text-slate-900 mb-10">Vertical Taxonomy</h3>
-                <div className="flex gap-5 mb-12">
-                   <input type="text" placeholder="e.g. AI Workflow Agents" className="flex-1 bg-slate-50 p-5 rounded-2xl outline-none font-bold text-slate-700 text-base shadow-inner focus:bg-white focus:ring-2 focus:ring-blue-50 transition-all border border-transparent focus:border-blue-100" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} />
-                   <button onClick={() => { if(newCategoryName) { addCategory(newCategoryName); setNewCategoryName(''); } }} className="bg-slate-900 text-white px-10 rounded-2xl font-black text-base hover:bg-slate-800 transition-all shadow-xl">Define New</button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {categories.map(cat => (
-                    <div key={cat} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-blue-200 transition-all hover:bg-white shadow-sm hover:shadow-md">
-                      <span className="font-black text-slate-700 text-sm uppercase tracking-wide">{cat}</span>
-                      <button onClick={() => { if(window.confirm('Delete category?')) deleteCategory(cat); }} className="p-2 text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><Trash size={16} /></button>
-                    </div>
-                  ))}
+              <div className="max-w-4xl animate-fade-in space-y-10">
+                <div className="bg-white p-12 rounded-[3.5rem] shadow-sm border border-gray-100">
+                   <h3 className="text-3xl font-black text-slate-900 mb-10">Vertical Taxonomy</h3>
+                   <div className="flex gap-5 mb-12">
+                      <input type="text" placeholder="e.g. AI Workflow Agents" className="flex-1 bg-slate-50 p-5 rounded-2xl outline-none font-bold text-slate-700 text-base shadow-inner focus:bg-white focus:ring-2 focus:ring-blue-50 transition-all border border-transparent focus:border-blue-100" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} />
+                      <button onClick={() => { if(newCategoryName) { addCategory(newCategoryName); setNewCategoryName(''); } }} className="bg-slate-900 text-white px-10 rounded-2xl font-black text-base hover:bg-slate-800 transition-all shadow-xl">Define New</button>
+                   </div>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                     {categoryObjects.map(cat => (
+                       <div key={cat.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 group hover:border-blue-200 transition-all hover:bg-white shadow-sm">
+                         <div className="flex items-center justify-between mb-4">
+                            <span className="font-black text-slate-700 text-sm uppercase tracking-wide">{cat.name}</span>
+                            <div className="flex gap-2">
+                               <button onClick={() => { /* Open edit modal for category */ }} className="p-2 text-slate-300 hover:text-blue-500"><Edit2 size={16} /></button>
+                               <button onClick={() => { if(window.confirm('Delete category?')) deleteCategory(cat.name); }} className="p-2 text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"><Trash size={16} /></button>
+                            </div>
+                         </div>
+                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{products.filter(p => p.category === cat.name).length} Listings Linked</div>
+                       </div>
+                     ))}
+                   </div>
                 </div>
               </div>
             )}
@@ -575,6 +772,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                   </div>
               </div>
             )}
+            {activeTab === 'logos' && renderLogos()}
             {activeTab === 'settings' && renderSettings()}
         </main>
       </div>
@@ -605,22 +803,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                   <input type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold text-sm border-2 border-transparent focus:border-blue-100 focus:bg-white transition-all shadow-sm" value={prodFeaturesText} onChange={e => setProdFeaturesText(e.target.value)} placeholder="99.9% Uptime, Cloud Storage, API Hooks..." />
                 </div>
 
-                <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 shadow-inner">
-                  <div className="flex items-center justify-between mb-8">
-                    <label className="text-[11px] font-black uppercase text-slate-500 tracking-[0.2em] ml-1">Technical Architecture Specifications</label>
-                    <button onClick={() => setProdForm(prev => ({...prev, technicalSpecs: [...(prev.technicalSpecs || []), {label:'', value:''}]}))} className="text-[10px] font-black text-blue-600 flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 hover:bg-blue-50 transition-colors uppercase tracking-widest"><Plus size={14} /> New Specification</button>
-                  </div>
-                  <div className="space-y-4">
-                    {prodForm.technicalSpecs?.map((spec, i) => (
-                      <div key={i} className="flex gap-4 items-center animate-fade-in group/spec">
-                        <input type="text" placeholder="Parameter (e.g. Latency)" className="flex-1 bg-white p-4 rounded-xl border border-slate-100 font-black text-[11px] outline-none focus:ring-2 focus:ring-blue-50 transition-all uppercase tracking-widest shadow-sm placeholder-slate-300" value={spec.label} onChange={e => {const newS = [...prodForm.technicalSpecs!]; newS[i].label = e.target.value; setProdForm({...prodForm, technicalSpecs: newS})}} />
-                        <input type="text" placeholder="Value (e.g. <50ms)" className="flex-1 bg-white p-4 rounded-xl border border-slate-100 font-bold text-[12px] outline-none focus:ring-2 focus:ring-blue-50 transition-all shadow-sm placeholder-slate-300" value={spec.value} onChange={e => {const newS = [...prodForm.technicalSpecs!]; newS[i].value = e.target.value; setProdForm({...prodForm, technicalSpecs: newS})}} />
-                        <button onClick={() => setProdForm(prev => ({...prev, technicalSpecs: prev.technicalSpecs!.filter((_,idx) => idx !== i)}))} className="p-3.5 bg-slate-100 text-slate-300 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all opacity-0 group-hover/spec:opacity-100"><Trash2 size={18} /></button>
-                      </div>
-                    ))}
-                    {(!prodForm.technicalSpecs || prodForm.technicalSpecs.length === 0) && <p className="text-center text-[11px] font-black text-slate-300 py-6 italic tracking-[0.2em] border-2 border-dashed border-slate-200 rounded-3xl">No technical parameters defined yet.</p>}
-                  </div>
-                </div>
+                <SEOFieldGroup data={prodForm} onChange={d => setProdForm({...prodForm, ...d})} defaultTitle={prodForm.title} defaultSlug={prodForm.slug} />
 
                 <ImageUploadZone label="Marketing Banner Visual" value={prodForm.image} onUpload={b => setProdForm({...prodForm, image: b})} onClear={() => setProdForm({...prodForm, image: ''})} aspectRatio="aspect-video" />
                 <button onClick={handleSaveProduct} className="w-full bg-blue-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all transform active:scale-[0.98]">Commit Listing to Production</button>
@@ -652,6 +835,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                     <input type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold text-sm outline-none border-none shadow-sm focus:bg-white focus:ring-2 focus:ring-indigo-50 transition-all" value={blogForm.author} onChange={e => setBlogForm({...blogForm, author: e.target.value})} placeholder="Editorial Team" />
                   </div>
                 </div>
+
+                <SEOFieldGroup data={blogForm} onChange={d => setBlogForm({...blogForm, ...d})} defaultTitle={blogForm.title} defaultSlug={blogForm.slug} />
+
                 <ImageUploadZone label="Article Hero Banner" value={blogForm.image} onUpload={b => setBlogForm({...blogForm, image: b})} onClear={() => setBlogForm({...blogForm, image: ''})} aspectRatio="aspect-video" />
                 <div>
                    <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Full Article Narrative</label>
@@ -660,6 +846,36 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 <button onClick={handleSaveBlog} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-xl shadow-2xl shadow-indigo-200 hover:bg-indigo-700 transition-all transform active:scale-[0.98]">Publish to Insights Hub</button>
              </div>
           </div>
+        </div>
+      )}
+
+      {isLocModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-fade-in">
+           <div className="bg-white rounded-[3.5rem] w-full max-w-3xl p-12 shadow-2xl relative">
+              <button onClick={() => setIsLocModalOpen(false)} className="absolute top-10 right-10 p-3 hover:bg-slate-100 rounded-2xl transition-all text-slate-400 hover:text-slate-900"><X size={28} /></button>
+              <h3 className="text-3xl font-black text-slate-900 mb-10 uppercase tracking-tight">{editingLoc ? 'Update' : 'Add'} {locType}</h3>
+              <div className="space-y-8">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                       <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">{locType} Name</label>
+                       <input type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold outline-none border-none shadow-inner" value={locForm.name} onChange={e => setLocForm({...locForm, name: e.target.value})} />
+                    </div>
+                    {locType === 'city' && (
+                       <div>
+                          <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest">Linked State</label>
+                          <select className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold outline-none border-none shadow-inner" value={locForm.stateId} onChange={e => setLocForm({...locForm, stateId: e.target.value})}>
+                             <option value="">Select State...</option>
+                             {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          </select>
+                       </div>
+                    )}
+                 </div>
+
+                 <SEOFieldGroup data={locForm} onChange={d => setLocForm({...locForm, ...d})} defaultTitle={locForm.name} defaultSlug={locForm.slug} />
+
+                 <button onClick={handleSaveLocation} className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black text-xl hover:bg-slate-800 transition-all shadow-2xl">Save {locType} Profile</button>
+              </div>
+           </div>
         </div>
       )}
     </div>

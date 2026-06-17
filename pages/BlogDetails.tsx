@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { 
@@ -7,13 +7,22 @@ import {
   Linkedin, Twitter, Facebook, ArrowRight, Sparkles 
 } from 'lucide-react';
 import SEO from '../components/SEO';
+import { useInternalLinking } from '../lib/internalLinking';
 
 const BlogDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { blogs } = useData();
+  const { blogs, products, categoryObjects, cities, states } = useData();
   const navigate = useNavigate();
+  const { getSuggestions, wrapInternalLinks } = useInternalLinking();
 
   const post = blogs.find(b => b.slug === slug);
+
+  const locations = useMemo(() => [...cities, ...states], [cities, states]);
+
+  const suggestions = useMemo(() => {
+    if (!post) return [];
+    return getSuggestions(post.content, products, categoryObjects, locations);
+  }, [post, products, categoryObjects, locations, getSuggestions]);
 
   if (!post) {
     return (
@@ -35,6 +44,7 @@ const BlogDetails: React.FC = () => {
       <SEO 
         title={post.title}
         description={post.content.substring(0, 160)}
+        {...post}
       />
 
       {/* Hero Section */}
@@ -89,9 +99,9 @@ const BlogDetails: React.FC = () => {
           {/* Main Narrative */}
           <div className="flex-1">
             <div className="prose prose-slate max-w-none prose-lg prose-headings:font-black prose-headings:tracking-tight prose-p:text-slate-600 prose-p:leading-relaxed prose-p:font-medium">
-              {/* Splitting content by newlines to render as paragraphs */}
+              {/* Splitting content by newlines and wrapping internal links */}
               {post.content.split('\n').map((para, i) => (
-                para.trim() ? <p key={i} className="mb-6">{para}</p> : <br key={i} />
+                para.trim() ? <p key={i} className="mb-6">{wrapInternalLinks(para, suggestions)}</p> : <br key={i} />
               ))}
             </div>
 

@@ -1,5 +1,21 @@
 
-export interface Product {
+export interface SEOData {
+  metaTitle?: string;
+  metaDescription?: string;
+  keywords?: string;
+  canonicalUrl?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  focusKeywords?: string;
+  seoScore?: number;
+  schemaMarkup?: any;
+}
+
+export interface Product extends SEOData {
   id: string;
   slug: string;
   title: string;
@@ -14,7 +30,7 @@ export interface Product {
   technicalSpecs?: { label: string; value: string }[];
 }
 
-export interface BlogPost {
+export interface BlogPost extends SEOData {
   id: string;
   slug: string;
   title: string;
@@ -23,6 +39,27 @@ export interface BlogPost {
   image: string;
   author: string;
   date: string;
+}
+
+export interface Category extends SEOData {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface City extends SEOData {
+  id: string;
+  name: string;
+  slug: string;
+  stateId?: string;
+}
+
+export interface State extends SEOData {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 export interface StatCard {
@@ -92,7 +129,7 @@ export interface Testimonial {
   image: string;
 }
 
-export interface SiteConfig {
+export interface SiteConfig extends SEOData {
   siteName: string;
   logoUrl?: string;
   faviconUrl?: string;

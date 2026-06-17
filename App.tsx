@@ -19,6 +19,8 @@ import Blog from './pages/Blog';
 import BlogDetails from './pages/BlogDetails';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import CategoryDetails from './pages/CategoryDetails';
+import LocationPage from './pages/LocationPage';
 import AIConsultant from './components/AIConsultant';
 import { User } from './types';
 import { MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
@@ -173,10 +175,14 @@ const AppContent: React.FC = () => {
         <Route element={<MainLayout currentUser={currentUser} setCurrentUser={setCurrentUser} />}>
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
           <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
+          <Route path="/products/:slug" element={<ProductDetails />} />
+          <Route path="/services/:slug" element={<ProductDetails />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetails />} />
           <Route path="/compare" element={<Comparison />} />
+
+          {/* New Dynamic Routes for SEO */}
+          <Route path="/category/:slug" element={<CategoryDetails />} />
 
           {/* Role-Based Dashboard Routing */}
           <Route path="/dashboard" element={
@@ -213,6 +219,10 @@ const AppContent: React.FC = () => {
           <Route path="/features" element={<Features />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+
+          {/* Dynamic Catch-all for Cities and States */}
+          <Route path="/:slug" element={<LocationPage />} />
+
           <Route path="*" element={<div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center"><h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2><h3 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h3><button onClick={() => window.history.back()} className="text-indigo-600 font-bold hover:underline mt-4">Go Back</button></div>} />
         </Route>
         <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
