@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from '../types';
-import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
+import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LoginProps {
@@ -18,7 +18,8 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   const search = location.state?.from?.search || '';
   
   const [view, setView] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Default to true while checking session
+  const [authChecking, setAuthChecking] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   
@@ -29,6 +30,34 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     location: '',
     password: ''
   });
+
+  useEffect(() => {
+    const checkSession = async () => {
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const user = session.user;
+          const meta = user.user_metadata || {};
+          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+
+          setCurrentUser({
+            id: user.id,
+            name: meta.full_name || meta.name || 'User',
+            email: user.email || '',
+            role: role as any,
+            joinedDate: user.created_at
+          });
+
+          const targetPath = from || '/dashboard';
+          navigate(targetPath + search, { replace: true });
+          return;
+        }
+      }
+      setAuthChecking(false);
+      setLoading(false);
+    };
+    checkSession();
+  }, [navigate, from, search, setCurrentUser]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -46,7 +75,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + window.location.pathname
+          redirectTo: window.location.origin + '/auth/callback'
         }
       });
       if (error) throw error;
@@ -153,6 +182,19 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
       setLoading(false);
     }
   };
+
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-0 -left-20 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="relative z-10 text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-slate-500 font-bold">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
