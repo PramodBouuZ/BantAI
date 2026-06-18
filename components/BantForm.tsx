@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle2, ChevronRight, AlertCircle, Loader2, Search, Check, Building2, User, Phone, MapPin, Sparkles, Database, Cpu, Mail } from 'lucide-react';
+import { CheckCircle2, ChevronRight, AlertCircle, Loader2, Search, Check, Building2, User, Phone, MapPin, Sparkles, Database, Cpu, Mail, Rocket } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { User as UserType } from '../types';
 
@@ -13,7 +13,7 @@ interface BantFormProps {
 const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addLead } = useData();
+  const { addLead, products, siteConfig } = useData();
   
   const searchParams = new URLSearchParams(location.search);
   const productId = searchParams.get('product');
@@ -59,6 +59,12 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
     e.preventDefault();
     setIsSubmitting(true);
     
+    let serviceName = type === 'consult' ? 'General Consulting' : 'Custom Requirement';
+    if (productId) {
+      const product = products.find(p => p.id === productId);
+      serviceName = product ? product.title : `Product ID: ${productId}`;
+    }
+
     const newLead = {
       id: `L${Date.now()}`,
       name: formData.name || 'Anonymous User',
@@ -66,7 +72,7 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
       mobile: formData.mobile || 'Not Provided',
       location: formData.location || 'Not Provided',
       company: formData.company || 'Not Provided',
-      service: productId ? `Product ID: ${productId}` : (type === 'consult' ? 'General Consulting' : 'Custom Requirement'),
+      service: serviceName,
       requirement: formData.need || 'Custom Requirement',
       budget: formData.budget || 'Not Provided',
       authority: formData.authority || 'Not Provided',
@@ -78,6 +84,20 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
     const savedSuccessfully = await addLead(newLead);
     
     if (savedSuccessfully) {
+      // Trigger email notification system
+      try {
+        fetch('/api/send-enquiry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lead: newLead,
+            adminEmail: siteConfig.adminNotificationEmail
+          })
+        }).catch(err => console.error('Email trigger error:', err));
+      } catch (err) {
+        console.error('Email system failed to trigger:', err);
+      }
+
       let progress = 0;
       const interval = setInterval(() => {
           progress += Math.floor(Math.random() * 10) + 5;
@@ -86,9 +106,6 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
           
           if (progress === 100) {
               clearInterval(interval);
-              setTimeout(() => {
-                  navigate('/dashboard');
-              }, 800);
           }
       }, 200);
     } else {
@@ -105,35 +122,55 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-transparent to-transparent opacity-50"></div>
               
               <div className="max-w-md w-full bg-white/10 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl text-center border border-white/10 animate-fade-in relative z-10">
-                  <div className="relative w-32 h-32 mx-auto mb-10">
-                       <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full animate-pulse"></div>
-                       <div className="absolute inset-0 border-4 border-indigo-400 rounded-full border-t-transparent animate-spin duration-700"></div>
-                       <div className="absolute inset-0 flex items-center justify-center">
-                           <Cpu className="text-indigo-400 animate-pulse" size={48} />
-                       </div>
-                       <div className="absolute -top-2 -right-2">
-                           <Sparkles className="text-yellow-400 animate-bounce" />
-                       </div>
-                  </div>
-                  
-                  <h3 className="text-3xl font-bold text-white mb-3 tracking-tight">AI Neural Matching</h3>
-                  <div className="space-y-2 mb-10">
-                    <p className="text-indigo-200 text-sm font-medium animate-pulse">
-                        {matchingStatus < 30 ? "Analyzing BANT Parameters..." : 
-                         matchingStatus < 60 ? "Searching Vendor Database..." : 
-                         matchingStatus < 90 ? "Calculating Confidence Scores..." : "Optimizing Matching Matrix..."}
-                    </p>
-                  </div>
-                  
-                  <div className="w-full bg-white/5 rounded-full h-1.5 mb-6 overflow-hidden">
-                      <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-300 ease-out" style={{ width: `${matchingStatus}%` }}></div>
-                  </div>
+                  {matchingStatus < 100 ? (
+                    <>
+                      <div className="relative w-32 h-32 mx-auto mb-10">
+                          <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full animate-pulse"></div>
+                          <div className="absolute inset-0 border-4 border-indigo-400 rounded-full border-t-transparent animate-spin duration-700"></div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                              <Cpu className="text-indigo-400 animate-pulse" size={48} />
+                          </div>
+                          <div className="absolute -top-2 -right-2">
+                              <Sparkles className="text-yellow-400 animate-bounce" />
+                          </div>
+                      </div>
 
-                  <div className="grid grid-cols-3 gap-2 opacity-50">
-                    <div className={`h-1 rounded-full ${matchingStatus > 25 ? 'bg-indigo-400' : 'bg-white/10'}`}></div>
-                    <div className={`h-1 rounded-full ${matchingStatus > 55 ? 'bg-indigo-400' : 'bg-white/10'}`}></div>
-                    <div className={`h-1 rounded-full ${matchingStatus > 85 ? 'bg-indigo-400' : 'bg-white/10'}`}></div>
-                  </div>
+                      <h3 className="text-3xl font-bold text-white mb-3 tracking-tight">AI Neural Matching</h3>
+                      <div className="space-y-2 mb-10">
+                        <p className="text-indigo-200 text-sm font-medium animate-pulse">
+                            {matchingStatus < 30 ? "Analyzing BANT Parameters..." :
+                            matchingStatus < 60 ? "Searching Vendor Database..." :
+                            matchingStatus < 90 ? "Calculating Confidence Scores..." : "Optimizing Matching Matrix..."}
+                        </p>
+                      </div>
+
+                      <div className="w-full bg-white/5 rounded-full h-1.5 mb-6 overflow-hidden">
+                          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-300 ease-out" style={{ width: `${matchingStatus}%` }}></div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 opacity-50">
+                        <div className={`h-1 rounded-full ${matchingStatus > 25 ? 'bg-indigo-400' : 'bg-white/10'}`}></div>
+                        <div className={`h-1 rounded-full ${matchingStatus > 55 ? 'bg-indigo-400' : 'bg-white/10'}`}></div>
+                        <div className={`h-1 rounded-full ${matchingStatus > 85 ? 'bg-indigo-400' : 'bg-white/10'}`}></div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="animate-scale-up py-4">
+                        <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg shadow-green-500/30">
+                            <Check size={48} className="text-white" />
+                        </div>
+                        <h3 className="text-3xl font-bold text-white mb-4">Submission Successful!</h3>
+                        <p className="text-indigo-100 text-lg mb-8 leading-relaxed">
+                            Thank you. Your requirement has been submitted successfully.
+                        </p>
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            className="bg-white text-indigo-900 px-8 py-3 rounded-2xl font-bold hover:bg-indigo-50 transition-colors flex items-center justify-center mx-auto"
+                        >
+                            <Rocket size={18} className="mr-2" /> Go to Dashboard
+                        </button>
+                    </div>
+                  )}
               </div>
           </div>
       );
