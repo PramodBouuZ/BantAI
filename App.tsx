@@ -49,18 +49,33 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    console.error("CRITICAL: Uncaught application error:", error);
+    console.error("Error details:", errorInfo.componentStack);
+
+    // Log to external service if available, or just keep in console for admin
+    if (window.location.pathname.startsWith('/admin')) {
+        console.log("Admin Dashboard Crash Detected. Check missing components or data mapping.");
+    }
   }
 
   public render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
-          <div className="bg-white p-8 rounded-xl shadow-xl text-center max-w-md">
-            <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
-            <h1 className="text-xl font-bold text-slate-900 mb-2">Something went wrong.</h1>
-            <p className="text-slate-600 mb-4">The application encountered an error. Please try refreshing the page.</p>
-            <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">Refresh Page</button>
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl text-center max-w-md border border-red-100">
+            <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-red-500">
+                <AlertTriangle size={40} />
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">System Interrupted</h1>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">The application encountered a runtime error. This has been logged for the technical team.</p>
+            <div className="flex flex-col gap-3">
+                <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-sm hover:bg-slate-800 transition shadow-xl">
+                    Refresh Application
+                </button>
+                <button onClick={() => window.location.href = '/'} className="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600 transition">
+                    Return to Home
+                </button>
+            </div>
           </div>
         </div>
       );

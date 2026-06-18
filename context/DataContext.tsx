@@ -18,6 +18,7 @@ interface DataContextType {
   siteConfig: SiteConfig;
   notifications: AppNotification[];
   compareList: Product[];
+  isLoading: boolean;
   
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, product: Product) => Promise<void>;
@@ -129,6 +130,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [vendorLogos, setVendorLogos] = useState<VendorAsset[]>(MOCK_VENDOR_LOGOS);
   const [vendorRegistrations, setVendorRegistrations] = useState<VendorRegistration[]>([]);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const addNotification = useCallback((message: string, type: AppNotification['type'] = 'info') => {
     const id = Date.now().toString() + Math.random().toString();
@@ -143,30 +145,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchData = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      const msg = "Supabase configuration missing (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Application will run in offline/mock mode.";
+      console.warn(msg);
+      addNotification(msg, 'warning');
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      setIsLoading(true);
+      // Individual wrappers for each query to prevent one failure from crashing the whole dashboard
+      const safeQuery = async (queryPromise: Promise<any>, tableName: string) => {
+        try {
+          const { data, error } = await queryPromise;
+          if (error) {
+            console.error(`Error fetching ${tableName}:`, error);
+            addNotification(`Failed to fetch ${tableName}: ${error.message}`, 'error');
+            return null;
+          }
+          return data;
+        } catch (err) {
+          console.error(`Unexpected error fetching ${tableName}:`, err);
+          return null;
+        }
+      };
+
       const [
-        { data: prodData },
-        { data: configData },
-        { data: vLogos },
-        { data: catData },
-        { data: leadData },
-        { data: vRegData },
-        { data: userData },
-        { data: blogData },
-        { data: cityData },
-        { data: stateData }
+        prodData,
+        configData,
+        vLogos,
+        catData,
+        leadData,
+        vRegData,
+        userData,
+        blogData,
+        cityData,
+        stateData
       ] = await Promise.all([
-        supabase.from('products').select('*'),
-        supabase.from('site_config').select('*').maybeSingle(),
-        supabase.from('vendor_assets').select('*'),
-        supabase.from('categories').select('*'),
-        supabase.from('leads').select('*').order('date', { ascending: false }),
-        supabase.from('vendor_registrations').select('*').order('date', { ascending: false }),
-        supabase.from('users').select('*'),
-        supabase.from('blogs').select('*').order('date', { ascending: false }),
-        supabase.from('cities').select('*'),
-        supabase.from('states').select('*')
+        safeQuery(supabase.from('products').select('*'), 'products'),
+        safeQuery(supabase.from('site_config').select('*').maybeSingle(), 'site_config'),
+        safeQuery(supabase.from('vendor_assets').select('*'), 'vendor_assets'),
+        safeQuery(supabase.from('categories').select('*'), 'categories'),
+        safeQuery(supabase.from('leads').select('*').order('date', { ascending: false }), 'leads'),
+        safeQuery(supabase.from('vendor_registrations').select('*').order('date', { ascending: false }), 'vendor_registrations'),
+        safeQuery(supabase.from('users').select('*'), 'users'),
+        safeQuery(supabase.from('blogs').select('*').order('date', { ascending: false }), 'blogs'),
+        safeQuery(supabase.from('cities').select('*'), 'cities'),
+        safeQuery(supabase.from('states').select('*'), 'states')
       ]);
 
       if (prodData) {
@@ -288,6 +314,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error("Fetch data failed:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -601,7 +629,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{
-      products, leads, categories, categoryObjects, cities, states, siteConfig, users, vendorLogos, vendorRegistrations, blogs, notifications, compareList,
+      products, leads, categories, categoryObjects, cities, states, siteConfig, users, vendorLogos, vendorRegistrations, blogs, notifications, compareList, isLoading,
       addProduct, updateProduct, deleteProduct,
       addBlog, updateBlog, deleteBlog,
       addLead, updateLeadStatus, assignLead, updateLeadRemarks, deleteLead,

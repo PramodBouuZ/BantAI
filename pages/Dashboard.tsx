@@ -164,9 +164,22 @@ const SEOFieldGroup: React.FC<{
 
 const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const navigate = useNavigate();
+
+  // Secondary security check for admin email
+  const ADMIN_EMAIL = 'info.bouuz@gmail.com';
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+    } else if (currentUser.email !== ADMIN_EMAIL) {
+      console.error("Unauthorized access attempt by:", currentUser.email);
+      navigate('/user/dashboard');
+    }
+  }, [currentUser, navigate]);
+
   const { 
     products, leads, categories, categoryObjects, cities, states, siteConfig, users, vendorLogos, vendorRegistrations, blogs,
-    addProduct, updateProduct, deleteProduct, addBlog, updateBlog, deleteBlog,
+    isLoading, addProduct, updateProduct, deleteProduct, addBlog, updateBlog, deleteBlog,
     updateLeadStatus, assignLead, updateLeadRemarks, deleteLead, updateSiteConfig,
     addCategory, updateCategory, deleteCategory,
     addCity, updateCity, deleteCity,
@@ -176,8 +189,6 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
   const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'blogs' | 'categories' | 'users' | 'requests' | 'settings' | 'logos' | 'seo' | 'locations'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  useEffect(() => { if (!currentUser) navigate('/login'); }, [currentUser, navigate]);
 
   // Product Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -295,6 +306,84 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               ))}
           </nav>
       </div>
+  );
+
+  const renderOverview = () => (
+    <div className="space-y-10 animate-fade-in">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {[
+          { title: 'Total Leads', value: leads.length.toString(), change: '+12%', isPositive: true, color: 'blue', icon: FileText },
+          { title: 'Active Services', value: products.length.toString(), change: '+5%', isPositive: true, color: 'indigo', icon: ShoppingBag },
+          { title: 'Vendor Requests', value: vendorRegistrations.length.toString(), change: 'Pending', isPositive: false, color: 'purple', icon: MessageSquare },
+          { title: 'Platform Users', value: users.length.toString(), change: '+18%', isPositive: true, color: 'green', icon: Users },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
+            <div className={`w-14 h-14 rounded-2xl bg-${stat.color === 'indigo' ? 'blue' : stat.color}-50 flex items-center justify-center text-${stat.color === 'indigo' ? 'blue' : stat.color}-600 mb-6 group-hover:scale-110 transition-transform`}>
+              <stat.icon size={28} />
+            </div>
+            <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">{stat.title}</h4>
+            <div className="flex items-end justify-between">
+              <div className="text-3xl font-black text-slate-900">{stat.value}</div>
+              <div className={`text-[10px] font-black px-2 py-1 rounded-lg ${stat.isPositive ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}`}>
+                {stat.change}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+           <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-black text-slate-900">Recent Lead Flow</h3>
+              <button onClick={() => setActiveTab('leads')} className="text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">View All &rarr;</button>
+           </div>
+           <div className="space-y-4">
+              {leads.slice(0, 5).map(lead => (
+                 <div key={lead.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl">
+                    <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400 shadow-sm font-black text-xs">
+                          {lead.name.charAt(0)}
+                       </div>
+                       <div>
+                          <div className="font-black text-slate-900 text-sm">{lead.name}</div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase">{lead.service}</div>
+                       </div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${
+                       lead.status === 'Verified' ? 'bg-green-100 text-green-600' : lead.status === 'Pending' ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'
+                    }`}>{lead.status}</div>
+                 </div>
+              ))}
+              {leads.length === 0 && <p className="text-center py-8 text-slate-400 font-bold">No leads recorded yet.</p>}
+           </div>
+        </div>
+
+        <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+           <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-black text-slate-900">Partner Applications</h3>
+              <button onClick={() => setActiveTab('requests')} className="text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">Queue &rarr;</button>
+           </div>
+           <div className="space-y-4">
+              {vendorRegistrations.slice(0, 5).map(reg => (
+                 <div key={reg.id} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl">
+                    <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm font-black text-xs">
+                          {reg.companyName.charAt(0)}
+                       </div>
+                       <div>
+                          <div className="font-black text-slate-900 text-sm">{reg.companyName}</div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase">{reg.productName}</div>
+                       </div>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-400">{reg.date}</div>
+                 </div>
+              ))}
+              {vendorRegistrations.length === 0 && <p className="text-center py-8 text-slate-400 font-bold">No applications pending.</p>}
+           </div>
+        </div>
+      </div>
+    </div>
   );
 
   const renderLeads = () => (
@@ -693,6 +782,20 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     </div>
   );
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl shadow-xl text-center max-w-sm w-full animate-pulse">
+           <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mx-auto mb-6">
+              <Zap size={32} className="animate-bounce" />
+           </div>
+           <h2 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">Initializing Control Surface</h2>
+           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Securing Connection to Database...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans">
       {renderSidebar()}
@@ -772,7 +875,34 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                   </div>
               </div>
             )}
-            {activeTab === 'logos' && renderLogos()}
+            {activeTab === 'logos' && (
+              <div className="space-y-8 animate-fade-in">
+                 <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-10">
+                       <div>
+                          <h3 className="text-3xl font-black text-slate-900">Brand Partners</h3>
+                          <p className="text-sm font-medium text-slate-400">Manage logos displayed on the homepage trust section</p>
+                       </div>
+                       <div className="flex gap-4">
+                          <input type="text" placeholder="Partner Name" className="bg-slate-50 px-5 py-3 rounded-xl outline-none font-bold text-sm border border-transparent focus:border-blue-100" value={newLogo.name} onChange={e => setNewLogo({...newLogo, name: e.target.value})} />
+                          <button onClick={() => { if(newLogo.name && newLogo.url) { addVendorLogo({id: Date.now().toString(), ...newLogo}); setNewLogo({name: '', url: ''}); } }} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-sm hover:bg-slate-800 transition">Add Partner</button>
+                       </div>
+                    </div>
+                    <div className="mb-10">
+                       <ImageUploadZone label="Upload Partner Logo" value={newLogo.url} onUpload={b => setNewLogo({...newLogo, url: b})} onClear={() => setNewLogo({...newLogo, url: ''})} aspectRatio="aspect-video max-w-[300px]" />
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                       {vendorLogos.map(logo => (
+                          <div key={logo.id} className="relative group bg-slate-50 p-6 rounded-3xl border border-slate-100 flex items-center justify-center h-32 hover:bg-white hover:shadow-xl transition-all">
+                             <img src={logo.logoUrl} alt={logo.name} className="max-w-full max-h-full object-contain grayscale group-hover:grayscale-0 transition-all" />
+                             <button onClick={() => deleteVendorLogo(logo.id)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
+                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">{logo.name}</div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              </div>
+            )}
             {activeTab === 'settings' && renderSettings()}
         </main>
       </div>
