@@ -32,45 +32,86 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   });
 
   useEffect(() => {
-    const checkSession = async () => {
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          const user = session.user;
-          const meta = user.user_metadata || {};
-          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
-
-          setCurrentUser({
-            id: user.id,
-            name: userData?.full_name || meta.full_name || meta.name || 'User',
-            email: user.email || '',
-            role: role as any,
-            joinedDate: user.created_at,
-            company: userData?.company,
-            status: userData?.status,
-            logoUrl: userData?.logo_url,
-            isFirstLogin: userData?.is_first_login
-          });
-
-          const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
-          if (userData?.is_first_login) {
-            navigate('/reset-password?force=true');
-          } else {
-            navigate(targetPath + search, { replace: true });
-          }
-          return;
-        }
+    let mounted = true;
+    const authTimeout = setTimeout(() => {
+      if (mounted && authChecking) {
+        console.warn("Login: Session check timed out after 5s");
+        setAuthChecking(false);
+        setLoading(false);
       }
-      setAuthChecking(false);
-      setLoading(false);
+    }, 5000);
+
+    const checkSession = async () => {
+      console.log("Login: Checking session...");
+      if (supabase) {
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+          if (sessionError) {
+            console.error("Login: Session fetch error:", sessionError);
+            throw sessionError;
+          }
+
+          if (session?.user) {
+            console.log("Login: Session found for user:", session.user.email);
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (userError && userError.code !== 'PGRST116') {
+              console.error("Login: User profile fetch error:", userError);
+            }
+
+            const user = session.user;
+            const meta = user.user_metadata || {};
+            const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+
+            if (mounted) {
+              setCurrentUser({
+                id: user.id,
+                name: userData?.full_name || meta.full_name || meta.name || 'User',
+                email: user.email || '',
+                role: role as any,
+                joinedDate: user.created_at,
+                company: userData?.company,
+                status: userData?.status,
+                logoUrl: userData?.logo_url,
+                isFirstLogin: userData?.is_first_login
+              });
+
+              console.log("Login: Redirecting to dashboard...");
+              const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
+              if (userData?.is_first_login) {
+                navigate('/reset-password?force=true');
+              } else {
+                navigate(targetPath + search, { replace: true });
+              }
+              clearTimeout(authTimeout);
+              return;
+            }
+          } else {
+            console.log("Login: No active session found.");
+          }
+        } catch (err) {
+          console.error("Login: Unexpected auth check error:", err);
+        }
+      } else {
+        console.warn("Login: Supabase client not initialized.");
+      }
+
+      if (mounted) {
+        setAuthChecking(false);
+        setLoading(false);
+        clearTimeout(authTimeout);
+      }
     };
     checkSession();
+    return () => {
+      mounted = false;
+      clearTimeout(authTimeout);
+    };
   }, [navigate, from, search, setCurrentUser]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

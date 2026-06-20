@@ -148,6 +148,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchData = useCallback(async () => {
+    console.log("DataContext: Starting data fetch...");
     if (!supabase) {
       const msg = "Supabase configuration missing (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Application will run in offline/mock mode.";
       console.warn(msg);
@@ -161,15 +162,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Individual wrappers for each query to prevent one failure from crashing the whole dashboard
       const safeQuery = async (queryPromise: Promise<any>, tableName: string) => {
         try {
+          console.log(`DataContext: Fetching ${tableName}...`);
           const { data, error } = await queryPromise;
           if (error) {
-            console.error(`Error fetching ${tableName}:`, error);
-            addNotification(`Failed to fetch ${tableName}: ${error.message}`, 'error');
+            console.error(`DataContext: Error fetching ${tableName}:`, error);
+            // Don't show notification for every failure to avoid spamming the user if RLS is tight
             return null;
           }
+          console.log(`DataContext: Successfully fetched ${tableName} (${data?.length || 0} items)`);
           return data;
         } catch (err) {
-          console.error(`Unexpected error fetching ${tableName}:`, err);
+          console.error(`DataContext: Unexpected error fetching ${tableName}:`, err);
           return null;
         }
       };
@@ -199,21 +202,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]);
 
       if (prodData) {
-        setProducts(prodData.map((p: any) => ({
+        console.log("DataContext: Mapping products...", prodData.length);
+        const mappedProducts = prodData.map((p: any) => ({
           id: p.id, 
-          slug: p.slug || generateSlug(p.title),
-          title: p.title, 
-          description: p.description, 
-          category: p.category,
+          slug: p.slug || generateSlug(p.title || 'product'),
+          title: p.title || 'Untitled Product',
+          description: p.description || '',
+          category: p.category || 'Uncategorized',
           priceRange: p.price_range || '', 
-          features: p.features || [], 
+          features: Array.isArray(p.features) ? p.features : [],
           icon: p.icon || 'globe',
           rating: Number(p.rating || 5), 
-          image: p.image,
+          image: p.image || '',
           vendorName: p.vendor_name || '', 
-          technicalSpecs: p.technical_specs || [],
+          technicalSpecs: Array.isArray(p.technical_specs) ? p.technical_specs : [],
           ...mapSEOToCamel(p)
-        })));
+        }));
+
+        // If we have any products in DB, we replace the mock products
+        // If DB is empty, we might want to keep mock products for demo,
+        // but the user says they HAVE products in DB.
+        if (mappedProducts.length > 0) {
+          console.log("DataContext: Setting products from DB");
+          setProducts(mappedProducts);
+        } else {
+          console.log("DataContext: DB returned 0 products, keeping mock data if any");
+        }
+      } else {
+        console.warn("DataContext: prodData is null, fetch failed or RLS blocked");
       }
 
       if (blogData) {
@@ -373,45 +389,67 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addProduct = async (product: Product) => {
+    console.log("DataContext: Adding product...", product.title);
     if (supabase) {
-      const { error } = await supabase.from('products').insert({
-         id: product.id, 
-         slug: product.slug || generateSlug(product.title),
-         title: product.title, 
-         description: product.description, 
-         category: product.category,
-         price_range: product.priceRange, 
-         features: product.features, 
-         icon: product.icon, 
-         rating: product.rating, 
-         image: product.image,
-         vendor_name: product.vendorName, 
-         technical_specs: product.technicalSpecs,
-         ...mapSEOToSnake(product)
-      });
-      if (error) addNotification(error.message, 'error');
-      else { addNotification('Product added!', 'success'); fetchData(); }
+      try {
+        const { error } = await supabase.from('products').insert({
+           id: product.id,
+           slug: product.slug || generateSlug(product.title),
+           title: product.title,
+           description: product.description,
+           category: product.category,
+           price_range: product.priceRange,
+           features: product.features,
+           icon: product.icon,
+           rating: product.rating,
+           image: product.image,
+           vendor_name: product.vendorName,
+           technical_specs: product.technicalSpecs,
+           ...mapSEOToSnake(product)
+        });
+        if (error) {
+          console.error("DataContext: Error adding product:", error);
+          addNotification(error.message, 'error');
+        } else {
+          console.log("DataContext: Product added successfully");
+          addNotification('Product added!', 'success');
+          // Important: Trigger immediate re-fetch
+          await fetchData();
+        }
+      } catch (err) {
+        console.error("DataContext: Unexpected error adding product:", err);
+      }
     }
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
+    console.log("DataContext: Updating product...", id);
     if (supabase) {
-      const { error } = await supabase.from('products').update({
-         slug: updatedProduct.slug || generateSlug(updatedProduct.title),
-         title: updatedProduct.title, 
-         description: updatedProduct.description, 
-         category: updatedProduct.category,
-         price_range: updatedProduct.priceRange, 
-         features: updatedProduct.features, 
-         icon: updatedProduct.icon,
-         rating: updatedProduct.rating, 
-         image: updatedProduct.image,
-         vendor_name: updatedProduct.vendorName, 
-         technical_specs: updatedProduct.technicalSpecs,
-         ...mapSEOToSnake(updatedProduct)
-      }).eq('id', id);
-      if (error) addNotification(error.message, 'error');
-      else fetchData();
+      try {
+        const { error } = await supabase.from('products').update({
+           slug: updatedProduct.slug || generateSlug(updatedProduct.title),
+           title: updatedProduct.title,
+           description: updatedProduct.description,
+           category: updatedProduct.category,
+           price_range: updatedProduct.priceRange,
+           features: updatedProduct.features,
+           icon: updatedProduct.icon,
+           rating: updatedProduct.rating,
+           image: updatedProduct.image,
+           vendor_name: updatedProduct.vendorName,
+           technical_specs: updatedProduct.technicalSpecs,
+           ...mapSEOToSnake(updatedProduct)
+        }).eq('id', id);
+        if (error) {
+          console.error("DataContext: Error updating product:", error);
+          addNotification(error.message, 'error');
+        } else {
+          console.log("DataContext: Product updated successfully");
+          await fetchData();
+        }
+      } catch (err) {
+        console.error("DataContext: Unexpected error updating product:", err);
+      }
     }
   };
 
