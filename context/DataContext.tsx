@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification, BlogPost, Category, City, State, SEOData } from '../types';
 import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface DataContextType {
   products: Product[];
@@ -121,19 +122,7 @@ const mapSEOToSnake = (item: SEOData) => ({
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [compareList, setCompareList] = useState<Product[]>([]);
-  
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
-  const [leads, setLeads] = useState<Lead[]>(RECENT_LEADS);
-  const [categories, setCategories] = useState<string[]>(['Software', 'Telecom', 'Security', 'Connectivity', 'Infrastructure', 'Consulting']);
-  const [categoryObjects, setCategoryObjects] = useState<Category[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-  const [states, setStates] = useState<State[]>([]);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(defaultSiteConfig);
-  const [users, setUsers] = useState<User[]>([]);
-  const [vendorLogos, setVendorLogos] = useState<VendorAsset[]>(MOCK_VENDOR_LOGOS);
-  const [vendorRegistrations, setVendorRegistrations] = useState<VendorRegistration[]>([]);
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const addNotification = useCallback((message: string, type: AppNotification['type'] = 'info') => {
     const id = Date.now().toString() + Math.random().toString();
@@ -147,218 +136,232 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const fetchData = useCallback(async () => {
-    console.log("DataContext: Starting data fetch...");
-    if (!supabase) {
-      const msg = "Supabase configuration missing (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Application will run in offline/mock mode.";
-      console.warn(msg);
-      addNotification(msg, 'warning');
-      setIsLoading(false);
-      return;
-    }
+  // React Query Fetchers
+  const { data: prodData, isLoading: prodLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const start = performance.now();
+      const { data, error } = await supabase!.from('products').select('id, slug, title, description, category, price_range, features, icon, rating, image, vendor_name, technical_specs, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
+      console.log(`Query: products took ${(performance.now() - start).toFixed(2)}ms`);
+      if (error) throw error;
+      return data.map((p: any) => ({
+        id: p.id,
+        slug: p.slug || generateSlug(p.title || 'product'),
+        title: p.title || 'Untitled Product',
+        description: p.description || '',
+        category: p.category || 'Uncategorized',
+        priceRange: p.price_range || '',
+        features: Array.isArray(p.features) ? p.features : [],
+        icon: p.icon || 'globe',
+        rating: Number(p.rating || 5),
+        image: p.image || '',
+        vendorName: p.vendor_name || '',
+        technicalSpecs: Array.isArray(p.technical_specs) ? p.technical_specs : [],
+        ...mapSEOToCamel(p)
+      }));
+    },
+    enabled: !!supabase,
+    initialData: PRODUCTS
+  });
 
-    try {
-      setIsLoading(true);
-      // Individual wrappers for each query to prevent one failure from crashing the whole dashboard
-      const safeQuery = async (queryPromise: Promise<any>, tableName: string) => {
-        try {
-          console.log(`DataContext: Fetching ${tableName}...`);
-          const { data, error } = await queryPromise;
-          if (error) {
-            console.error(`DataContext: Error fetching ${tableName}:`, error);
-            // Don't show notification for every failure to avoid spamming the user if RLS is tight
-            return null;
-          }
-          console.log(`DataContext: Successfully fetched ${tableName} (${data?.length || 0} items)`);
-          return data;
-        } catch (err) {
-          console.error(`DataContext: Unexpected error fetching ${tableName}:`, err);
-          return null;
-        }
+  const { data: configData } = useQuery({
+    queryKey: ['site_config'],
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('site_config').select('site_name, banner_title, banner_subtitle, logo_url, favicon_url, whatsapp_number, admin_notification_email, social_links, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup').maybeSingle();
+      if (error) throw error;
+      return {
+        siteName: data.site_name || defaultSiteConfig.siteName,
+        bannerTitle: data.banner_title || defaultSiteConfig.bannerTitle,
+        bannerSubtitle: data.banner_subtitle || defaultSiteConfig.bannerSubtitle,
+        logoUrl: data.logo_url,
+        faviconUrl: data.favicon_url,
+        whatsappNumber: data.whatsapp_number,
+        adminNotificationEmail: data.admin_notification_email || ADMIN_EMAIL,
+        socialLinks: data.social_links || defaultSiteConfig.socialLinks,
+        ...mapSEOToCamel(data)
       };
+    },
+    enabled: !!supabase,
+    initialData: defaultSiteConfig
+  });
 
-      const [
-        prodData,
-        configData,
-        vLogos,
-        catData,
-        leadData,
-        vRegData,
-        userData,
-        blogData,
-        cityData,
-        stateData
-      ] = await Promise.all([
-        safeQuery(supabase.from('products').select('*'), 'products'),
-        safeQuery(supabase.from('site_config').select('*').maybeSingle(), 'site_config'),
-        safeQuery(supabase.from('vendor_assets').select('*'), 'vendor_assets'),
-        safeQuery(supabase.from('categories').select('*'), 'categories'),
-        safeQuery(supabase.from('leads').select('*').order('date', { ascending: false }), 'leads'),
-        safeQuery(supabase.from('vendor_registrations').select('*').order('date', { ascending: false }), 'vendor_registrations'),
-        safeQuery(supabase.from('users').select('*'), 'users'),
-        safeQuery(supabase.from('blogs').select('*').order('date', { ascending: false }), 'blogs'),
-        safeQuery(supabase.from('cities').select('*'), 'cities'),
-        safeQuery(supabase.from('states').select('*'), 'states')
-      ]);
+  const { data: vLogos } = useQuery({
+    queryKey: ['vendor_assets'],
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('vendor_assets').select('id, name, logo_url');
+      if (error) throw error;
+      return data.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url }));
+    },
+    enabled: !!supabase,
+    initialData: MOCK_VENDOR_LOGOS
+  });
 
-      if (prodData) {
-        console.log("DataContext: Mapping products...", prodData.length);
-        const mappedProducts = prodData.map((p: any) => ({
-          id: p.id, 
-          slug: p.slug || generateSlug(p.title || 'product'),
-          title: p.title || 'Untitled Product',
-          description: p.description || '',
-          category: p.category || 'Uncategorized',
-          priceRange: p.price_range || '', 
-          features: Array.isArray(p.features) ? p.features : [],
-          icon: p.icon || 'globe',
-          rating: Number(p.rating || 5), 
-          image: p.image || '',
-          vendorName: p.vendor_name || '', 
-          technicalSpecs: Array.isArray(p.technical_specs) ? p.technical_specs : [],
-          ...mapSEOToCamel(p)
-        }));
+  const { data: catData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('categories').select('id, name, slug, description, icon, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
+      if (error) throw error;
+      return data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug || generateSlug(c.name),
+        description: c.description,
+        icon: c.icon,
+        ...mapSEOToCamel(c)
+      }));
+    },
+    enabled: !!supabase
+  });
 
-        // If we have any products in DB, we replace the mock products
-        // If DB is empty, we might want to keep mock products for demo,
-        // but the user says they HAVE products in DB.
-        if (mappedProducts.length > 0) {
-          console.log("DataContext: Setting products from DB");
-          setProducts(mappedProducts);
-        } else {
-          console.log("DataContext: DB returned 0 products, keeping mock data if any");
-        }
-      } else {
-        console.warn("DataContext: prodData is null, fetch failed or RLS blocked");
-      }
+  const { data: leadData } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const start = performance.now();
+      const { data, error } = await supabase!.from('leads').select('id, name, email, mobile, company, location, service, budget, requirement, authority, timing, status, date, remarks, assigned_to').order('date', { ascending: false }).limit(50);
+      console.log(`Query: leads took ${(performance.now() - start).toFixed(2)}ms`);
+      if (error) throw error;
+      return data.map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        email: l.email,
+        mobile: l.mobile,
+        company: l.company,
+        location: l.location,
+        service: l.service,
+        budget: l.budget || 'Not Provided',
+        requirement: l.requirement || '',
+        authority: l.authority || 'Not Provided',
+        timing: l.timing || 'Not Provided',
+        status: l.status,
+        date: l.date,
+        remarks: l.remarks,
+        assignedTo: l.assigned_to
+      }));
+    },
+    enabled: !!supabase,
+    initialData: RECENT_LEADS
+  });
 
-      if (blogData) {
-        setBlogs(blogData.map((b: any) => ({
-          id: b.id,
-          slug: b.slug,
-          title: b.title,
-          content: b.content,
-          category: b.category,
-          image: b.image,
-          author: b.author,
-          date: b.date,
-          ...mapSEOToCamel(b)
-        })));
-      }
+  const { data: blogData } = useQuery({
+    queryKey: ['blogs'],
+    queryFn: async () => {
+      const start = performance.now();
+      const { data, error } = await supabase!.from('blogs').select('id, slug, title, content, category, image, author, date, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup').order('date', { ascending: false });
+      console.log(`Query: blogs took ${(performance.now() - start).toFixed(2)}ms`);
+      if (error) throw error;
+      return data.map((b: any) => ({
+        id: b.id,
+        slug: b.slug,
+        title: b.title,
+        content: b.content,
+        category: b.category,
+        image: b.image,
+        author: b.author,
+        date: b.date,
+        ...mapSEOToCamel(b)
+      }));
+    },
+    enabled: !!supabase
+  });
 
-      if (cityData) {
-        setCities(cityData.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug || generateSlug(c.name),
-          stateId: c.state_id,
-          ...mapSEOToCamel(c)
-        })));
-      }
+  const { data: cityData } = useQuery({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('cities').select('id, name, slug, state_id, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
+      if (error) throw error;
+      return data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug || generateSlug(c.name),
+        stateId: c.state_id,
+        ...mapSEOToCamel(c)
+      }));
+    },
+    enabled: !!supabase
+  });
 
-      if (stateData) {
-        setStates(stateData.map((s: any) => ({
-          id: s.id,
-          name: s.name,
-          slug: s.slug || generateSlug(s.name),
-          ...mapSEOToCamel(s)
-        })));
-      }
+  const { data: stateData } = useQuery({
+    queryKey: ['states'],
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('states').select('id, name, slug, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
+      if (error) throw error;
+      return data.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug || generateSlug(s.name),
+        ...mapSEOToCamel(s)
+      }));
+    },
+    enabled: !!supabase
+  });
 
-      if (configData) {
-        setSiteConfig({
-          siteName: configData.site_name || defaultSiteConfig.siteName,
-          bannerTitle: configData.banner_title || defaultSiteConfig.bannerTitle,
-          bannerSubtitle: configData.banner_subtitle || defaultSiteConfig.bannerSubtitle,
-          logoUrl: configData.logo_url,
-          faviconUrl: configData.favicon_url,
-          whatsappNumber: configData.whatsapp_number,
-          adminNotificationEmail: configData.admin_notification_email || ADMIN_EMAIL,
-          socialLinks: configData.social_links || defaultSiteConfig.socialLinks,
-          ...mapSEOToCamel(configData)
-        });
-      }
+  const { data: userData } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('users').select('id, full_name, email, role, mobile, company, location, created_at, status, verification_date, verified_by, products, services, logo_url, is_first_login');
+      if (error) throw error;
+      return data.map((u: any) => ({
+        id: u.id,
+        name: u.name || u.full_name,
+        email: u.email,
+        role: u.role,
+        mobile: u.mobile,
+        company: u.company,
+        location: u.location,
+        joinedDate: u.created_at || u.joined_date,
+        status: u.status || 'Pending',
+        verificationDate: u.verification_date,
+        verifiedBy: u.verified_by,
+        products: u.products || [],
+        services: u.services || [],
+        logoUrl: u.logo_url,
+        isFirstLogin: u.is_first_login
+      }));
+    },
+    enabled: !!supabase
+  });
 
-      if (vLogos) setVendorLogos(vLogos.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url })));
-
-      if (catData) {
-        setCategories(Array.from(new Set(catData.map((c: any) => c.name))));
-        setCategoryObjects(catData.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug || generateSlug(c.name),
-          description: c.description,
-          icon: c.icon,
-          ...mapSEOToCamel(c)
-        })));
-      }
-      
-      if (leadData) {
-        setLeads(leadData.map((l: any) => ({
-          id: l.id,
-          name: l.name,
-          email: l.email,
-          mobile: l.mobile,
-          company: l.company,
-          location: l.location,
-          service: l.service,
-          budget: l.budget || 'Not Provided',
-          requirement: l.requirement || '',
-          authority: l.authority || 'Not Provided',
-          timing: l.timing || 'Not Provided',
-          status: l.status,
-          date: l.date,
-          remarks: l.remarks,
-          assignedTo: l.assigned_to
-        })));
-      }
-
-      if (vRegData) setVendorRegistrations(vRegData.map((v: any) => ({ 
+  const { data: vRegData } = useQuery({
+    queryKey: ['vendor_registrations'],
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('vendor_registrations').select('id, name, company_name, email, mobile, location, product_name, message, date').order('date', { ascending: false }).limit(50);
+      if (error) throw error;
+      return data.map((v: any) => ({
         ...v, 
         companyName: v.company_name, 
         productName: v.product_name 
-      })));
-      
-      if (userData) {
-        setUsers(userData.map((u: any) => ({
-          id: u.id,
-          name: u.name || u.full_name,
-          email: u.email,
-          role: u.role,
-          mobile: u.mobile,
-          company: u.company,
-          location: u.location,
-          joinedDate: u.created_at || u.joined_date,
-          status: u.status || 'Pending',
-          verificationDate: u.verification_date,
-          verifiedBy: u.verified_by,
-          products: u.products || [],
-          services: u.services || [],
-          logoUrl: u.logo_url,
-          isFirstLogin: u.is_first_login
-        })));
-      }
-    } catch (err) {
-      console.error("Fetch data failed:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      }));
+    },
+    enabled: !!supabase
+  });
+
+  // Derived States
+  const products = prodData || [];
+  const leads = leadData || [];
+  const categoryObjects = catData || [];
+  const categories = Array.from(new Set(categoryObjects.map((c: any) => c.name)));
+  const cities = cityData || [];
+  const states = stateData || [];
+  const siteConfig = configData || defaultSiteConfig;
+  const vendorLogos = vLogos || [];
+  const vendorRegistrations = vRegData || [];
+  const blogs = blogData || [];
+  const users = userData || [];
+  const isLoading = prodLoading;
 
   useEffect(() => {
-    fetchData();
     if (!supabase) return;
     const channel = supabase.channel('realtime-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'blogs' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cities' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'states' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => queryClient.invalidateQueries({ queryKey: ['leads'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => queryClient.invalidateQueries({ queryKey: ['products'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blogs' }, () => queryClient.invalidateQueries({ queryKey: ['blogs'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_config' }, () => queryClient.invalidateQueries({ queryKey: ['site_config'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => queryClient.invalidateQueries({ queryKey: ['categories'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cities' }, () => queryClient.invalidateQueries({ queryKey: ['cities'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'states' }, () => queryClient.invalidateQueries({ queryKey: ['states'] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchData]);
+  }, [queryClient]);
 
   const addLead = async (lead: Lead): Promise<boolean> => {
     if (supabase) {
@@ -381,7 +384,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addNotification(`Database Error: ${error.message}`, 'error');
         return false;
       }
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       addNotification('Requirement posted successfully!', 'success');
       return true;
     }
@@ -389,67 +392,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addProduct = async (product: Product) => {
-    console.log("DataContext: Adding product...", product.title);
     if (supabase) {
-      try {
-        const { error } = await supabase.from('products').insert({
-           id: product.id,
-           slug: product.slug || generateSlug(product.title),
-           title: product.title,
-           description: product.description,
-           category: product.category,
-           price_range: product.priceRange,
-           features: product.features,
-           icon: product.icon,
-           rating: product.rating,
-           image: product.image,
-           vendor_name: product.vendorName,
-           technical_specs: product.technicalSpecs,
-           ...mapSEOToSnake(product)
-        });
-        if (error) {
-          console.error("DataContext: Error adding product:", error);
-          addNotification(error.message, 'error');
-        } else {
-          console.log("DataContext: Product added successfully");
-          addNotification('Product added!', 'success');
-          // Important: Trigger immediate re-fetch
-          await fetchData();
-        }
-      } catch (err) {
-        console.error("DataContext: Unexpected error adding product:", err);
+      const { error } = await supabase.from('products').insert({
+         id: product.id,
+         slug: product.slug || generateSlug(product.title),
+         title: product.title,
+         description: product.description,
+         category: product.category,
+         price_range: product.priceRange,
+         features: product.features,
+         icon: product.icon,
+         rating: product.rating,
+         image: product.image,
+         vendor_name: product.vendorName,
+         technical_specs: product.technicalSpecs,
+         ...mapSEOToSnake(product)
+      });
+      if (error) addNotification(error.message, 'error');
+      else {
+        addNotification('Product added!', 'success');
+        queryClient.invalidateQueries({ queryKey: ['products'] });
       }
     }
   };
 
   const updateProduct = async (id: string, updatedProduct: Product) => {
-    console.log("DataContext: Updating product...", id);
     if (supabase) {
-      try {
-        const { error } = await supabase.from('products').update({
-           slug: updatedProduct.slug || generateSlug(updatedProduct.title),
-           title: updatedProduct.title,
-           description: updatedProduct.description,
-           category: updatedProduct.category,
-           price_range: updatedProduct.priceRange,
-           features: updatedProduct.features,
-           icon: updatedProduct.icon,
-           rating: updatedProduct.rating,
-           image: updatedProduct.image,
-           vendor_name: updatedProduct.vendorName,
-           technical_specs: updatedProduct.technicalSpecs,
-           ...mapSEOToSnake(updatedProduct)
-        }).eq('id', id);
-        if (error) {
-          console.error("DataContext: Error updating product:", error);
-          addNotification(error.message, 'error');
-        } else {
-          console.log("DataContext: Product updated successfully");
-          await fetchData();
-        }
-      } catch (err) {
-        console.error("DataContext: Unexpected error updating product:", err);
-      }
+      const { error } = await supabase.from('products').update({
+         slug: updatedProduct.slug || generateSlug(updatedProduct.title),
+         title: updatedProduct.title,
+         description: updatedProduct.description,
+         category: updatedProduct.category,
+         price_range: updatedProduct.priceRange,
+         features: updatedProduct.features,
+         icon: updatedProduct.icon,
+         rating: updatedProduct.rating,
+         image: updatedProduct.image,
+         vendor_name: updatedProduct.vendorName,
+         technical_specs: updatedProduct.technicalSpecs,
+         ...mapSEOToSnake(updatedProduct)
+      }).eq('id', id);
+      if (error) addNotification(error.message, 'error');
+      else queryClient.invalidateQueries({ queryKey: ['products'] });
     }
   };
 
@@ -457,7 +441,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['products'] });
     }
   };
 
@@ -476,7 +460,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) addNotification(`Database Error: ${error.message}`, 'error');
-      else { addNotification('Insight article published!', 'success'); fetchData(); }
+      else {
+        addNotification('Insight article published!', 'success');
+        queryClient.invalidateQueries({ queryKey: ['blogs'] });
+      }
     }
   };
 
@@ -493,7 +480,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToSnake(blog)
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['blogs'] });
     }
   };
 
@@ -501,7 +488,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (supabase) {
       const { error } = await supabase.from('blogs').delete().eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['blogs'] });
     }
   };
 
@@ -521,8 +508,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...mapSEOToSnake(config)
       });
       if (error) addNotification(error.message, 'error');
-      else addNotification('Global configuration synced.', 'success');
-      fetchData();
+      else {
+        addNotification('Global configuration synced.', 'success');
+        queryClient.invalidateQueries({ queryKey: ['site_config'] });
+      }
     }
   };
 
@@ -573,8 +562,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       }
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     }
-    fetchData();
   };
 
   const assignLead = async (id: string, vendorId: string) => {
@@ -627,18 +616,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })
         }).catch(err => console.error('User vendor assigned email error:', err));
       }
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     }
-    fetchData();
   };
 
   const updateLeadRemarks = async (id: string, remarks: string) => {
-    if (supabase) await supabase.from('leads').update({ remarks }).eq('id', id);
-    fetchData();
+    if (supabase) {
+      await supabase.from('leads').update({ remarks }).eq('id', id);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    }
   };
 
   const deleteLead = async (id: string) => {
-    if (supabase) await supabase.from('leads').delete().eq('id', id);
-    fetchData();
+    if (supabase) {
+      await supabase.from('leads').delete().eq('id', id);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    }
   };
 
   const addVendorRegistration = async (reg: VendorRegistration) => {
@@ -649,16 +642,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: reg.message, date: reg.date
       });
       if (error) addNotification(`Registration Error: ${error.message}`, 'error');
-      else { addNotification('Vendor registered!', 'success'); fetchData(); }
+      else {
+        addNotification('Vendor registered!', 'success');
+        queryClient.invalidateQueries({ queryKey: ['vendor_registrations'] });
+      }
     }
   };
 
   const addCategory = async (category: string) => {
-    if (supabase) await supabase.from('categories').insert({
-      name: category,
-      slug: generateSlug(category)
-    });
-    fetchData();
+    if (supabase) {
+      await supabase.from('categories').insert({
+        name: category,
+        slug: generateSlug(category)
+      });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    }
   };
 
   const updateCategory = async (id: string, category: Category) => {
@@ -671,13 +669,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToSnake(category)
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['categories'] });
     }
   };
 
   const deleteCategory = async (category: string) => {
-    if (supabase) await supabase.from('categories').delete().eq('name', category);
-    fetchData();
+    if (supabase) {
+      await supabase.from('categories').delete().eq('name', category);
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    }
   };
 
   const addCity = async (city: City) => {
@@ -690,7 +690,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToSnake(city)
       });
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['cities'] });
     }
   };
 
@@ -703,13 +703,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToSnake(city)
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['cities'] });
     }
   };
 
   const deleteCity = async (id: string) => {
-    if (supabase) await supabase.from('cities').delete().eq('id', id);
-    fetchData();
+    if (supabase) {
+      await supabase.from('cities').delete().eq('id', id);
+      queryClient.invalidateQueries({ queryKey: ['cities'] });
+    }
   };
 
   const addState = async (state: State) => {
@@ -721,7 +723,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToSnake(state)
       });
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['states'] });
     }
   };
 
@@ -733,16 +735,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToSnake(state)
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
-      else fetchData();
+      else queryClient.invalidateQueries({ queryKey: ['states'] });
     }
   };
 
   const deleteState = async (id: string) => {
-    if (supabase) await supabase.from('states').delete().eq('id', id);
-    fetchData();
+    if (supabase) {
+      await supabase.from('states').delete().eq('id', id);
+      queryClient.invalidateQueries({ queryKey: ['states'] });
+    }
   };
 
-  const addUser = (user: User) => setUsers(prev => [...prev, user]);
+  const addUser = (user: User) => {
+    queryClient.setQueryData(['users'], (old: User[] | undefined) => old ? [...old, user] : [user]);
+  };
 
   const updateUserRole = async (id: string, role: User['role']) => {
     if (supabase) {
@@ -766,7 +772,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }).catch(err => console.error('Vendor welcome email error:', err));
         }
       }
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     }
   };
 
@@ -813,7 +819,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }).catch(err => console.error('Vendor rejection email error:', err));
         }
       }
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       addNotification(`Vendor status updated to ${status}`, 'success');
     }
   };
@@ -839,24 +845,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!res.ok) throw new Error(data.error || 'Failed to create vendor');
 
       addNotification('Vendor account created successfully with Auth!', 'success');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (err: any) {
       addNotification(`Error creating vendor: ${err.message}`, 'error');
     }
   };
 
   const deleteUser = (id: string) => {
-     if(supabase) supabase.from('users').delete().eq('id', id).then(() => fetchData());
+     if(supabase) supabase.from('users').delete().eq('id', id).then(() => queryClient.invalidateQueries({ queryKey: ['users'] }));
   };
   
   const addVendorLogo = async (asset: VendorAsset) => {
-    if (supabase) await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
-    fetchData();
+    if (supabase) {
+      await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
+      queryClient.invalidateQueries({ queryKey: ['vendor_assets'] });
+    }
   };
   
   const deleteVendorLogo = async (id: string) => {
-    if (supabase) await supabase.from('vendor_assets').delete().eq('id', id);
-    fetchData();
+    if (supabase) {
+      await supabase.from('vendor_assets').delete().eq('id', id);
+      queryClient.invalidateQueries({ queryKey: ['vendor_assets'] });
+    }
   };
   
   const toggleCompare = (product: Product) => {

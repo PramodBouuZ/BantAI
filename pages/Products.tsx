@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { CheckCircle2, Search, ArrowRight, Server, Phone, Database, Globe, Wifi, Shield, Star, Zap, Scale } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO';
+import LazyImage from '../components/LazyImage';
+import { ProductSkeleton } from '../components/Skeletons';
 
 interface ProductsProps {
   isLoggedIn: boolean;
@@ -21,7 +23,7 @@ const getIcon = (iconName: string) => {
 };
 
 const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
-  const { products, categories, toggleCompare, compareList } = useData();
+  const { products, categories, toggleCompare, compareList, isLoading } = useData();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('All Categories');
   const navigate = useNavigate();
@@ -94,26 +96,23 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
           </select>
         </div>
 
-        {filteredProducts.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {Array(6).fill(0).map((_, i) => <ProductSkeleton key={i} />)}
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProducts.map((product) => {
               const isSelected = compareList.some(p => p.id === product.id);
               return (
                 <div key={product.id} className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-blue-100 transition duration-300 group hover:-translate-y-2 flex flex-col h-full">
                   <Link to={`/products/${product.slug || product.id}`} className="relative h-56 overflow-hidden block">
-                      {product.image ? (
-                          <img 
-                            src={product.image} 
-                            alt={product.title} 
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                          />
-                      ) : (
-                          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                              <Server size={56} className="text-slate-300" />
-                          </div>
-                      )}
+                      <LazyImage
+                        src={product.image}
+                        alt={product.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        fallback="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800"
+                      />
                       <div className="absolute top-4 left-4">
                           {getIcon(product.icon)}
                       </div>

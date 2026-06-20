@@ -18,7 +18,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
   const search = location.state?.from?.search || '';
   
   const [view, setView] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [loading, setLoading] = useState(true); // Default to true while checking session
+  const [loading, setLoading] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -35,13 +35,14 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     let mounted = true;
     const authTimeout = setTimeout(() => {
       if (mounted && authChecking) {
-        console.warn("Login: Session check timed out after 5s");
+        console.warn("Login: Session check timed out after 2s");
         setAuthChecking(false);
         setLoading(false);
       }
-    }, 5000);
+    }, 2000);
 
     const checkSession = async () => {
+      const startTime = performance.now();
       console.log("Login: Checking session...");
       if (supabase) {
         try {
@@ -56,9 +57,12 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
             console.log("Login: Session found for user:", session.user.email);
             const { data: userData, error: userError } = await supabase
               .from('users')
-              .select('*')
+              .select('id, full_name, role, company, status, logo_url, is_first_login')
               .eq('id', session.user.id)
               .single();
+
+            const endTime = performance.now();
+            console.log(`Login: Session and profile check took ${(endTime - startTime).toFixed(2)}ms`);
 
             if (userError && userError.code !== 'PGRST116') {
               console.error("Login: User profile fetch error:", userError);
@@ -186,7 +190,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            if (data.session) {
              const { data: userData } = await supabase
               .from('users')
-              .select('*')
+              .select('id, full_name, role, company, status, logo_url, is_first_login')
               .eq('id', data.user!.id)
               .single();
 
@@ -223,7 +227,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            if (data.user) {
              const { data: userData } = await supabase
               .from('users')
-              .select('*')
+              .select('id, full_name, role, company, status, logo_url, is_first_login')
               .eq('id', data.user.id)
               .single();
 

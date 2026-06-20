@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Zap, Menu, X, ChevronDown, LogIn, User } from 'lucide-react';
+import PrefetchLink from './PrefetchLink';
 import { User as UserType } from '../types';
 import { useData } from '../context/DataContext';
 
@@ -54,8 +55,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentUser }) => {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/products" className={`text-lg transition-colors ${isActive('/products')}`}>Services</Link>
-            <Link to="/features" className={`text-lg transition-colors ${isActive('/features')}`}>Features</Link>
+            <PrefetchLink to="/products" component={() => import('../pages/Products')} className={`text-lg transition-colors ${isActive('/products')}`}>Services</PrefetchLink>
+            <PrefetchLink to="/features" component={() => import('../pages/Features')} className={`text-lg transition-colors ${isActive('/features')}`}>Features</PrefetchLink>
             
             {currentUser && (
               <Link
