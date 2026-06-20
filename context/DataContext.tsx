@@ -49,6 +49,7 @@ interface DataContextType {
   deleteState: (id: string) => Promise<void>;
 
   addUser: (user: User) => void;
+  updateUserRole: (id: string, role: User['role']) => Promise<void>;
   deleteUser: (id: string) => void;
   addVendorLogo: (asset: VendorAsset) => Promise<void>;
   deleteVendorLogo: (id: string) => Promise<void>;
@@ -479,12 +480,101 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateLeadStatus = async (id: string, status: Lead['status']) => {
-    if (supabase) await supabase.from('leads').update({ status }).eq('id', id);
+    if (supabase) {
+      await supabase.from('leads').update({ status }).eq('id', id);
+
+      // Trigger Status Change Emails
+      const lead = leads.find(l => l.id === id);
+      if (lead) {
+        // Notify User
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: lead.email,
+            type: 'lead_status_change',
+            referenceId: lead.id,
+            data: {
+              name: lead.name,
+              newStatus: status,
+              referenceId: lead.id,
+              serviceName: lead.service
+            }
+          })
+        }).catch(err => console.error('Status change user notification error:', err));
+
+        // Notify Vendor if assigned
+        if (lead.assignedTo) {
+          const vendor = users.find(u => u.id === lead.assignedTo);
+          if (vendor) {
+            fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to: vendor.email,
+                type: 'lead_status_change',
+                vendorId: vendor.id,
+                referenceId: lead.id,
+                data: {
+                  name: vendor.name,
+                  newStatus: status,
+                  referenceId: lead.id,
+                  serviceName: lead.service
+                }
+              })
+            }).catch(err => console.error('Status change vendor notification error:', err));
+          }
+        }
+      }
+    }
     fetchData();
   };
 
   const assignLead = async (id: string, vendorId: string) => {
-    if (supabase) await supabase.from('leads').update({ assigned_to: vendorId }).eq('id', id);
+    if (supabase) {
+      await supabase.from('leads').update({ assigned_to: vendorId }).eq('id', id);
+
+      const lead = leads.find(l => l.id === id);
+      const vendor = users.find(u => u.id === vendorId);
+
+      if (lead && vendor) {
+        // Trigger Vendor Lead Assignment Email
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: vendor.email,
+            type: 'vendor_lead_assignment',
+            vendorId: vendor.id,
+            referenceId: lead.id,
+            data: {
+              vendorName: vendor.name,
+              referenceId: lead.id,
+              serviceName: lead.service,
+              customerCompany: lead.company,
+              date: new Date().toISOString().split('T')[0]
+            }
+          })
+        }).catch(err => console.error('Vendor assignment email error:', err));
+
+        // Trigger User Vendor Assigned Email
+        fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: lead.email,
+            type: 'user_vendor_assigned',
+            referenceId: lead.id,
+            data: {
+              userName: lead.name,
+              referenceId: lead.id,
+              serviceName: lead.service,
+              vendorCompanyName: vendor.company || vendor.name
+            }
+          })
+        }).catch(err => console.error('User vendor assigned email error:', err));
+      }
+    }
     fetchData();
   };
 
@@ -600,6 +690,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addUser = (user: User) => setUsers(prev => [...prev, user]);
+
+  const updateUserRole = async (id: string, role: User['role']) => {
+    if (supabase) {
+      await supabase.from('users').update({ role }).eq('id', id);
+
+      if (role === 'vendor') {
+        const user = users.find(u => u.id === id);
+        if (user) {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: user.email,
+              type: 'vendor_welcome',
+              vendorId: user.id,
+              data: {
+                vendorName: user.name,
+                companyName: user.company || 'Your Company'
+              }
+            })
+          }).catch(err => console.error('Vendor welcome email error:', err));
+        }
+      }
+      fetchData();
+    }
+  };
+
   const deleteUser = (id: string) => {
      if(supabase) supabase.from('users').delete().eq('id', id).then(() => fetchData());
   };
@@ -636,7 +753,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateSiteConfig, addCategory, updateCategory, deleteCategory,
       addCity, updateCity, deleteCity,
       addState, updateState, deleteState,
-      addUser, deleteUser, addVendorLogo, deleteVendorLogo,
+      addUser, updateUserRole, deleteUser, addVendorLogo, deleteVendorLogo,
       addVendorRegistration, addNotification, removeNotification,
       toggleCompare, clearCompare
     }}>

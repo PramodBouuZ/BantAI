@@ -39,6 +39,22 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ setCurrentUser }) => {
           joinedDate: user.created_at
         });
 
+        // Trigger User Welcome Email (Send only once - handled by duplicate prevention in API)
+        if (role === 'user') {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: user.email,
+              type: 'user_welcome',
+              userId: user.id,
+              data: {
+                userName: meta.full_name || meta.name || 'User'
+              }
+            })
+          }).catch(err => console.error('Welcome email error:', err));
+        }
+
         // Redirect to /dashboard which App.tsx handles for role-based routing
         navigate('/dashboard', { replace: true });
       } else {

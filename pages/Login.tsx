@@ -94,7 +94,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-        redirectTo: window.location.origin + window.location.pathname + '#/login',
+        redirectTo: window.location.origin + '/reset-password',
       });
       if (error) throw error;
       setSuccessMsg("Password reset link sent to your email!");

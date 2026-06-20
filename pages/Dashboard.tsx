@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext';
 import { 
   Download, Plus, Trash2, Edit2, Save, X, Settings, Layout, Users, ShoppingBag, Menu, Image as ImageIcon, Briefcase, FileText, Upload,
   Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, CheckCircle2, IndianRupee, Star, ExternalLink, Globe, Phone, MapPin,
+  Building2,
   Zap, Mail, Camera, UserCheck, PlusCircle, Trash, Newspaper, Search, MoreVertical, Archive, ArrowRight, Calendar, User as UserIcon,
   BarChart, Activity, Link as LinkIcon, Eye
 } from 'lucide-react';
@@ -162,6 +163,90 @@ const SEOFieldGroup: React.FC<{
   );
 };
 
+const EmailAnalytics: React.FC = () => {
+    const [logs, setLogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { supabase } = useData() as any;
+
+    useEffect(() => {
+        const fetchLogs = async () => {
+            if (supabase) {
+                const { data, error } = await supabase.from('email_logs').select('*').order('created_at', { ascending: false });
+                if (!error) setLogs(data || []);
+            }
+            setLoading(false);
+        };
+        fetchLogs();
+    }, [supabase]);
+
+    const stats = {
+        total: logs.length,
+        sent: logs.filter(l => l.status === 'sent').length,
+        failed: logs.filter(l => l.status === 'failed').length,
+        welcome: logs.filter(l => l.email_type === 'user_welcome' || l.email_type === 'vendor_welcome').length,
+        enquiry: logs.filter(l => l.email_type === 'enquiry_confirmation' || l.email_type === 'admin_new_lead').length,
+        vendor: logs.filter(l => l.email_type?.includes('vendor')).length
+    };
+
+    if (loading) return <div className="p-10 text-center font-bold text-slate-400">Loading Email Analytics...</div>;
+
+    return (
+        <div className="space-y-10 animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                {[
+                    { label: 'Total Sent', value: stats.total, color: 'blue', icon: Mail },
+                    { label: 'Delivery %', value: stats.total ? Math.round((stats.sent / stats.total) * 100) + '%' : '0%', color: 'green', icon: CheckCircle2 },
+                    { label: 'Failed', value: stats.failed, color: 'red', icon: AlertCircle },
+                    { label: 'Welcome', value: stats.welcome, color: 'indigo', icon: Zap },
+                    { label: 'Enquiries', value: stats.enquiry, color: 'purple', icon: MessageSquare },
+                    { label: 'Vendor', value: stats.vendor, color: 'orange', icon: Building2 },
+                ].map((s, i) => (
+                    <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                        <div className={`w-10 h-10 rounded-xl bg-${s.color === 'orange' ? 'yellow' : s.color}-50 flex items-center justify-center text-${s.color === 'orange' ? 'yellow' : s.color}-600 mb-4`}><s.icon size={20} /></div>
+                        <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">{s.label}</div>
+                        <div className="text-2xl font-black text-slate-900">{s.value}</div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h4 className="font-black text-slate-900 uppercase tracking-tight">Recent Delivery Logs</h4>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-slate-100">
+                                <th className="px-8 py-5">Recipient</th>
+                                <th className="px-8 py-5">Email Type</th>
+                                <th className="px-8 py-5">Status</th>
+                                <th className="px-8 py-5">Reference</th>
+                                <th className="px-8 py-5">Sent At</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {logs.map(log => (
+                                <tr key={log.id} className="hover:bg-slate-50/30 transition-colors">
+                                    <td className="px-8 py-5 font-bold text-slate-700 text-sm">{log.email}</td>
+                                    <td className="px-8 py-5"><span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black uppercase text-slate-500">{log.email_type}</span></td>
+                                    <td className="px-8 py-5">
+                                        <span className={`flex items-center gap-1.5 text-[10px] font-black uppercase ${log.status === 'sent' ? 'text-green-600' : 'text-red-500'}`}>
+                                            {log.status === 'sent' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />} {log.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-5 text-xs font-medium text-slate-400">{log.reference_id || 'N/A'}</td>
+                                    <td className="px-8 py-5 text-xs font-bold text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
+                                </tr>
+                            ))}
+                            {logs.length === 0 && <tr><td colSpan={5} className="p-10 text-center font-bold text-slate-300">No email logs found.</td></tr>}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const navigate = useNavigate();
 
@@ -187,7 +272,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     deleteUser, addVendorLogo, deleteVendorLogo, addNotification
   } = useData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'blogs' | 'categories' | 'users' | 'requests' | 'settings' | 'logos' | 'seo' | 'locations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'blogs' | 'categories' | 'users' | 'requests' | 'settings' | 'logos' | 'seo' | 'locations' | 'emails'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Product Modal State
@@ -292,6 +377,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                   { id: 'leads', icon: FileText, label: 'Leads Hub' },
                   { id: 'requests', icon: MessageSquare, label: 'Vendor Queue' },
                   { id: 'users', icon: Users, label: 'Users' },
+                  { id: 'emails', icon: Mail, label: 'Email Analytics' },
                   { id: 'seo', icon: BarChart, label: 'SEO Manager' },
                   { id: 'products', icon: ShoppingBag, label: 'Services' },
                   { id: 'blogs', icon: Newspaper, label: 'Insights' },
@@ -826,7 +912,49 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             {activeTab === 'users' && (
               <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
                   <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-slate-50/30"><h3 className="text-3xl font-black text-slate-900">User Identity Directory</h3></div>
-                  <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-gray-100"><th className="px-10 py-6">User Account Profile</th><th className="px-10 py-6">Global Identity & Role</th><th className="px-10 py-6">Registration Date</th><th className="px-10 py-6">Action</th></tr></thead><tbody className="divide-y divide-gray-100">{users.map(u => (<tr key={u.id} className="hover:bg-slate-50/50 group"><td className="px-10 py-7"><div className="font-black text-slate-900 text-lg">{u.name}</div><div className="text-xs font-bold text-slate-400 mt-0.5">{u.email}</div></td><td className="px-10 py-7"><span className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${u.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100' : u.role === 'vendor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>{u.role}</span></td><td className="px-10 py-7 font-bold text-slate-400 text-sm tracking-tight">{u.joinedDate?.split('T')[0]}</td><td className="px-10 py-7"><button onClick={() => { if(window.confirm('Revoke access?')) deleteUser(u.id); }} className="p-3 bg-slate-50 text-slate-300 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={22} /></button></td></tr>))}</tbody></table></div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-gray-100">
+                          <th className="px-10 py-6">User Account Profile</th>
+                          <th className="px-10 py-6">Global Identity & Role</th>
+                          <th className="px-10 py-6">Registration Date</th>
+                          <th className="px-10 py-6">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {users.map(u => (
+                          <tr key={u.id} className="hover:bg-slate-50/50 group">
+                            <td className="px-10 py-7">
+                              <div className="font-black text-slate-900 text-lg">{u.name}</div>
+                              <div className="text-xs font-bold text-slate-400 mt-0.5">{u.email}</div>
+                            </td>
+                            <td className="px-10 py-7">
+                              <select
+                                value={u.role || 'user'}
+                                onChange={(e) => useData().updateUserRole(u.id, e.target.value as any)}
+                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border outline-none ${
+                                  u.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100' :
+                                  u.role === 'vendor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                                  'bg-blue-50 text-blue-600 border-blue-100'
+                                }`}
+                              >
+                                <option value="user">User</option>
+                                <option value="vendor">Vendor</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                            </td>
+                            <td className="px-10 py-7 font-bold text-slate-400 text-sm tracking-tight">{u.joinedDate?.split('T')[0]}</td>
+                            <td className="px-10 py-7">
+                              <button onClick={() => { if(window.confirm('Revoke access?')) deleteUser(u.id); }} className="p-3 bg-slate-50 text-slate-300 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                                <Trash2 size={22} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
               </div>
             )}
             {activeTab === 'categories' && (
@@ -904,6 +1032,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               </div>
             )}
             {activeTab === 'settings' && renderSettings()}
+            {activeTab === 'emails' && <EmailAnalytics />}
         </main>
       </div>
 
