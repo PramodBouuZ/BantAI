@@ -15,6 +15,9 @@ type EmailType =
   | 'user_welcome'
   | 'enquiry_confirmation'
   | 'vendor_welcome'
+  | 'vendor_approval'
+  | 'vendor_rejected'
+  | 'manual_vendor_welcome'
   | 'admin_new_vendor'
   | 'vendor_lead_assignment'
   | 'user_vendor_assigned'
@@ -95,17 +98,76 @@ const getEmailTemplate = (type: EmailType, data: any) => {
         subject: 'Welcome to BANTConfirm Partner Network',
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #4f46e5;">Account Activated!</h2>
-            <p>Dear ${data.vendorName} (${data.companyName}),</p>
-            <p>Thank you for joining BANTConfirm. Your vendor account is now active and ready to receive qualified business enquiries.</p>
+            <h2 style="color: #4f46e5;">Welcome to BANTConfirm!</h2>
+            <p>Hi ${data.vendorName},</p>
+            <p>Thank you for joining the BANTConfirm Partner Network as <strong>${data.companyName}</strong>.</p>
+            <p>Your vendor registration has been received successfully. Our team will review and verify your profile shortly.</p>
+            <p><strong>Platform Benefits:</strong></p>
+            <ul>
+              <li>Access to AI-qualified business leads</li>
+              <li>Verified BANT requirements</li>
+              <li>Direct dashboard for enquiry management</li>
+              <li>Performance tracking and analytics</li>
+            </ul>
+            <p>Once approved, you will start receiving qualified business enquiries from BANTConfirm.</p>
+            <div style="margin: 30px 0;">
+              <a href="https://www.bantconfirm.com/dashboard" style="background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Dashboard</a>
+            </div>
+            <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">Team BANTConfirm</p>
+          </div>
+        `
+      };
+    case 'vendor_approval':
+      return {
+        subject: 'Your Vendor Account Has Been Approved | BANTConfirm',
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #10b981;">Congratulations!</h2>
+            <p>Dear ${data.vendorName},</p>
+            <p>Your vendor account for <strong>${data.companyName}</strong> has been verified and activated.</p>
             <p>You can now:</p>
             <ul>
-              <li>Manage leads assigned to you.</li>
-              <li>Update your company profile.</li>
-              <li>Track your performance.</li>
+              <li>Receive Business Leads</li>
+              <li>Manage Enquiries</li>
+              <li>Update Products & Services</li>
+              <li>Track Lead Status</li>
             </ul>
             <div style="margin: 30px 0;">
-              <a href="https://www.bantconfirm.com/dashboard" style="background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Vendor Dashboard</a>
+              <a href="https://www.bantconfirm.com/login" style="background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Dashboard Login</a>
+            </div>
+            <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">Team BANTConfirm</p>
+          </div>
+        `
+      };
+    case 'vendor_rejected':
+      return {
+        subject: 'Update Regarding Your Vendor Registration | BANTConfirm',
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #ef4444;">Registration Update</h2>
+            <p>Hi ${data.vendorName},</p>
+            <p>Thank you for your interest in joining BANTConfirm. After reviewing your application for <strong>${data.companyName}</strong>, we regret to inform you that we cannot approve your vendor account at this time.</p>
+            <p>Reason: ${data.reason || 'Does not meet our current partner criteria.'}</p>
+            <p>If you have any questions, feel free to contact our support team.</p>
+            <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">Team BANTConfirm</p>
+          </div>
+        `
+      };
+    case 'manual_vendor_welcome':
+      return {
+        subject: 'Your BANTConfirm Vendor Account Credentials',
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #4f46e5;">Welcome to BANTConfirm!</h2>
+            <p>Hi ${data.vendorName},</p>
+            <p>An administrator has created a vendor account for <strong>${data.companyName}</strong> on BANTConfirm.</p>
+            <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Login Email:</strong> ${data.email}</p>
+              <p><strong>Temporary Password:</strong> ${data.password}</p>
+            </div>
+            <p><strong>Note:</strong> You will be required to change your password upon your first login.</p>
+            <div style="margin: 30px 0;">
+              <a href="https://www.bantconfirm.com/login" style="background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Login Now</a>
             </div>
             <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">Team BANTConfirm</p>
           </div>
@@ -138,13 +200,13 @@ const getEmailTemplate = (type: EmailType, data: any) => {
             <p>You have been assigned a new qualified business enquiry on BANTConfirm.</p>
             <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <p><strong>Requirement ID:</strong> ${data.referenceId}</p>
+              <p><strong>Customer Name:</strong> ${data.customerName}</p>
               <p><strong>Product/Service:</strong> ${data.serviceName}</p>
-              <p><strong>Customer Company:</strong> ${data.customerCompany}</p>
               <p><strong>Assignment Date:</strong> ${data.date}</p>
             </div>
             <p>Please login to your vendor dashboard to review and respond.</p>
             <div style="margin: 30px 0;">
-              <a href="https://www.bantconfirm.com/dashboard" style="background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Lead Details</a>
+              <a href="https://www.bantconfirm.com/dashboard" style="background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Lead</a>
             </div>
             <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">Team BANTConfirm</p>
           </div>

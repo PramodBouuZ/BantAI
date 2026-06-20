@@ -36,20 +36,34 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
       if (supabase) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
           const user = session.user;
           const meta = user.user_metadata || {};
-          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
 
           setCurrentUser({
             id: user.id,
-            name: meta.full_name || meta.name || 'User',
+            name: userData?.full_name || meta.full_name || meta.name || 'User',
             email: user.email || '',
             role: role as any,
-            joinedDate: user.created_at
+            joinedDate: user.created_at,
+            company: userData?.company,
+            status: userData?.status,
+            logoUrl: userData?.logo_url,
+            isFirstLogin: userData?.is_first_login
           });
 
-          const targetPath = from || '/dashboard';
-          navigate(targetPath + search, { replace: true });
+          const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
+          if (userData?.is_first_login) {
+            navigate('/reset-password?force=true');
+          } else {
+            navigate(targetPath + search, { replace: true });
+          }
           return;
         }
       }
@@ -129,19 +143,33 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            if (error) throw error;
            
            if (data.session) {
+             const { data: userData } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', data.user!.id)
+              .single();
+
              const meta = data.user?.user_metadata || {};
-             const role = data.user!.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+             const role = data.user!.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
              setCurrentUser({
                 id: data.user!.id,
-                name: meta.full_name || formData.name || 'User',
+                name: userData?.full_name || meta.full_name || formData.name || 'User',
                 email: data.user!.email || formData.email,
                 role: role as any,
-                joinedDate: new Date().toISOString()
+                joinedDate: new Date().toISOString(),
+                company: userData?.company,
+                status: userData?.status,
+                logoUrl: userData?.logo_url,
+                isFirstLogin: userData?.is_first_login
              });
              setSuccessMsg("Welcome! Your account is ready.");
 
              const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
-             setTimeout(() => navigate(targetPath + search), 1000);
+             if (userData?.is_first_login) {
+                setTimeout(() => navigate('/reset-password?force=true'), 1000);
+             } else {
+                setTimeout(() => navigate(targetPath + search), 1000);
+             }
            } else {
              setSuccessMsg("Account created! Please check your email for a confirmation link.");
            }
@@ -152,18 +180,32 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
            });
            if (error) throw error;
            if (data.user) {
+             const { data: userData } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+
              const meta = data.user.user_metadata || {};
-             const role = data.user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+             const role = data.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
              setCurrentUser({
                 id: data.user.id,
-                name: meta.full_name || 'User',
+                name: userData?.full_name || meta.full_name || 'User',
                 email: data.user.email || '',
                 role: role as any,
-                joinedDate: new Date().toISOString()
+                joinedDate: new Date().toISOString(),
+                company: userData?.company,
+                status: userData?.status,
+                logoUrl: userData?.logo_url,
+                isFirstLogin: userData?.is_first_login
              });
 
              const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
-             navigate(targetPath + search);
+             if (userData?.is_first_login) {
+               navigate('/reset-password?force=true');
+             } else {
+               navigate(targetPath + search);
+             }
            }
         }
       } catch (err: any) {

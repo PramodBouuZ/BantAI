@@ -89,6 +89,7 @@ export interface Lead {
 }
 
 export type UserRole = 'user' | 'vendor' | 'admin' | null;
+export type VendorStatus = 'Pending' | 'Verified' | 'Rejected' | 'Suspended';
 
 export interface User {
   id: string;
@@ -99,6 +100,13 @@ export interface User {
   company?: string;
   location?: string;
   joinedDate: string;
+  status?: VendorStatus;
+  verificationDate?: string;
+  verifiedBy?: string;
+  products?: string[];
+  services?: string[];
+  logoUrl?: string;
+  isFirstLogin?: boolean;
 }
 
 export interface VendorAsset {
