@@ -6,9 +6,10 @@ import {
   Twitter, Linkedin, Facebook, Instagram, Tag, MessageSquare, CheckCircle2, IndianRupee, Star, ExternalLink, Globe, Phone, MapPin,
   Building2,
   Zap, Mail, Camera, UserCheck, PlusCircle, Trash, Newspaper, Search, MoreVertical, Archive, ArrowRight, Calendar, User as UserIcon,
-  BarChart, Activity, Link as LinkIcon, Eye
+  BarChart, Activity, Link as LinkIcon, Eye, ShieldCheck, AlertCircle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { uploadBase64Image } from '../lib/storage';
 
 interface DashboardProps {
   currentUser: User | null;
@@ -25,13 +26,14 @@ const ImageUploadZone: React.FC<{
   onClear: () => void;
   className?: string;
   aspectRatio?: string;
-}> = ({ label, value, onUpload, onClear, className = "", aspectRatio = "aspect-video" }) => {
+    loading?: boolean;
+  }> = ({ label, value, onUpload, onClear, className = "", aspectRatio = "aspect-video", loading = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-        alert('Only PNG, JPG, or JPEG files are allowed.');
+        if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
+          alert('Only PNG, JPG, JPEG, or WEBP files are allowed.');
         return;
       }
       const reader = new FileReader();
@@ -53,12 +55,18 @@ const ImageUploadZone: React.FC<{
           </div>
         ) : (
           <div className="text-center p-4">
-            <div className="bg-white p-3 rounded-xl shadow-sm text-slate-400 mx-auto mb-2 inline-block"><Upload size={24} /></div>
-            <p className="text-sm font-bold text-slate-600">Click to upload</p>
-            <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">PNG, JPG, JPEG</p>
+            {loading ? (
+               <div className="animate-spin text-blue-600"><Zap size={24} /></div>
+            ) : (
+               <>
+                 <div className="bg-white p-3 rounded-xl shadow-sm text-slate-400 mx-auto mb-2 inline-block"><Upload size={24} /></div>
+                 <p className="text-sm font-bold text-slate-600">Click to upload</p>
+                 <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-tighter">PNG, JPG, JPEG, WEBP</p>
+               </>
+            )}
           </div>
         )}
-        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" onChange={handleChange} />
+        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="hidden" onChange={handleChange} />
       </div>
     </div>
   );
@@ -269,11 +277,15 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     addCategory, updateCategory, deleteCategory,
     addCity, updateCity, deleteCity,
     addState, updateState, deleteState,
-    deleteUser, addVendorLogo, deleteVendorLogo, addNotification
+    deleteUser, addVendorLogo, deleteVendorLogo, addNotification,
+    updateVendorStatus, createVendorManual, updateUserRole
   } = useData();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'products' | 'blogs' | 'categories' | 'users' | 'requests' | 'settings' | 'logos' | 'seo' | 'locations' | 'emails'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'vendors' | 'products' | 'blogs' | 'categories' | 'users' | 'requests' | 'settings' | 'logos' | 'seo' | 'locations' | 'emails'>('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedVendorForLeads, setSelectedVendorForLeads] = useState<User | null>(null);
+  const [selectedVendorForEmails, setSelectedVendorForEmails] = useState<User | null>(null);
+  const [vendorEmailLogs, setVendorEmailLogs] = useState<any[]>([]);
 
   // Product Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -281,10 +293,17 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const [prodForm, setProdForm] = useState<Partial<Product>>({ title: '', description: '', category: '', priceRange: '', image: '', features: [], icon: 'globe', rating: 5, vendorName: '', technicalSpecs: [] });
   const [prodFeaturesText, setProdFeaturesText] = useState('');
 
+  const [isLogoSubmitting, setIsLogoSubmitting] = useState(false);
+
   // Blog Modal State
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
   const [blogForm, setBlogForm] = useState<Partial<BlogPost>>({ title: '', content: '', category: 'Marketplace', image: '', author: 'Admin' });
+
+  // Vendor Modal State
+  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+  const [vendorForm, setVendorForm] = useState<Partial<User>>({ name: '', company: '', email: '', mobile: '', location: '', products: [], services: [], logoUrl: '' });
+  const [isSubmittingVendor, setIsSubmittingVendor] = useState(false);
 
   // Location Modal State
   const [isLocModalOpen, setIsLocModalOpen] = useState(false);
@@ -299,6 +318,20 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const registeredVendors = users.filter(u => u.role === 'vendor');
 
   useEffect(() => { if (siteConfig) setConfigForm(siteConfig); }, [siteConfig]);
+
+  useEffect(() => {
+    const fetchVendorEmails = async () => {
+      if (selectedVendorForEmails && (useData() as any).supabase) {
+        const { data } = await (useData() as any).supabase
+          .from('email_logs')
+          .select('*')
+          .eq('vendor_id', selectedVendorForEmails.id)
+          .order('created_at', { ascending: false });
+        setVendorEmailLogs(data || []);
+      }
+    };
+    fetchVendorEmails();
+  }, [selectedVendorForEmails]);
 
   const handleSaveProduct = async () => {
       const features = prodFeaturesText.split(',').map(f => f.trim()).filter(f => f);
@@ -375,6 +408,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
               {[
                   { id: 'overview', icon: Layout, label: 'Overview' },
                   { id: 'leads', icon: FileText, label: 'Leads Hub' },
+          { id: 'vendors', icon: ShieldCheck, label: 'Vendor Manager' },
                   { id: 'requests', icon: MessageSquare, label: 'Vendor Queue' },
                   { id: 'users', icon: Users, label: 'Users' },
                   { id: 'emails', icon: Mail, label: 'Email Analytics' },
@@ -394,15 +428,18 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
       </div>
   );
 
-  const renderOverview = () => (
+  const renderOverview = () => {
+    const stats = [
+      { title: 'Total Leads', value: leads.length.toString(), change: leads.filter(l => l.assignedTo).length + ' Assigned', isPositive: true, color: 'blue' as const, icon: FileText },
+      { title: 'Total Vendors', value: users.filter(u => u.role === 'vendor').length.toString(), change: users.filter(u => u.role === 'vendor' && u.status === 'Pending').length + ' Pending', isPositive: false, color: 'indigo', icon: Building2 },
+      { title: 'Verified Partners', value: users.filter(u => u.role === 'vendor' && u.status === 'Verified').length.toString(), change: 'Verified', isPositive: true, color: 'green', icon: ShieldCheck },
+      { title: 'Vendor Requests', value: vendorRegistrations.length.toString(), change: 'Queue', isPositive: false, color: 'purple', icon: MessageSquare },
+    ];
+
+    return (
     <div className="space-y-10 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {[
-          { title: 'Total Leads', value: leads.length.toString(), change: '+12%', isPositive: true, color: 'blue', icon: FileText },
-          { title: 'Active Services', value: products.length.toString(), change: '+5%', isPositive: true, color: 'indigo', icon: ShoppingBag },
-          { title: 'Vendor Requests', value: vendorRegistrations.length.toString(), change: 'Pending', isPositive: false, color: 'purple', icon: MessageSquare },
-          { title: 'Platform Users', value: users.length.toString(), change: '+18%', isPositive: true, color: 'green', icon: Users },
-        ].map((stat, i) => (
+        {stats.map((stat, i) => (
           <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
             <div className={`w-14 h-14 rounded-2xl bg-${stat.color === 'indigo' ? 'blue' : stat.color}-50 flex items-center justify-center text-${stat.color === 'indigo' ? 'blue' : stat.color}-600 mb-6 group-hover:scale-110 transition-transform`}>
               <stat.icon size={28} />
@@ -470,7 +507,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
         </div>
       </div>
     </div>
-  );
+  ); };
 
   const renderLeads = () => (
     <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
@@ -559,7 +596,11 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                           className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-[11px] font-bold outline-none shadow-sm focus:ring-2 focus:ring-blue-100 transition-all"
                         >
                           <option value="">Unassigned...</option>
-                          {registeredVendors.map(v => <option key={v.id} value={v.id}>{v.name} ({v.company || 'Partner'})</option>)}
+                          {registeredVendors.map(v => (
+                            <option key={v.id} value={v.id} disabled={v.status !== 'Verified'}>
+                              {v.name} ({v.company || 'Partner'}) {v.status !== 'Verified' ? `[${v.status}]` : ''}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -822,8 +863,32 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
           <SEOFieldGroup data={configForm} onChange={d => setConfigForm({...configForm, ...d})} defaultTitle={configForm.siteName} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <ImageUploadZone label="Marketplace Identity Logo" value={configForm.logoUrl} onUpload={b => setConfigForm({...configForm, logoUrl: b})} onClear={() => setConfigForm({...configForm, logoUrl: ''})} aspectRatio="aspect-video max-w-[280px]" />
-            <ImageUploadZone label="Browser App Favicon (192px)" value={configForm.faviconUrl} onUpload={b => setConfigForm({...configForm, faviconUrl: b})} onClear={() => setConfigForm({...configForm, faviconUrl: ''})} aspectRatio="aspect-square max-w-[140px]" />
+            <ImageUploadZone
+              label="Marketplace Identity Logo"
+              value={configForm.logoUrl}
+              loading={isLogoSubmitting}
+              onUpload={async (b) => {
+                setIsLogoSubmitting(true);
+                const url = await uploadBase64Image(b, 'site-assets');
+                if (url) setConfigForm({...configForm, logoUrl: url});
+                setIsLogoSubmitting(false);
+              }}
+              onClear={() => setConfigForm({...configForm, logoUrl: ''})}
+              aspectRatio="aspect-video max-w-[280px]"
+            />
+            <ImageUploadZone
+              label="Browser App Favicon (192px)"
+              value={configForm.faviconUrl}
+              loading={isLogoSubmitting}
+              onUpload={async (b) => {
+                setIsLogoSubmitting(true);
+                const url = await uploadBase64Image(b, 'site-assets');
+                if (url) setConfigForm({...configForm, faviconUrl: url});
+                setIsLogoSubmitting(false);
+              }}
+              onClear={() => setConfigForm({...configForm, faviconUrl: ''})}
+              aspectRatio="aspect-square max-w-[140px]"
+            />
           </div>
 
           <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 shadow-inner">
@@ -909,6 +974,109 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             {activeTab === 'blogs' && renderBlogs()}
             {activeTab === 'seo' && renderSEOManger()}
             {activeTab === 'locations' && renderLocations()}
+            {activeTab === 'vendors' && (
+              <div className="space-y-8 animate-fade-in">
+                <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm flex justify-between items-center">
+                  <div>
+                    <h3 className="text-3xl font-black text-slate-900">Vendor Management</h3>
+                    <p className="text-sm font-medium text-slate-400">Verify partners, manage status and manual onboarding</p>
+                  </div>
+                  <button onClick={() => { setVendorForm({ name: '', company: '', email: '', mobile: '', location: '', products: [], services: [] }); setIsVendorModalOpen(true); }} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-sm flex items-center shadow-xl hover:bg-indigo-700 transition transform hover:-translate-y-1">
+                    <PlusCircle size={20} className="mr-2" /> Manual Onboarding
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-gray-100">
+                          <th className="px-10 py-6">Vendor Identity</th>
+                          <th className="px-10 py-6">Company & Assets</th>
+                          <th className="px-10 py-6">Verification Status</th>
+                          <th className="px-10 py-6">Lead Capacity</th>
+                          <th className="px-10 py-6">Admin Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {users.filter(u => u.role === 'vendor').map(v => (
+                          <tr key={v.id} className="hover:bg-slate-50/50 group transition-colors">
+                            <td className="px-10 py-7">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
+                                  {v.logoUrl ? <img src={v.logoUrl} className="w-full h-full object-contain" alt="Logo" /> : <Building2 size={24} className="text-slate-300" />}
+                                </div>
+                                <div>
+                                  <div className="font-black text-slate-900 text-lg flex items-center gap-2">
+                                    {v.name} {v.status === 'Verified' && <CheckCircle2 size={16} className="text-blue-500" />}
+                                  </div>
+                                  <div className="text-xs font-bold text-slate-400">{v.email}</div>
+                                  <div className="text-[10px] font-black text-slate-300 uppercase tracking-tighter mt-1">Joined: {v.joinedDate?.split('T')[0]}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-10 py-7">
+                               <div className="text-sm font-black text-slate-700">{v.company || 'Not Specified'}</div>
+                               <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 mt-1"><MapPin size={12}/> {v.location || 'Pan India'}</div>
+                               <div className="flex flex-wrap gap-1 mt-3">
+                                  {v.products?.slice(0, 2).map(p => <span key={p} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[9px] font-black uppercase">{p}</span>)}
+                               </div>
+                            </td>
+                            <td className="px-10 py-7">
+                               <div className="space-y-2">
+                                 <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+                                   v.status === 'Verified' ? 'bg-green-50 text-green-700 border-green-100' :
+                                   v.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+                                   v.status === 'Suspended' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                   'bg-red-50 text-red-700 border-red-100'
+                                 }`}>
+                                   {v.status || 'Pending'}
+                                 </span>
+                                 {v.verificationDate && (
+                                   <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                     Verified: {new Date(v.verificationDate).toLocaleDateString()}
+                                   </div>
+                                 )}
+                               </div>
+                            </td>
+                            <td className="px-10 py-7">
+                               <div className="flex items-center gap-2">
+                                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xs">
+                                    {leads.filter(l => l.assignedTo === v.id).length}
+                                  </div>
+                                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Leads Assigned</div>
+                               </div>
+                            </td>
+                            <td className="px-10 py-7">
+                               <div className="flex gap-2">
+                                  {v.status === 'Pending' && (
+                                    <>
+                                      <button onClick={() => updateVendorStatus(v.id, 'Verified')} className="p-2.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-sm" title="Verify Vendor"><CheckCircle2 size={18}/></button>
+                                      <button onClick={() => { const reason = prompt('Reason for rejection:'); if(reason) updateVendorStatus(v.id, 'Rejected', reason); }} className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-all shadow-sm" title="Reject Vendor"><X size={18}/></button>
+                                    </>
+                                  )}
+                                  {v.status === 'Verified' && (
+                                    <button onClick={() => updateVendorStatus(v.id, 'Suspended')} className="p-2.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-xl transition-all shadow-sm" title="Suspend Vendor"><Archive size={18}/></button>
+                                  )}
+                                  {v.status === 'Suspended' && (
+                                    <button onClick={() => updateVendorStatus(v.id, 'Verified')} className="p-2.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-sm" title="Reactivate Vendor"><Zap size={18}/></button>
+                                  )}
+                                  <button onClick={() => setSelectedVendorForLeads(v)} className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-all shadow-sm" title="View Assigned Leads"><FileText size={18}/></button>
+                                  <button onClick={() => setSelectedVendorForEmails(v)} className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-all shadow-sm" title="View Email Logs"><Mail size={18}/></button>
+                                  <button onClick={() => { if(window.confirm('Delete vendor account permanently?')) deleteUser(v.id); }} className="p-2.5 bg-slate-50 text-slate-300 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 size={18}/></button>
+                               </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {users.filter(u => u.role === 'vendor').length === 0 && (
+                          <tr><td colSpan={5} className="p-20 text-center font-bold text-slate-300">No vendors registered yet.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
             {activeTab === 'users' && (
               <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
                   <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-slate-50/30"><h3 className="text-3xl font-black text-slate-900">User Identity Directory</h3></div>
@@ -932,7 +1100,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                             <td className="px-10 py-7">
                               <select
                                 value={u.role || 'user'}
-                                onChange={(e) => useData().updateUserRole(u.id, e.target.value as any)}
+                                onChange={(e) => updateUserRole(u.id, e.target.value as any)}
                                 className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border outline-none ${
                                   u.role === 'admin' ? 'bg-red-50 text-red-600 border-red-100' :
                                   u.role === 'vendor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
@@ -984,18 +1152,29 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
             )}
             {activeTab === 'requests' && (
               <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden animate-fade-in">
-                  <div className="p-10 border-b border-gray-100 bg-slate-50/30"><h3 className="text-3xl font-black text-slate-900">Partner Application Manager</h3></div>
+                  <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-slate-50/30">
+                    <div>
+                      <h3 className="text-3xl font-black text-slate-900">Partner Application Manager</h3>
+                      <p className="text-sm font-medium text-slate-400">Review new registrations and convert to vendors</p>
+                    </div>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                      <thead><tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-gray-100"><th className="px-10 py-6">Applicant Brand</th><th className="px-10 py-6">Connection Details</th><th className="px-10 py-6">Category Intent</th><th className="px-10 py-6">Pitch Message</th><th className="px-10 py-6">Submission</th></tr></thead>
+                      <thead><tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-gray-100"><th className="px-10 py-6">Applicant Brand</th><th className="px-10 py-6">Connection Details</th><th className="px-10 py-6">Category Intent</th><th className="px-10 py-6">Pitch Message</th><th className="px-10 py-6">Submission</th><th className="px-10 py-6">Action</th></tr></thead>
                       <tbody className="divide-y divide-gray-100">
                         {vendorRegistrations.map(reg => (
-                          <tr key={reg.id} className="hover:bg-slate-50/50">
+                          <tr key={reg.id} className="hover:bg-slate-50/50 group">
                             <td className="px-10 py-7"><div className="font-black text-slate-900 text-lg">{reg.companyName}</div><div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{reg.name}</div></td>
                             <td className="px-10 py-7 text-xs font-bold text-slate-600"><div>{reg.email}</div><div className="mt-1 text-slate-400">{reg.mobile}</div></td>
                             <td className="px-10 py-7"><span className="bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] border border-indigo-100 shadow-sm">{reg.productName}</span></td>
                             <td className="px-10 py-7 max-w-sm text-[12px] font-medium text-slate-500 leading-relaxed italic">"{reg.message}"</td>
                             <td className="px-10 py-7 text-xs font-bold text-slate-400 tracking-tight">{reg.date}</td>
+                            <td className="px-10 py-7">
+                               <button onClick={() => {
+                                 setVendorForm({ name: reg.name, company: reg.companyName, email: reg.email, mobile: reg.mobile, location: reg.location, products: [reg.productName] });
+                                 setIsVendorModalOpen(true);
+                               }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg">Process</button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1017,7 +1196,19 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                        </div>
                     </div>
                     <div className="mb-10">
-                       <ImageUploadZone label="Upload Partner Logo" value={newLogo.url} onUpload={b => setNewLogo({...newLogo, url: b})} onClear={() => setNewLogo({...newLogo, url: ''})} aspectRatio="aspect-video max-w-[300px]" />
+                       <ImageUploadZone
+                        label="Upload Partner Logo"
+                        value={newLogo.url}
+                        loading={isLogoSubmitting}
+                        onUpload={async (b) => {
+                          setIsLogoSubmitting(true);
+                          const url = await uploadBase64Image(b, 'partner-logos');
+                          if (url) setNewLogo({...newLogo, url: url});
+                          setIsLogoSubmitting(false);
+                        }}
+                        onClear={() => setNewLogo({...newLogo, url: ''})}
+                        aspectRatio="aspect-video max-w-[300px]"
+                      />
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
                        {vendorLogos.map(logo => (
@@ -1064,8 +1255,20 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
                 <SEOFieldGroup data={prodForm} onChange={d => setProdForm({...prodForm, ...d})} defaultTitle={prodForm.title} defaultSlug={prodForm.slug} />
 
-                <ImageUploadZone label="Marketing Banner Visual" value={prodForm.image} onUpload={b => setProdForm({...prodForm, image: b})} onClear={() => setProdForm({...prodForm, image: ''})} aspectRatio="aspect-video" />
-                <button onClick={handleSaveProduct} className="w-full bg-blue-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all transform active:scale-[0.98]">Commit Listing to Production</button>
+                <ImageUploadZone
+                  label="Marketing Banner Visual"
+                  value={prodForm.image}
+                  loading={isLogoSubmitting}
+                  onUpload={async (b) => {
+                    setIsLogoSubmitting(true);
+                    const url = await uploadBase64Image(b, 'products');
+                    if (url) setProdForm({...prodForm, image: url});
+                    setIsLogoSubmitting(false);
+                  }}
+                  onClear={() => setProdForm({...prodForm, image: ''})}
+                  aspectRatio="aspect-video"
+                />
+                <button onClick={handleSaveProduct} disabled={isLogoSubmitting} className="w-full bg-blue-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all transform active:scale-[0.98] disabled:opacity-50">Commit Listing to Production</button>
              </div>
           </div>
         </div>
@@ -1097,13 +1300,151 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
                 <SEOFieldGroup data={blogForm} onChange={d => setBlogForm({...blogForm, ...d})} defaultTitle={blogForm.title} defaultSlug={blogForm.slug} />
 
-                <ImageUploadZone label="Article Hero Banner" value={blogForm.image} onUpload={b => setBlogForm({...blogForm, image: b})} onClear={() => setBlogForm({...blogForm, image: ''})} aspectRatio="aspect-video" />
+                <ImageUploadZone
+                  label="Article Hero Banner"
+                  value={blogForm.image}
+                  loading={isLogoSubmitting}
+                  onUpload={async (b) => {
+                    setIsLogoSubmitting(true);
+                    const url = await uploadBase64Image(b, 'blogs');
+                    if (url) setBlogForm({...blogForm, image: url});
+                    setIsLogoSubmitting(false);
+                  }}
+                  onClear={() => setBlogForm({...blogForm, image: ''})}
+                  aspectRatio="aspect-video"
+                />
                 <div>
                    <label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Full Article Narrative</label>
                    <textarea rows={15} className="w-full bg-slate-50 p-8 rounded-[2.5rem] font-medium leading-relaxed outline-none border-none focus:bg-white focus:ring-4 focus:ring-indigo-50 transition-all text-base shadow-inner resize-none placeholder-slate-300" value={blogForm.content} onChange={e => setBlogForm({...blogForm, content: e.target.value})} placeholder="Craft your technical or business narrative here..." />
                 </div>
-                <button onClick={handleSaveBlog} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-xl shadow-2xl shadow-indigo-200 hover:bg-indigo-700 transition-all transform active:scale-[0.98]">Publish to Insights Hub</button>
+                <button onClick={handleSaveBlog} disabled={isLogoSubmitting} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-xl shadow-2xl shadow-indigo-200 hover:bg-indigo-700 transition-all transform active:scale-[0.98] disabled:opacity-50">Publish to Insights Hub</button>
              </div>
+          </div>
+        </div>
+      )}
+
+      {selectedVendorForEmails && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-fade-in">
+          <div className="bg-white rounded-[3.5rem] w-full max-w-4xl p-12 shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up relative">
+             <button onClick={() => setSelectedVendorForEmails(null)} className="absolute top-10 right-10 p-3 hover:bg-slate-100 rounded-2xl transition-all text-slate-400 hover:text-slate-900"><X size={28} /></button>
+             <div className="mb-12">
+                <h3 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Email History: {selectedVendorForEmails.company || selectedVendorForEmails.name}</h3>
+                <p className="text-slate-400 font-medium">Tracking all communications sent to this vendor</p>
+             </div>
+
+             <div className="overflow-x-auto rounded-3xl border border-slate-100">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] uppercase text-slate-400 font-black tracking-widest border-b border-slate-100">
+                      <th className="px-8 py-5">Email Type</th>
+                      <th className="px-8 py-5">Status</th>
+                      <th className="px-8 py-5">Sent At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {vendorEmailLogs.map(log => (
+                      <tr key={log.id}>
+                        <td className="px-8 py-5 font-bold text-slate-700">{log.email_type}</td>
+                        <td className="px-8 py-5">
+                          <span className={`text-[10px] font-black uppercase ${log.status === 'sent' ? 'text-green-600' : 'text-red-500'}`}>
+                            {log.status}
+                          </span>
+                        </td>
+                        <td className="px-8 py-5 text-xs text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                    {vendorEmailLogs.length === 0 && <tr><td colSpan={3} className="p-10 text-center font-bold text-slate-300">No email logs found.</td></tr>}
+                  </tbody>
+                </table>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {selectedVendorForLeads && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-fade-in">
+          <div className="bg-white rounded-[3.5rem] w-full max-w-4xl p-12 shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up relative">
+             <button onClick={() => setSelectedVendorForLeads(null)} className="absolute top-10 right-10 p-3 hover:bg-slate-100 rounded-2xl transition-all text-slate-400 hover:text-slate-900"><X size={28} /></button>
+             <div className="mb-12">
+                <h3 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Leads Assigned to {selectedVendorForLeads.company || selectedVendorForLeads.name}</h3>
+                <p className="text-slate-400 font-medium">Tracking performance and enquiry status for this partner</p>
+             </div>
+
+             <div className="space-y-6">
+                {leads.filter(l => l.assignedTo === selectedVendorForLeads.id).length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {leads.filter(l => l.assignedTo === selectedVendorForLeads.id).map(lead => (
+                       <div key={lead.id} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between">
+                          <div>
+                            <div className="font-black text-slate-900">{lead.service}</div>
+                            <div className="text-xs font-bold text-slate-400">{lead.name} • {lead.date}</div>
+                          </div>
+                          <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                            lead.status === 'Verified' ? 'bg-green-100 text-green-700' :
+                            lead.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>
+                            {lead.status}
+                          </div>
+                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-20 text-center text-slate-300 font-bold">No leads assigned to this vendor yet.</div>
+                )}
+             </div>
+          </div>
+        </div>
+      )}
+
+      {isVendorModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-fade-in">
+          <div className="bg-white rounded-[3.5rem] w-full max-w-4xl p-12 shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up relative">
+             <button onClick={() => setIsVendorModalOpen(false)} className="absolute top-10 right-10 p-3 hover:bg-slate-100 rounded-2xl transition-all text-slate-400 hover:text-slate-900"><X size={28} /></button>
+             <div className="mb-12">
+                <h3 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Vendor Onboarding</h3>
+                <p className="text-slate-400 font-medium">Create and verify a new vendor account on the platform</p>
+             </div>
+             <form onSubmit={async (e) => {
+               e.preventDefault();
+               setIsSubmittingVendor(true);
+               await createVendorManual(vendorForm);
+               setIsSubmittingVendor(false);
+               setIsVendorModalOpen(false);
+             }} className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div><label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Contact Person</label><input required type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-black text-slate-800 outline-none border-2 border-transparent focus:border-blue-100 focus:bg-white transition-all shadow-sm" value={vendorForm.name} onChange={e => setVendorForm({...vendorForm, name: e.target.value})} placeholder="John Doe" /></div>
+                  <div><label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Company Name</label><input required type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-black text-slate-800 outline-none border-2 border-transparent focus:border-blue-100 focus:bg-white transition-all shadow-sm" value={vendorForm.company} onChange={e => setVendorForm({...vendorForm, company: e.target.value})} placeholder="Acme Solutions" /></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div><label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Professional Email</label><input required type="email" className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold outline-none border-none text-sm shadow-sm" value={vendorForm.email} onChange={e => setVendorForm({...vendorForm, email: e.target.value})} placeholder="vendor@company.com" /></div>
+                  <div><label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Mobile Number</label><input required type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold outline-none border-none text-sm shadow-sm" value={vendorForm.mobile} onChange={e => setVendorForm({...vendorForm, mobile: e.target.value})} placeholder="+91 98765 43210" /></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div><label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Products (CSV)</label><input type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold outline-none border-none text-sm shadow-sm" value={vendorForm.products?.join(', ')} onChange={e => setVendorForm({...vendorForm, products: e.target.value.split(',').map(s => s.trim())})} placeholder="CRM, ERP, Cloud..." /></div>
+                  <div><label className="text-[10px] font-black uppercase text-slate-400 mb-2.5 block tracking-widest ml-1">Location</label><input type="text" className="w-full bg-slate-50 p-4.5 rounded-2xl font-bold outline-none border-none text-sm shadow-sm" value={vendorForm.location} onChange={e => setVendorForm({...vendorForm, location: e.target.value})} placeholder="Mumbai, MH" /></div>
+                </div>
+
+                <ImageUploadZone
+                  label="Company Brand Logo"
+                  value={vendorForm.logoUrl}
+                  loading={isLogoSubmitting}
+                  onUpload={async (b) => {
+                    setIsLogoSubmitting(true);
+                    const url = await uploadBase64Image(b, 'vendor-logos');
+                    if (url) setVendorForm({...vendorForm, logoUrl: url});
+                    setIsLogoSubmitting(false);
+                  }}
+                  onClear={() => setVendorForm({...vendorForm, logoUrl: ''})}
+                  aspectRatio="aspect-video max-w-[280px]"
+                />
+
+                <button type="submit" disabled={isSubmittingVendor || isLogoSubmitting} className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl hover:bg-indigo-700 transition-all transform active:scale-[0.98] disabled:opacity-50">
+                  {isSubmittingVendor ? 'Onboarding Vendor...' : 'Create & Verify Vendor Account'}
+                </button>
+             </form>
           </div>
         </div>
       )}

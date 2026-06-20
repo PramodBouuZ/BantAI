@@ -38,6 +38,21 @@ const VendorRegister: React.FC = () => {
 
     addVendorRegistration(newReg);
 
+    // Trigger Vendor Welcome Email
+    fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: formData.email,
+        type: 'vendor_welcome',
+        referenceId: newReg.id,
+        data: {
+          vendorName: formData.name,
+          companyName: formData.companyName
+        }
+      })
+    }).catch(err => console.error('Vendor welcome email error:', err));
+
     // Trigger Admin Notification Email
     fetch('/api/send-email', {
       method: 'POST',

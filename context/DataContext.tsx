@@ -50,6 +50,8 @@ interface DataContextType {
 
   addUser: (user: User) => void;
   updateUserRole: (id: string, role: User['role']) => Promise<void>;
+  updateVendorStatus: (id: string, status: User['status'], reason?: string) => Promise<void>;
+  createVendorManual: (vendorData: Partial<User>) => Promise<void>;
   deleteUser: (id: string) => void;
   addVendorLogo: (asset: VendorAsset) => Promise<void>;
   deleteVendorLogo: (id: string) => Promise<void>;
@@ -310,7 +312,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           mobile: u.mobile,
           company: u.company,
           location: u.location,
-          joinedDate: u.created_at || u.joined_date
+          joinedDate: u.created_at || u.joined_date,
+          status: u.status || 'Pending',
+          verificationDate: u.verification_date,
+          verifiedBy: u.verified_by,
+          products: u.products || [],
+          services: u.services || [],
+          logoUrl: u.logo_url,
+          isFirstLogin: u.is_first_login
         })));
       }
     } catch (err) {
@@ -532,10 +541,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const assignLead = async (id: string, vendorId: string) => {
     if (supabase) {
+      const vendor = users.find(u => u.id === vendorId);
+
+      if (vendor && vendor.status !== 'Verified') {
+        addNotification("Leads can only be assigned to Verified vendors.", "warning");
+        return;
+      }
+
       await supabase.from('leads').update({ assigned_to: vendorId }).eq('id', id);
 
       const lead = leads.find(l => l.id === id);
-      const vendor = users.find(u => u.id === vendorId);
 
       if (lead && vendor) {
         // Trigger Vendor Lead Assignment Email
@@ -551,7 +566,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               vendorName: vendor.name,
               referenceId: lead.id,
               serviceName: lead.service,
-              customerCompany: lead.company,
+              customerName: lead.name,
               date: new Date().toISOString().split('T')[0]
             }
           })
@@ -693,7 +708,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserRole = async (id: string, role: User['role']) => {
     if (supabase) {
-      await supabase.from('users').update({ role }).eq('id', id);
+      await supabase.from('users').update({ role, status: role === 'vendor' ? 'Pending' : null }).eq('id', id);
 
       if (role === 'vendor') {
         const user = users.find(u => u.id === id);
@@ -714,6 +729,81 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       fetchData();
+    }
+  };
+
+  const updateVendorStatus = async (id: string, status: User['status'], reason?: string) => {
+    if (supabase) {
+      const updateData: any = { status };
+      if (status === 'Verified') {
+        updateData.verification_date = new Date().toISOString();
+        updateData.verified_by = ADMIN_EMAIL;
+      }
+
+      await supabase.from('users').update(updateData).eq('id', id);
+
+      const user = users.find(u => u.id === id);
+      if (user) {
+        if (status === 'Verified') {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: user.email,
+              type: 'vendor_approval',
+              vendorId: user.id,
+              data: {
+                vendorName: user.name,
+                companyName: user.company || 'Your Company'
+              }
+            })
+          }).catch(err => console.error('Vendor approval email error:', err));
+        } else if (status === 'Rejected') {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: user.email,
+              type: 'vendor_rejected',
+              vendorId: user.id,
+              data: {
+                vendorName: user.name,
+                companyName: user.company || 'Your Company',
+                reason: reason
+              }
+            })
+          }).catch(err => console.error('Vendor rejection email error:', err));
+        }
+      }
+      fetchData();
+      addNotification(`Vendor status updated to ${status}`, 'success');
+    }
+  };
+
+  const createVendorManual = async (vendorData: Partial<User>) => {
+    try {
+      const res = await fetch('/api/create-vendor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: vendorData.name,
+          email: vendorData.email,
+          company: vendorData.company,
+          mobile: vendorData.mobile,
+          location: vendorData.location,
+          products: vendorData.products,
+          services: vendorData.services,
+          logoUrl: vendorData.logoUrl
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create vendor');
+
+      addNotification('Vendor account created successfully with Auth!', 'success');
+      fetchData();
+    } catch (err: any) {
+      addNotification(`Error creating vendor: ${err.message}`, 'error');
     }
   };
 
@@ -753,7 +843,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateSiteConfig, addCategory, updateCategory, deleteCategory,
       addCity, updateCity, deleteCity,
       addState, updateState, deleteState,
-      addUser, updateUserRole, deleteUser, addVendorLogo, deleteVendorLogo,
+      addUser, updateUserRole, updateVendorStatus, createVendorManual, deleteUser, addVendorLogo, deleteVendorLogo,
       addVendorRegistration, addNotification, removeNotification,
       toggleCompare, clearCompare
     }}>

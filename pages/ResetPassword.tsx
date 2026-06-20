@@ -1,11 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Zap, Lock, ChevronLeft, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isForceChange = searchParams.get('force') === 'true';
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -55,6 +58,12 @@ const ResetPassword: React.FC = () => {
 
       if (error) throw error;
 
+      // Update is_first_login in users table
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('users').update({ is_first_login: false }).eq('id', user.id);
+      }
+
       setSuccessMsg("Password updated successfully.");
       setTimeout(() => {
         navigate('/login');
@@ -83,8 +92,8 @@ const ResetPassword: React.FC = () => {
         </div>
 
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-black text-slate-900 mb-2">Set New Password</h2>
-          <p className="text-slate-500 font-medium">Choose a strong password for your account</p>
+          <h2 className="text-3xl font-black text-slate-900 mb-2">{isForceChange ? 'Security Update' : 'Set New Password'}</h2>
+          <p className="text-slate-500 font-medium">{isForceChange ? 'You must change your password on first login' : 'Choose a strong password for your account'}</p>
         </div>
 
         {errorMsg && (

@@ -142,34 +142,56 @@ const AppContent: React.FC = () => {
       if (supabase) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
           const meta = session.user.user_metadata || {};
           // Only info.bouuz@gmail.com can be admin
-          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
 
           setCurrentUser({ 
             id: session.user.id, 
-            name: meta.full_name || meta.name || 'User', 
+            name: userData?.full_name || meta.full_name || meta.name || 'User',
             email: session.user.email || '', 
             role: role as any,
-            joinedDate: session.user.created_at 
+            joinedDate: session.user.created_at,
+            company: userData?.company,
+            status: userData?.status,
+            logoUrl: userData?.logo_url
           });
+
+          if (userData?.is_first_login) {
+            // This logic is mostly for Login.tsx, but good to have here too
+          }
         }
       }
     };
     checkUser();
     if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
           const meta = session.user.user_metadata || {};
           // Only info.bouuz@gmail.com can be admin
-          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
 
           setCurrentUser({ 
             id: session.user.id, 
-            name: meta.full_name || meta.name || 'User', 
+            name: userData?.full_name || meta.full_name || meta.name || 'User',
             email: session.user.email || '', 
             role: role as any,
-            joinedDate: session.user.created_at 
+            joinedDate: session.user.created_at,
+            company: userData?.company,
+            status: userData?.status,
+            logoUrl: userData?.logo_url
           });
         } else if (event === 'SIGNED_OUT') { 
           setCurrentUser(null); 

@@ -22,11 +22,14 @@ const getIcon = (iconName: string) => {
 
 const ProductDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { products } = useData();
+  const { products, users } = useData();
   const navigate = useNavigate();
 
   // Find product by slug OR by ID for backward compatibility
   const product = products.find(p => p.slug === slug || p.id === slug);
+
+  // Find actual vendor if exists
+  const vendor = users.find(u => u.company === product?.vendorName || u.name === product?.vendorName);
 
   if (!product) {
     return (
@@ -39,12 +42,13 @@ const ProductDetails: React.FC = () => {
 
   // Fallback Vendor Data (Used if admin hasn't specified one)
   const vendorInfo = {
-    name: product.vendorName || (product.category === 'Telecom' ? 'Airtel Business Solutions' : 'TechIndia Systems Pvt Ltd'),
-    verifiedSince: '2021',
+    name: vendor?.company || product.vendorName || (product.category === 'Telecom' ? 'Airtel Business Solutions' : 'TechIndia Systems Pvt Ltd'),
+    verifiedSince: vendor?.joinedDate?.split('T')[0]?.split('-')[0] || '2021',
     responseTime: '< 2 hours',
     rating: product.rating || 4.9,
-    location: 'Noida, Uttar Pradesh',
-    badge: product.vendorName ? 'Certified Partner' : 'Gold Partner'
+    location: vendor?.location || 'Noida, Uttar Pradesh',
+    badge: vendor?.status === 'Verified' ? 'Verified Partner' : (product.vendorName ? 'Certified Partner' : 'Gold Partner'),
+    logo: vendor?.logoUrl
   };
 
   const seoTitle = product.metaTitle || `${product.title} Pricing, Features & Reviews | BantConfirm India`;
@@ -184,11 +188,20 @@ const ProductDetails: React.FC = () => {
           {/* Vendor Information Section */}
           <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3 mb-1">
-                  <Building2 className="text-blue-600" /> Vendor Information
-                </h2>
-                <p className="text-slate-400 font-medium">Connect directly with certified technology providers</p>
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center border border-slate-100 overflow-hidden shrink-0 shadow-inner">
+                  {vendorInfo.logo ? (
+                    <img src={vendorInfo.logo} alt={vendorInfo.name} className="w-full h-full object-contain p-2" />
+                  ) : (
+                    <Building2 className="text-slate-200" size={40} />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3 mb-1">
+                    Vendor Information
+                  </h2>
+                  <p className="text-slate-400 font-medium">{vendorInfo.name}</p>
+                </div>
               </div>
               <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-2xl border border-green-100 font-black text-xs uppercase tracking-wider">
                 <Award size={18} /> {vendorInfo.badge}
@@ -197,8 +210,10 @@ const ProductDetails: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Company Name</p>
-                <p className="font-black text-slate-800 text-lg">{vendorInfo.name}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Account Status</p>
+                <p className="font-black text-slate-800 text-lg flex items-center gap-2">
+                  {vendor?.status || 'Certified'} {vendor?.status === 'Verified' && <CheckCircle2 size={16} className="text-blue-500" />}
+                </p>
                 <div className="flex items-center gap-1.5 mt-2 text-blue-600 font-bold text-xs">
                   <UserCheck size={14} /> Verified Since {vendorInfo.verifiedSince}
                 </div>
