@@ -139,61 +139,83 @@ const AppContent: React.FC = () => {
   
   useEffect(() => {
     const checkUser = async () => {
+      console.log("App: Initializing session check...");
       if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) throw sessionError;
 
-          const meta = session.user.user_metadata || {};
-          // Only info.bouuz@gmail.com can be admin
-          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+          if (session?.user) {
+            console.log("App: Session active for", session.user.email);
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          setCurrentUser({ 
-            id: session.user.id, 
-            name: userData?.full_name || meta.full_name || meta.name || 'User',
-            email: session.user.email || '', 
-            role: role as any,
-            joinedDate: session.user.created_at,
-            company: userData?.company,
-            status: userData?.status,
-            logoUrl: userData?.logo_url
-          });
+            if (userError && userError.code !== 'PGRST116') {
+              console.error("App: User profile fetch error:", userError);
+            }
 
-          if (userData?.is_first_login) {
-            // This logic is mostly for Login.tsx, but good to have here too
+            const meta = session.user.user_metadata || {};
+            // Only info.bouuz@gmail.com can be admin
+            const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+
+            setCurrentUser({
+              id: session.user.id,
+              name: userData?.full_name || meta.full_name || meta.name || 'User',
+              email: session.user.email || '',
+              role: role as any,
+              joinedDate: session.user.created_at,
+              company: userData?.company,
+              status: userData?.status,
+              logoUrl: userData?.logo_url
+            });
+            console.log("App: Current user set to", role);
+          } else {
+            console.log("App: No initial session found.");
           }
+        } catch (err) {
+          console.error("App: Session initialization failed:", err);
         }
       }
     };
     checkUser();
     if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log(`App: Auth event triggered: ${event}`);
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          const meta = session.user.user_metadata || {};
-          // Only info.bouuz@gmail.com can be admin
-          const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+            if (userError && userError.code !== 'PGRST116') {
+              console.error("App: Auth change user fetch error:", userError);
+            }
 
-          setCurrentUser({ 
-            id: session.user.id, 
-            name: userData?.full_name || meta.full_name || meta.name || 'User',
-            email: session.user.email || '', 
-            role: role as any,
-            joinedDate: session.user.created_at,
-            company: userData?.company,
-            status: userData?.status,
-            logoUrl: userData?.logo_url
-          });
+            const meta = session.user.user_metadata || {};
+            // Only info.bouuz@gmail.com can be admin
+            const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+
+            setCurrentUser({
+              id: session.user.id,
+              name: userData?.full_name || meta.full_name || meta.name || 'User',
+              email: session.user.email || '',
+              role: role as any,
+              joinedDate: session.user.created_at,
+              company: userData?.company,
+              status: userData?.status,
+              logoUrl: userData?.logo_url
+            });
+            console.log("App: User set after auth change:", role);
+          } catch (err) {
+            console.error("App: Auth state change processing failed:", err);
+          }
         } else if (event === 'SIGNED_OUT') { 
+          console.log("App: User signed out.");
           setCurrentUser(null); 
         }
       });

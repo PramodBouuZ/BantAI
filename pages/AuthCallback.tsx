@@ -12,34 +12,50 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ setCurrentUser }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
     const handleAuthCallback = async () => {
+      console.log("AuthCallback: Processing callback...");
       if (!supabase) {
         navigate('/login');
         return;
       }
 
-      const { data, error } = await supabase.auth.getSession();
+      try {
+        const { data, error } = await supabase.auth.getSession();
 
-      if (error) {
-        console.error('Error getting session:', error.message);
-        navigate('/login');
-        return;
-      }
+        if (error) {
+          console.error('AuthCallback: Error getting session:', error.message);
+          navigate('/login');
+          return;
+        }
 
-      if (data.session) {
-        const user = data.session.user;
-        const meta = user.user_metadata || {};
-        const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : 'user';
+        if (data.session) {
+          console.log("AuthCallback: Session established for", data.session.user.email);
+          const user = data.session.user;
+          const meta = user.user_metadata || {};
 
-        setCurrentUser({
-          id: user.id,
-          name: meta.full_name || meta.name || 'User',
-          email: user.email || '',
-          role: role as any,
-          joinedDate: user.created_at
-        });
+          // Fetch full profile to ensure we have the correct role/company
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
 
-        // Trigger User Welcome Email (Send only once - handled by duplicate prevention in API)
+          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+
+          if (mounted) {
+            setCurrentUser({
+              id: user.id,
+              name: userData?.full_name || meta.full_name || meta.name || 'User',
+              email: user.email || '',
+              role: role as any,
+              joinedDate: user.created_at,
+              company: userData?.company,
+              status: userData?.status,
+              logoUrl: userData?.logo_url
+            });
+
+            console.log("AuthCallback: User profile set, redirecting to dashboard...");
         if (role === 'user') {
           fetch('/api/send-email', {
             method: 'POST',
@@ -55,16 +71,23 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ setCurrentUser }) => {
           }).catch(err => console.error('Welcome email error:', err));
         }
 
-        // Redirect to /dashboard which App.tsx handles for role-based routing
-        navigate('/dashboard', { replace: true });
-      } else {
-        // If no session after callback, go back to login
+            // Redirect to /dashboard which App.tsx handles for role-based routing
+            navigate('/dashboard', { replace: true });
+          }
+        } else {
+          // If no session after callback, go back to login
+          console.warn("AuthCallback: No session found after callback");
+          navigate('/login');
+        }
+      } catch (err) {
+        console.error("AuthCallback: Unexpected error:", err);
         navigate('/login');
       }
     };
 
     handleAuthCallback();
-  }, [navigate]);
+    return () => { mounted = false; };
+  }, [navigate, setCurrentUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
