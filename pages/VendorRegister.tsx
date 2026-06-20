@@ -38,6 +38,24 @@ const VendorRegister: React.FC = () => {
 
     addVendorRegistration(newReg);
 
+    // Trigger Admin Notification Email
+    fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: 'info.bouuz@gmail.com',
+        type: 'admin_new_vendor',
+        referenceId: newReg.id,
+        data: {
+          vendorName: formData.name,
+          companyName: formData.companyName,
+          email: formData.email,
+          mobile: formData.mobile,
+          date: newReg.date
+        }
+      })
+    }).catch(err => console.error('Admin notification error:', err));
+
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSuccess(true);

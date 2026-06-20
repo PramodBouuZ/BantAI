@@ -22,6 +22,7 @@ import Terms from './pages/Terms';
 import CategoryDetails from './pages/CategoryDetails';
 import LocationPage from './pages/LocationPage';
 import AuthCallback from './pages/AuthCallback';
+import ResetPassword from './pages/ResetPassword';
 import AIConsultant from './components/AIConsultant';
 import { User } from './types';
 import { MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
@@ -243,6 +244,7 @@ const AppContent: React.FC = () => {
         </Route>
         <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
         <Route path="/auth/callback" element={<AuthCallback setCurrentUser={setCurrentUser} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </>
   );

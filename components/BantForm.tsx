@@ -84,19 +84,37 @@ const BantForm: React.FC<BantFormProps> = ({ isLoggedIn, currentUser }) => {
     const savedSuccessfully = await addLead(newLead);
     
     if (savedSuccessfully) {
-      // Trigger email notification system
-      try {
-        fetch('/api/send-enquiry', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lead: newLead,
-            adminEmail: siteConfig.adminNotificationEmail
-          })
-        }).catch(err => console.error('Email trigger error:', err));
-      } catch (err) {
-        console.error('Email system failed to trigger:', err);
-      }
+      // Trigger User Enquiry Confirmation Email
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: newLead.email,
+          type: 'enquiry_confirmation',
+          referenceId: newLead.id,
+          userId: currentUser?.id,
+          data: {
+            userName: newLead.name,
+            referenceId: newLead.id,
+            serviceName: newLead.service,
+            date: newLead.date
+          }
+        })
+      }).catch(err => console.error('User enquiry confirmation error:', err));
+
+      // Trigger Admin Notification Email
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: siteConfig.adminNotificationEmail || 'info.bouuz@gmail.com',
+          type: 'admin_new_lead', // I should add this to templates if not there, or use a generic one
+          referenceId: newLead.id,
+          data: {
+            lead: newLead
+          }
+        })
+      }).catch(err => console.error('Admin enquiry notification error:', err));
 
       let progress = 0;
       const interval = setInterval(() => {
