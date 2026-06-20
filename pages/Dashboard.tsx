@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { uploadBase64Image } from '../lib/storage';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
 
 interface DashboardProps {
   currentUser: User | null;
@@ -172,20 +174,15 @@ const SEOFieldGroup: React.FC<{
 };
 
 const EmailAnalytics: React.FC = () => {
-    const [logs, setLogs] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const { supabase } = useData() as any;
-
-    useEffect(() => {
-        const fetchLogs = async () => {
-            if (supabase) {
-                const { data, error } = await supabase.from('email_logs').select('*').order('created_at', { ascending: false });
-                if (!error) setLogs(data || []);
-            }
-            setLoading(false);
-        };
-        fetchLogs();
-    }, [supabase]);
+    const { data: logs = [], isLoading: loading } = useQuery({
+        queryKey: ['email_logs'],
+        queryFn: async () => {
+            const { data, error } = await supabase!.from('email_logs').select('id, email, email_type, status, reference_id, created_at, vendor_id').order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!supabase
+    });
 
     const stats = {
         total: logs.length,
@@ -319,19 +316,25 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
 
   useEffect(() => { if (siteConfig) setConfigForm(siteConfig); }, [siteConfig]);
 
+  const { data: vendorEmailLogsData } = useQuery({
+    queryKey: ['email_logs', 'vendor', selectedVendorForEmails?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase!
+        .from('email_logs')
+        .select('id, email_type, status, created_at')
+        .eq('vendor_id', selectedVendorForEmails!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedVendorForEmails && !!supabase
+  });
+
   useEffect(() => {
-    const fetchVendorEmails = async () => {
-      if (selectedVendorForEmails && (useData() as any).supabase) {
-        const { data } = await (useData() as any).supabase
-          .from('email_logs')
-          .select('*')
-          .eq('vendor_id', selectedVendorForEmails.id)
-          .order('created_at', { ascending: false });
-        setVendorEmailLogs(data || []);
-      }
-    };
-    fetchVendorEmails();
-  }, [selectedVendorForEmails]);
+    if (vendorEmailLogsData) {
+      setVendorEmailLogs(vendorEmailLogsData);
+    }
+  }, [vendorEmailLogsData]);
 
   const handleSaveProduct = async () => {
       const features = prodFeaturesText.split(',').map(f => f.trim()).filter(f => f);

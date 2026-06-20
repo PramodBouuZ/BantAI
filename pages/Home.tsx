@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, Shield, Zap, TrendingUp, Users, Search, Filter, Star, Server, Phone, Wifi, Database, Globe, Building2, Briefcase, Megaphone, X, Scale } from 'lucide-react';
 import { useData } from '../context/DataContext';
@@ -6,6 +6,8 @@ import { TESTIMONIALS } from '../services/mockData';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import SEO from '../components/SEO';
 import { Product } from '../types';
+import LazyImage from '../components/LazyImage';
+import { ProductSkeleton } from '../components/Skeletons';
 
 interface HomeProps {
   isLoggedIn: boolean;
@@ -39,63 +41,64 @@ const ProductCard: React.FC<{
   onAction: (id?: string) => void,
   onCompare: (product: Product) => void,
   isSelected: boolean 
-}> = ({ product, onAction, onCompare, isSelected }) => (
-  <article className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group flex flex-col h-full">
-      {/* Use Slug for URL */}
-      <Link to={`/products/${product.slug || product.id}`} className="relative h-48 overflow-hidden block">
-          {product.image ? (
-            <img src={product.image} alt={product.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-          ) : (
-            <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-              <Server size={48} className="text-slate-300" />
+}> = React.memo(({ product, onAction, onCompare, isSelected }) => {
+  return (
+    <article className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group flex flex-col h-full">
+        {/* Use Slug for URL */}
+        <Link to={`/products/${product.slug || product.id}`} className="relative h-48 overflow-hidden block">
+            <LazyImage
+              src={product.image}
+              alt={product.title}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              fallback="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800"
+            />
+            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-indigo-600 shadow-sm">
+               {getIcon(product.icon)}
             </div>
-          )}
-          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm p-2 rounded-xl text-indigo-600 shadow-sm">
-             {getIcon(product.icon)}
-          </div>
-          <div className="absolute top-4 right-4 flex items-center bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm">
-             <Star size={14} className="text-yellow-500 fill-current mr-1" />
-             <span className="text-xs font-bold text-slate-800">{product.rating}</span>
-          </div>
-      </Link>
-      
-      <div className="p-6 flex-grow flex flex-col">
-        <Link to={`/products/${product.slug || product.id}`} className="block">
-          <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors">{product.title}</h3>
+            <div className="absolute top-4 right-4 flex items-center bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm">
+               <Star size={14} className="text-yellow-500 fill-current mr-1" />
+               <span className="text-xs font-bold text-slate-800">{product.rating}</span>
+            </div>
         </Link>
-        <p className="text-slate-500 text-sm mb-4 line-clamp-2">{product.description}</p>
         
-        <div className="mb-5 bg-slate-50 p-3 rounded-xl">
-           <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center">
-             <Zap size={12} className="mr-1 text-yellow-500" /> Key Features
-           </p>
-           <ul className="space-y-1.5">
-              {product.features.slice(0, 2).map((f: string, i: number) => (
-                 <li key={i} className="flex items-start text-xs text-slate-700 font-medium">
-                    <CheckCircle2 size={13} className="text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                    {f}
-                 </li>
-              ))}
-           </ul>
-        </div>
+        <div className="p-6 flex-grow flex flex-col">
+          <Link to={`/products/${product.slug || product.id}`} className="block">
+            <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors">{product.title}</h3>
+          </Link>
+          <p className="text-slate-500 text-sm mb-4 line-clamp-2">{product.description}</p>
 
-        <div className="mt-auto">
-           <p className="text-lg font-bold text-slate-900 mb-4">{product.priceRange}</p>
-           <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => onAction(product.id)} className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
-                Book Now
-              </button>
-              <button onClick={() => onCompare(product)} className={`rounded-xl transition shadow-md flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}`} title={isSelected ? 'Remove from compare' : 'Add to compare'}>
-                <Scale size={18} />
-              </button>
-           </div>
-           <button onClick={() => onAction()} className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
-             Consult Expert
-           </button>
+          <div className="mb-5 bg-slate-50 p-3 rounded-xl">
+             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center">
+               <Zap size={12} className="mr-1 text-yellow-500" /> Key Features
+             </p>
+             <ul className="space-y-1.5">
+                {product.features.slice(0, 2).map((f: string, i: number) => (
+                   <li key={i} className="flex items-start text-xs text-slate-700 font-medium">
+                      <CheckCircle2 size={13} className="text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                      {f}
+                   </li>
+                ))}
+             </ul>
+          </div>
+
+          <div className="mt-auto">
+             <p className="text-lg font-bold text-slate-900 mb-4">{product.priceRange}</p>
+             <div className="grid grid-cols-3 gap-2">
+                <button onClick={() => onAction(product.id)} className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
+                  Book Now
+                </button>
+                <button onClick={() => onCompare(product)} className={`rounded-xl transition shadow-md flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50'}`} title={isSelected ? 'Remove from compare' : 'Add to compare'}>
+                  <Scale size={18} />
+                </button>
+             </div>
+             <button onClick={() => onAction()} className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl text-sm font-bold transition shadow-md hover:shadow-lg text-center">
+               Consult Expert
+             </button>
+          </div>
         </div>
-      </div>
-   </article>
-);
+     </article>
+  );
+});
 
 const NewsTicker = () => {
   const [index, setIndex] = useState(0);
@@ -127,10 +130,13 @@ const NewsTicker = () => {
   );
 };
 
-const VendorTicker = () => {
+const VendorTicker = React.memo(() => {
   const { vendorLogos } = useData();
   
   if (vendorLogos.length === 0) return null;
+
+  // Memoize the logos array to prevent unnecessary re-renders
+  const memoizedLogos = useMemo(() => [...vendorLogos, ...vendorLogos, ...vendorLogos, ...vendorLogos], [vendorLogos]);
 
   return (
     <div className="py-12 bg-white border-b border-gray-100 overflow-hidden relative group">
@@ -143,12 +149,11 @@ const VendorTicker = () => {
 
       <div className="relative w-full overflow-hidden">
         <div className="flex animate-scroll whitespace-nowrap gap-16 md:gap-24 items-center w-max">
-           {[...vendorLogos, ...vendorLogos, ...vendorLogos, ...vendorLogos].map((logo, i) => (
+           {memoizedLogos.map((logo, i) => (
              <div key={`${logo.id}-${i}`} className="flex-shrink-0 flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all duration-500 opacity-40 hover:opacity-100 group/logo">
-               <img 
+               <LazyImage
                  src={logo.logoUrl} 
                  alt={`${logo.name} logo`} 
-                 loading="lazy" 
                  className="h-8 md:h-12 w-auto object-contain transition-transform group-hover/logo:scale-110" 
                />
                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest opacity-0 group-hover/logo:opacity-100 transition-opacity">{logo.name}</span>
@@ -170,7 +175,7 @@ const VendorTicker = () => {
       `}</style>
     </div>
   );
-}
+});
 
 const SEOFooterLinks = () => {
   const { categoryObjects, cities, states } = useData();
@@ -258,7 +263,7 @@ const SEOFooterLinks = () => {
 }
 
 const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
-  const { products, siteConfig, categories, toggleCompare, compareList } = useData();
+  const { products, siteConfig, categories, toggleCompare, compareList, isLoading } = useData();
   const [chartData, setChartData] = useState(initialChartData);
   const [activeLeads, setActiveLeads] = useState(247);
   const [dealsClosed, setDealsClosed] = useState(86032); 
@@ -579,15 +584,19 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
            </nav>
 
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                 <ProductCard 
-                    key={product.id} 
-                    product={product} 
-                    onAction={handleAuthAction} 
-                    onCompare={toggleCompare}
-                    isSelected={isProductSelected(product.id)}
-                 />
-              ))}
+              {isLoading ? (
+                Array(8).fill(0).map((_, i) => <ProductSkeleton key={i} />)
+              ) : (
+                filteredProducts.map((product) => (
+                  <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAction={handleAuthAction}
+                      onCompare={toggleCompare}
+                      isSelected={isProductSelected(product.id)}
+                  />
+                ))
+              )}
            </div>
         </div>
       </section>

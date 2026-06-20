@@ -2,33 +2,48 @@ import React, { Component, useState, useEffect, ErrorInfo, ReactNode } from 'rea
 import { BrowserRouter as Router, Routes, Route, useLocation, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import Home from './pages/Home';
-import Products from './pages/Products';
-import Dashboard from './pages/Dashboard';
-import UserDashboard from './pages/UserDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import BantForm from './components/BantForm';
-import Login from './pages/Login';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Features from './pages/Features';
-import ProductDetails from './pages/ProductDetails';
-import VendorRegister from './pages/VendorRegister';
-import Comparison from './pages/Comparison';
-import Blog from './pages/Blog';
-import BlogDetails from './pages/BlogDetails';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import CategoryDetails from './pages/CategoryDetails';
-import LocationPage from './pages/LocationPage';
-import AuthCallback from './pages/AuthCallback';
-import ResetPassword from './pages/ResetPassword';
+import { Loader2 } from 'lucide-react';
+
+// Lazy load pages for performance
+export const Home = React.lazy(() => import('./pages/Home'));
+export const Products = React.lazy(() => import('./pages/Products'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const UserDashboard = React.lazy(() => import('./pages/UserDashboard'));
+const BantForm = React.lazy(() => import('./components/BantForm'));
+const Login = React.lazy(() => import('./pages/Login'));
+export const About = React.lazy(() => import('./pages/About'));
+export const Contact = React.lazy(() => import('./pages/Contact'));
+const Features = React.lazy(() => import('./pages/Features'));
+const ProductDetails = React.lazy(() => import('./pages/ProductDetails'));
+const VendorRegister = React.lazy(() => import('./pages/VendorRegister'));
+const Comparison = React.lazy(() => import('./pages/Comparison'));
+const Blog = React.lazy(() => import('./pages/Blog'));
+const BlogDetails = React.lazy(() => import('./pages/BlogDetails'));
+const Privacy = React.lazy(() => import('./pages/Privacy'));
+const Terms = React.lazy(() => import('./pages/Terms'));
+const CategoryDetails = React.lazy(() => import('./pages/CategoryDetails'));
+const LocationPage = React.lazy(() => import('./pages/LocationPage'));
+const AuthCallback = React.lazy(() => import('./pages/AuthCallback'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 import AIConsultant from './components/AIConsultant';
 import { User } from './types';
 import { MessageCircle, AlertTriangle, X, Check, Info, AlertCircle, Scale } from 'lucide-react';
 import { DataProvider, useData } from './context/DataContext';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { supabase } from './lib/supabase';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // --- Error Boundary to catch runtime crashes ---
 interface ErrorBoundaryProps {
@@ -142,14 +157,20 @@ const AppContent: React.FC = () => {
       console.log("App: Initializing session check...");
       if (supabase) {
         try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          // Add timeout to session check
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
+
+          const { data: { session }, error: sessionError } = await Promise.race([sessionPromise, timeoutPromise]) as any;
           if (sessionError) throw sessionError;
 
           if (session?.user) {
             console.log("App: Session active for", session.user.email);
+
+            // Only fetch essential profile fields
             const { data: userData, error: userError } = await supabase
               .from('users')
-              .select('*')
+              .select('id, full_name, role, company, status, logo_url, is_first_login')
               .eq('id', session.user.id)
               .single();
 
@@ -169,14 +190,15 @@ const AppContent: React.FC = () => {
               joinedDate: session.user.created_at,
               company: userData?.company,
               status: userData?.status,
-              logoUrl: userData?.logo_url
+              logoUrl: userData?.logo_url,
+              isFirstLogin: userData?.is_first_login
             });
             console.log("App: Current user set to", role);
           } else {
             console.log("App: No initial session found.");
           }
         } catch (err) {
-          console.error("App: Session initialization failed:", err);
+          console.error("App: Session initialization failed or timed out:", err);
         }
       }
     };
@@ -188,7 +210,7 @@ const AppContent: React.FC = () => {
           try {
             const { data: userData, error: userError } = await supabase
               .from('users')
-              .select('*')
+              .select('id, full_name, role, company, status, logo_url, is_first_login')
               .eq('id', session.user.id)
               .single();
 
@@ -232,6 +254,7 @@ const AppContent: React.FC = () => {
       </Helmet>
       <ScrollToTop />
       <ToastContainer />
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-12 h-12 animate-spin text-indigo-600" /></div>}>
       <Routes>
         <Route element={<MainLayout currentUser={currentUser} setCurrentUser={setCurrentUser} />}>
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
@@ -290,12 +313,25 @@ const AppContent: React.FC = () => {
         <Route path="/auth/callback" element={<AuthCallback setCurrentUser={setCurrentUser} />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
+      </React.Suspense>
     </>
   );
 };
 
 const App: React.FC = () => {
-  return (<ErrorBoundary><HelmetProvider><DataProvider><Router><AppContent /></Router></DataProvider></HelmetProvider></ErrorBoundary>);
+  return (
+    <ErrorBoundary>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <DataProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </DataProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
+  );
 };
 
 const ScrollToTop = () => {
