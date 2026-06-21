@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, Shield, Zap, TrendingUp, Users, Search, Filter, Star, Server, Phone, Wifi, Database, Globe, Building2, Briefcase, Megaphone, X, Scale } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { TESTIMONIALS } from '../services/mockData';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import SEO from '../components/SEO';
 import { Product } from '../types';
