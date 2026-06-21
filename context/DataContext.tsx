@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, Lead, SiteConfig, User, VendorAsset, VendorRegistration, AppNotification, BlogPost, Category, City, State, SEOData } from '../types';
-import { PRODUCTS, RECENT_LEADS, MOCK_VENDOR_LOGOS } from '../services/mockData';
 import { supabase } from '../lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -160,8 +159,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToCamel(p)
       }));
     },
-    enabled: !!supabase,
-    initialData: PRODUCTS
+    enabled: !!supabase
   });
 
   const { data: configData } = useQuery({
@@ -169,6 +167,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       const { data, error } = await supabase!.from('site_config').select('site_name, banner_title, banner_subtitle, logo_url, favicon_url, whatsapp_number, admin_notification_email, social_links, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup').maybeSingle();
       if (error) throw error;
+      if (!data) return defaultSiteConfig;
       return {
         siteName: data.site_name || defaultSiteConfig.siteName,
         bannerTitle: data.banner_title || defaultSiteConfig.bannerTitle,
@@ -181,8 +180,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...mapSEOToCamel(data)
       };
     },
-    enabled: !!supabase,
-    initialData: defaultSiteConfig
+    enabled: !!supabase
   });
 
   const { data: vLogos } = useQuery({
@@ -192,8 +190,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       return data.map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url }));
     },
-    enabled: !!supabase,
-    initialData: MOCK_VENDOR_LOGOS
+    enabled: !!supabase
   });
 
   const { data: catData } = useQuery({
@@ -238,8 +235,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         assignedTo: l.assigned_to
       }));
     },
-    enabled: !!supabase,
-    initialData: RECENT_LEADS
+    enabled: !!supabase
   });
 
   const { data: blogData } = useQuery({
