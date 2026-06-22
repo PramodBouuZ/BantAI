@@ -56,6 +56,9 @@ interface ErrorBoundaryState {
 
 // Fixed: Explicitly use React.Component to ensure 'props' property is correctly inherited and typed
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  props: ErrorBoundaryProps;
+  state: ErrorBoundaryState;
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };

@@ -4,11 +4,30 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from '../types';
 import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DataContext } from '../context/DataContext';
 
 const Login: React.FC = () => {
-  const { setCurrentUser } = useData();
+  const context = React.useContext(DataContext);
   const navigate = useNavigate();
   const location = useLocation();
+
+  if (!context) {
+    console.error("Login Page: DataContext not found");
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="bg-white p-8 rounded-3xl shadow-xl text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Unable to load login page</h2>
+          <p className="text-slate-500 mb-6">The application context is missing. Please try refreshing the page.</p>
+          <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold">
+            Refresh Now
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { setCurrentUser } = context;
   
   // Parse redirect location
   const from = location.state?.from?.pathname;
