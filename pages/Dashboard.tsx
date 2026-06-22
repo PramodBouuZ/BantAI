@@ -342,6 +342,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
         addNotification("Title and Pricing are required", "warning");
         return;
       }
+      setIsLogoSubmitting(true);
       const pData: Product = {
           id: editingProduct ? editingProduct.id : '',
           slug: prodForm.slug || generateSlug(prodForm.title!),
@@ -357,9 +358,15 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
           technicalSpecs: prodForm.technicalSpecs || [],
           ...prodForm
       };
-      if (editingProduct) await updateProduct(editingProduct.id, pData);
-      else await addProduct(pData);
-      setIsModalOpen(false); setEditingProduct(null);
+      try {
+        if (editingProduct) await updateProduct(editingProduct.id, pData);
+        else await addProduct(pData);
+        setIsModalOpen(false); setEditingProduct(null);
+      } catch (err: any) {
+        addNotification(`Error saving product: ${err.message}`, 'error');
+      } finally {
+        setIsLogoSubmitting(false);
+      }
   };
 
   const handleSaveBlog = async () => {

@@ -5,11 +5,8 @@ import { User } from '../types';
 import { Zap, Mail, Lock, User as UserIcon, ChevronLeft, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-interface LoginProps {
-  setCurrentUser: (user: User) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
+const Login: React.FC = () => {
+  const { setCurrentUser } = useData();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -42,6 +39,7 @@ const Login: React.FC<LoginProps> = ({ setCurrentUser }) => {
     }, 2000);
 
     const checkSession = async () => {
+      if (loading || !authChecking) return;
       const startTime = performance.now();
       console.log("Login: Checking session...");
       if (supabase) {
