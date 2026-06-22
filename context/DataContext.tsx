@@ -76,7 +76,7 @@ const defaultSiteConfig: SiteConfig = {
   socialLinks: { twitter: '#', linkedin: '#', facebook: '#', instagram: '#' }
 };
 
-const DataContext = createContext<DataContextType | undefined>(undefined);
+export const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const generateSlug = (text: string) => {
   return text

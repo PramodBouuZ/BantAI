@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { User } from '../types';
+import { useData } from '../context/DataContext';
 
 const AuthCallback: React.FC = () => {
   const { setCurrentUser } = useData();
