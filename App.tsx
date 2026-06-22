@@ -180,7 +180,7 @@ const AppContent: React.FC = () => {
 
             const meta = session.user.user_metadata || {};
             // Only info.bouuz@gmail.com can be admin
-            const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+            const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || meta.role || 'user');
 
             setCurrentUser({
               id: session.user.id,
@@ -188,10 +188,10 @@ const AppContent: React.FC = () => {
               email: session.user.email || '',
               role: role as any,
               joinedDate: session.user.created_at,
-              company: userData?.company,
-              status: userData?.status,
-              logoUrl: userData?.logo_url,
-              isFirstLogin: userData?.is_first_login
+              company: userData?.company || meta.company,
+              status: userData?.status || meta.status,
+              logoUrl: userData?.logo_url || meta.logo_url,
+              isFirstLogin: userData?.is_first_login ?? meta.is_first_login
             });
             console.log("App: Current user set to", role);
           } else {
@@ -220,7 +220,7 @@ const AppContent: React.FC = () => {
 
             const meta = session.user.user_metadata || {};
             // Only info.bouuz@gmail.com can be admin
-            const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+            const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || meta.role || 'user');
 
             setCurrentUser({
               id: session.user.id,
@@ -228,9 +228,10 @@ const AppContent: React.FC = () => {
               email: session.user.email || '',
               role: role as any,
               joinedDate: session.user.created_at,
-              company: userData?.company,
-              status: userData?.status,
-              logoUrl: userData?.logo_url
+              company: userData?.company || meta.company,
+              status: userData?.status || meta.status,
+              logoUrl: userData?.logo_url || meta.logo_url,
+              isFirstLogin: userData?.is_first_login ?? meta.is_first_login
             });
             console.log("App: User set after auth change:", role);
           } catch (err) {

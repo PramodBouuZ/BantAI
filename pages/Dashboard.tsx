@@ -343,7 +343,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
         return;
       }
       const pData: Product = {
-          id: editingProduct ? editingProduct.id : Date.now().toString(),
+          id: editingProduct ? editingProduct.id : '',
           slug: prodForm.slug || generateSlug(prodForm.title!),
           title: prodForm.title!,
           description: prodForm.description || '',
@@ -368,7 +368,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
       return;
     }
     const bData: BlogPost = {
-      id: editingBlog ? editingBlog.id : Date.now().toString(),
+      id: editingBlog ? editingBlog.id : '',
       slug: blogForm.slug || generateSlug(blogForm.title!),
       title: blogForm.title!,
       content: blogForm.content || '',
@@ -386,7 +386,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
   const handleSaveLocation = async () => {
     if (!locForm.name) return;
     const lData = {
-      id: editingLoc ? editingLoc.id : Date.now().toString(),
+      id: editingLoc ? editingLoc.id : '',
       name: locForm.name!,
       slug: locForm.slug || generateSlug(locForm.name!),
       ...locForm

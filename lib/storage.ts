@@ -9,18 +9,21 @@ export const uploadLogo = async (file: File): Promise<string | null> => {
 
   const { error: uploadError } = await supabase.storage
     .from('assets')
-    .upload(filePath, file);
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
   if (uploadError) {
     console.error('Error uploading logo:', uploadError);
     return null;
   }
 
-  const { data } = supabase.storage
+  const { data: { publicUrl } } = supabase.storage
     .from('assets')
     .getPublicUrl(filePath);
 
-  return data.publicUrl;
+  return publicUrl;
 };
 
 export const uploadBase64Image = async (base64: string, folder: string = 'images'): Promise<string | null> => {
@@ -36,16 +39,20 @@ export const uploadBase64Image = async (base64: string, folder: string = 'images
 
     const { error: uploadError } = await supabase.storage
       .from('assets')
-      .upload(filePath, blob);
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: blob.type
+      });
 
     if (uploadError) {
       console.error('Error uploading base64 image:', uploadError);
       return null;
     }
 
-    const { data } = supabase.storage
+    const { data: { publicUrl } } = supabase.storage
       .from('assets')
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    return publicUrl;
 }
