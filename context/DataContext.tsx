@@ -139,11 +139,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { data: prodData, isLoading: prodLoading } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
+      if (!supabase) return [];
       const start = performance.now();
-      const { data, error } = await supabase!.from('products').select('id, slug, title, description, category, price_range, features, icon, rating, image, vendor_name, technical_specs, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
+      const { data, error } = await supabase.from('products').select('id, slug, title, description, category, price_range, features, icon, rating, image, vendor_name, technical_specs, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
       console.log(`Query: products took ${(performance.now() - start).toFixed(2)}ms`);
       if (error) throw error;
-      return data.map((p: any) => ({
+      return (data || []).map((p: any) => ({
         id: p.id,
         slug: p.slug || generateSlug(p.title || 'product'),
         title: p.title || 'Untitled Product',
@@ -355,6 +356,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => queryClient.invalidateQueries({ queryKey: ['categories'] }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cities' }, () => queryClient.invalidateQueries({ queryKey: ['cities'] }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'states' }, () => queryClient.invalidateQueries({ queryKey: ['states'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => queryClient.invalidateQueries({ queryKey: ['users'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendor_assets' }, () => queryClient.invalidateQueries({ queryKey: ['vendor_assets'] }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendor_registrations' }, () => queryClient.invalidateQueries({ queryKey: ['vendor_registrations'] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
@@ -389,8 +393,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addProduct = async (product: Product) => {
     if (supabase) {
+      const { id, ...productWithoutId } = product;
       const { error } = await supabase.from('products').insert({
-         id: product.id,
          slug: product.slug || generateSlug(product.title),
          title: product.title,
          description: product.description,
@@ -443,8 +447,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addBlog = async (blog: BlogPost) => {
     if (supabase) {
+      const { id, ...blogWithoutId } = blog;
       const { error } = await supabase.from('blogs').insert({
-        id: blog.id,
         slug: blog.slug || generateSlug(blog.title),
         title: blog.title,
         content: blog.content,
@@ -678,8 +682,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addCity = async (city: City) => {
     if (supabase) {
+      const { id, ...cityWithoutId } = city;
       const { error } = await supabase.from('cities').insert({
-        id: city.id,
         name: city.name,
         slug: city.slug || generateSlug(city.name),
         state_id: city.stateId,
@@ -712,8 +716,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addState = async (state: State) => {
     if (supabase) {
+      const { id, ...stateWithoutId } = state;
       const { error } = await supabase.from('states').insert({
-        id: state.id,
         name: state.name,
         slug: state.slug || generateSlug(state.name),
         ...mapSEOToSnake(state)
@@ -853,7 +857,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const addVendorLogo = async (asset: VendorAsset) => {
     if (supabase) {
-      await supabase.from('vendor_assets').insert({ id: asset.id, name: asset.name, logo_url: asset.logoUrl });
+      await supabase.from('vendor_assets').insert({ name: asset.name, logo_url: asset.logoUrl });
       queryClient.invalidateQueries({ queryKey: ['vendor_assets'] });
     }
   };

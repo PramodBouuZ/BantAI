@@ -42,12 +42,12 @@ const ProductDetails: React.FC = () => {
 
   // Fallback Vendor Data (Used if admin hasn't specified one)
   const vendorInfo = {
-    name: vendor?.company || product.vendorName || (product.category === 'Telecom' ? 'Airtel Business Solutions' : 'TechIndia Systems Pvt Ltd'),
-    verifiedSince: vendor?.joinedDate?.split('T')[0]?.split('-')[0] || '2021',
+    name: vendor?.company || product.vendorName || 'Verified Partner',
+    verifiedSince: vendor?.joinedDate?.split('T')[0]?.split('-')[0] || '2024',
     responseTime: '< 2 hours',
-    rating: product.rating || 4.9,
-    location: vendor?.location || 'Noida, Uttar Pradesh',
-    badge: vendor?.status === 'Verified' ? 'Verified Partner' : (product.vendorName ? 'Certified Partner' : 'Gold Partner'),
+    rating: product.rating || 5.0,
+    location: vendor?.location || 'India',
+    badge: vendor?.status === 'Verified' ? 'Verified Partner' : (product.vendorName ? 'Certified Partner' : 'Marketplace Partner'),
     logo: vendor?.logoUrl
   };
 
@@ -62,11 +62,11 @@ const ProductDetails: React.FC = () => {
   const specs = (product.technicalSpecs && product.technicalSpecs.length > 0) 
     ? product.technicalSpecs 
     : [
-      { label: 'Deployment', value: 'Cloud, On-Premise, or Hybrid' },
-      { label: 'Support', value: '24/7 Dedicated Account Manager' },
-      { label: 'Compliance', value: 'ISO 27001, GDPR, SOC2 Ready' },
-      { label: 'Integrations', value: 'REST API, Zapier, Webhooks' },
-      { label: 'User Access', value: 'Multi-level Role Based Control (RBAC)' }
+      { label: 'Deployment', value: 'Contact Vendor for Details' },
+      { label: 'Support', value: 'Standard Support Included' },
+      { label: 'Compliance', value: 'Certified Verified Vendor' },
+      { label: 'Integrations', value: 'API Support Available' },
+      { label: 'Availability', value: 'PAN India' }
     ];
 
   const productSchema = {
