@@ -133,8 +133,8 @@ const CompareTray: React.FC = () => {
   );
 };
 
-const MainLayout = ({ currentUser, setCurrentUser }: { currentUser: User | null, setCurrentUser: (u: User | null) => void }) => {
-  const { siteConfig } = useData();
+const MainLayout = () => {
+  const { siteConfig, currentUser, setCurrentUser } = useData();
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 font-sans text-slate-900 relative">
       <Navbar currentUser={currentUser} setCurrentUser={setCurrentUser} />
@@ -148,61 +148,10 @@ const MainLayout = ({ currentUser, setCurrentUser }: { currentUser: User | null,
 };
 
 const AppContent: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { siteConfig, currentUser, setCurrentUser } = useData();
   const isLoggedIn = currentUser !== null;
-  const { siteConfig } = useData();
   
   useEffect(() => {
-    const checkUser = async () => {
-      console.log("App: Initializing session check...");
-      if (supabase) {
-        try {
-          // Add timeout to session check
-          const sessionPromise = supabase.auth.getSession();
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
-
-          const { data: { session }, error: sessionError } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-          if (sessionError) throw sessionError;
-
-          if (session?.user) {
-            console.log("App: Session active for", session.user.email);
-
-            // Only fetch essential profile fields
-            const { data: userData, error: userError } = await supabase
-              .from('users')
-              .select('id, full_name, role, company, status, logo_url, is_first_login')
-              .eq('id', session.user.id)
-              .single();
-
-            if (userError && userError.code !== 'PGRST116') {
-              console.error("App: User profile fetch error:", userError);
-            }
-
-            const meta = session.user.user_metadata || {};
-            // Only info.bouuz@gmail.com can be admin
-            const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || meta.role || 'user');
-
-            setCurrentUser({
-              id: session.user.id,
-              name: userData?.full_name || meta.full_name || meta.name || 'User',
-              email: session.user.email || '',
-              role: role as any,
-              joinedDate: session.user.created_at,
-              company: userData?.company || meta.company,
-              status: userData?.status || meta.status,
-              logoUrl: userData?.logo_url || meta.logo_url,
-              isFirstLogin: userData?.is_first_login ?? meta.is_first_login
-            });
-            console.log("App: Current user set to", role);
-          } else {
-            console.log("App: No initial session found.");
-          }
-        } catch (err) {
-          console.error("App: Session initialization failed or timed out:", err);
-        }
-      }
-    };
-    checkUser();
     if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         console.log(`App: Auth event triggered: ${event}`);
@@ -244,7 +193,7 @@ const AppContent: React.FC = () => {
       });
       return () => subscription.unsubscribe();
     }
-  }, []);
+  }, [setCurrentUser]);
 
   return (
     <>
@@ -257,7 +206,7 @@ const AppContent: React.FC = () => {
       <ToastContainer />
       <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-12 h-12 animate-spin text-indigo-600" /></div>}>
       <Routes>
-        <Route element={<MainLayout currentUser={currentUser} setCurrentUser={setCurrentUser} />}>
+        <Route element={<MainLayout />}>
           <Route path="/" element={<Home isLoggedIn={isLoggedIn} />} />
           <Route path="/products" element={<Products isLoggedIn={isLoggedIn} />} />
           <Route path="/products/:slug" element={<ProductDetails />} />
@@ -310,8 +259,8 @@ const AppContent: React.FC = () => {
 
           <Route path="*" element={<div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center"><h2 className="text-6xl font-bold text-slate-200 mb-4">404</h2><h3 className="text-2xl font-bold text-slate-800 mb-2">Page Not Found</h3><button onClick={() => window.history.back()} className="text-indigo-600 font-bold hover:underline mt-4">Go Back</button></div>} />
         </Route>
-        <Route path="/login" element={<Login setCurrentUser={setCurrentUser} />} />
-        <Route path="/auth/callback" element={<AuthCallback setCurrentUser={setCurrentUser} />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
       </React.Suspense>

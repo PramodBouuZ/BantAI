@@ -4,11 +4,8 @@ import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { User } from '../types';
 
-interface AuthCallbackProps {
-  setCurrentUser: (user: User | null) => void;
-}
-
-const AuthCallback: React.FC<AuthCallbackProps> = ({ setCurrentUser }) => {
+const AuthCallback: React.FC = () => {
+  const { setCurrentUser } = useData();
   const navigate = useNavigate();
 
   useEffect(() => {
