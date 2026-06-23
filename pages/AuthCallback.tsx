@@ -11,14 +11,28 @@ const AuthCallback: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
+
+    // Requirement: Maximum callback processing = 5 seconds
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        console.warn("AuthCallback: Safety timeout triggered (5s). Forcing redirect...");
+        navigate('/dashboard', { replace: true });
+      }
+    }, 5000);
+
     const handleAuthCallback = async () => {
-      console.log("AuthCallback: Processing callback...");
+      // Requirement: Add logs for token received (check hash for implicit flow)
+      const hasHashToken = window.location.hash.includes('access_token');
+      console.log("AuthCallback: Processing callback... Hash token detected:", hasHashToken);
+
       if (!supabase) {
         navigate('/login');
         return;
       }
 
       try {
+        // Requirement: Log session creation attempt
+        console.log("AuthCallback: Attempting to fetch session...");
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -28,18 +42,34 @@ const AuthCallback: React.FC = () => {
         }
 
         if (data.session) {
-          console.log("AuthCallback: Session established for", data.session.user.email);
+          // Requirement: Log session created
+          console.log("AuthCallback: Session successfully created for:", data.session.user.email);
+
           const user = data.session.user;
           const meta = user.user_metadata || {};
 
-          // Fetch full profile to ensure we have the correct role/company
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+          // Requirement: Log user loaded
+          console.log("AuthCallback: User loaded from Supabase Auth:", user.id);
 
-          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+          // Requirement: Profile lookup (still redirect if it fails)
+          let userData = null;
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle();
+
+            if (profileError) throw profileError;
+            userData = profile;
+            // Requirement: Log profile loaded
+            console.log("AuthCallback: Public profile loaded successfully");
+          } catch (profileErr) {
+            console.error("AuthCallback: Profile lookup failed, proceeding with metadata fallbacks:", profileErr);
+          }
+
+          // Requirement: Logic for Admin vs All others
+          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || meta.role || 'user');
 
           if (mounted) {
             setCurrentUser({
@@ -48,43 +78,57 @@ const AuthCallback: React.FC = () => {
               email: user.email || '',
               role: role as any,
               joinedDate: user.created_at,
-              company: userData?.company,
-              status: userData?.status,
-              logoUrl: userData?.logo_url
+              company: userData?.company || meta.company,
+              status: userData?.status || meta.status,
+              logoUrl: userData?.logo_url || meta.logo_url
             });
 
-            console.log("AuthCallback: User profile set, redirecting to dashboard...");
-        if (role === 'user') {
-          fetch('/api/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: user.email,
-              type: 'user_welcome',
-              userId: user.id,
-              data: {
-                userName: meta.full_name || meta.name || 'User'
-              }
-            })
-          }).catch(err => console.error('Welcome email error:', err));
-        }
+            // Trigger Welcome Email (Non-blocking)
+            if (role === 'user' && !userData) { // Only for first time new users
+              fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  to: user.email,
+                  type: 'user_welcome',
+                  userId: user.id,
+                  data: { userName: meta.full_name || meta.name || 'User' }
+                })
+              }).catch(err => console.error('Welcome email error:', err));
+            }
 
-            // Redirect to /dashboard which App.tsx handles for role-based routing
-            navigate('/dashboard', { replace: true });
+            // Requirement: Specific redirect logic and Log redirect
+            const redirectPath = role === 'admin' ? '/admin' : '/user/dashboard';
+            console.log(`AuthCallback: Redirecting ${role} to ${redirectPath}`);
+
+            clearTimeout(timeoutId);
+            navigate(redirectPath, { replace: true });
           }
         } else {
-          // If no session after callback, go back to login
-          console.warn("AuthCallback: No session found after callback");
-          navigate('/login');
+          console.warn("AuthCallback: No session found in Supabase Auth");
+          // Check if session might be in process of being set by the client
+          // Wait a brief moment before giving up
+          await new Promise(r => setTimeout(r, 1000));
+          const { data: retryData } = await supabase.auth.getSession();
+          if (retryData.session) {
+              console.log("AuthCallback: Session found on retry.");
+              // Recurse once or handle here - for simplicity just reload or navigate dashboard
+              navigate('/dashboard', { replace: true });
+          } else {
+              navigate('/login');
+          }
         }
       } catch (err) {
-        console.error("AuthCallback: Unexpected error:", err);
+        console.error("AuthCallback: Unexpected exception during callback processing:", err);
         navigate('/login');
       }
     };
 
     handleAuthCallback();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [navigate, setCurrentUser]);
 
   return (
