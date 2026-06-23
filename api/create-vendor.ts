@@ -34,6 +34,7 @@ export default async function handler(req: Request) {
       password: tempPassword,
       email_confirm: true,
       user_metadata: {
+        name: name,
         full_name: name,
         company,
         role: 'vendor'
@@ -51,19 +52,33 @@ export default async function handler(req: Request) {
     const { error: dbError } = await supabase.from('users').upsert({
       id: userId,
       email,
-      full_name: name,
-      company,
-      mobile,
-      location,
-      role: 'vendor',
-      status: 'Verified',
-      verification_date: new Date().toISOString(),
-      verified_by: 'info.bouuz@gmail.com',
-      products,
-      services,
-      logo_url: logoUrl,
-      is_first_login: true
+      name,
+      role: 'vendor'
     });
+
+    // 3. Create a registration record for persistence of company details and status
+    await supabase.from('vendor_registrations').upsert({
+      id: `man_${userId}`,
+      name: name,
+      company_name: company || 'Partner',
+      email: email,
+      mobile: mobile,
+      location: location,
+      product_name: products?.[0] || 'Managed Partner',
+      message: 'Manually onboarded by admin',
+      status: 'Verified', // Manual onboarding usually implies verified
+      date: new Date().toISOString().split('T')[0]
+    });
+
+    // 4. Save logo to vendor_assets if provided
+    if (logoUrl) {
+      // Note: vendor_assets.id is a UUID in the schema, so we omit it to let Supabase generate one
+      // We link via the 'name' field which is used for lookups in the Dashboard
+      await supabase.from('vendor_assets').insert({
+        name: company || name,
+        logo_url: logoUrl
+      });
+    }
 
     if (dbError) {
       // Cleanup auth user if DB insert fails? Maybe not strictly necessary if we want to allow retry

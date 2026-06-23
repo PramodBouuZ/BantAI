@@ -96,10 +96,11 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  joinedDate: string;
+  // Metadata/Derived fields (not in public.users table)
   mobile?: string;
   company?: string;
   location?: string;
-  joinedDate: string;
   status?: VendorStatus;
   verificationDate?: string;
   verifiedBy?: string;
@@ -107,6 +108,7 @@ export interface User {
   services?: string[];
   logoUrl?: string;
   isFirstLogin?: boolean;
+  full_name?: string;
 }
 
 export interface VendorAsset {

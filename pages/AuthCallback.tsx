@@ -32,25 +32,30 @@ const AuthCallback: React.FC = () => {
           const user = data.session.user;
           const meta = user.user_metadata || {};
 
-          // Fetch full profile to ensure we have the correct role/company
-          const { data: userData } = await supabase
+          // Fetch profile using only valid columns
+          const { data: userData, error: userError } = await supabase
             .from('users')
-            .select('*')
+            .select('id, name, role, created_at')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
-          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
+          if (userError) {
+            console.error('AuthCallback: Error fetching user profile:', userError.message);
+          }
+
+          const role = user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || meta.role || 'user');
 
           if (mounted) {
             setCurrentUser({
               id: user.id,
-              name: userData?.full_name || meta.full_name || meta.name || 'User',
+              name: userData?.name || meta.full_name || meta.name || 'User',
               email: user.email || '',
               role: role as any,
-              joinedDate: user.created_at,
-              company: userData?.company,
-              status: userData?.status,
-              logoUrl: userData?.logo_url
+              joinedDate: userData?.created_at || user.created_at,
+              company: meta.company,
+              status: meta.status,
+              logoUrl: meta.logo_url,
+              isFirstLogin: meta.is_first_login
             });
 
             console.log("AuthCallback: User profile set, redirecting to dashboard...");

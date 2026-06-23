@@ -1,19 +1,9 @@
 -- Core Tables Schema
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    full_name TEXT,
+    name TEXT,
     email TEXT UNIQUE NOT NULL,
     role TEXT DEFAULT 'user' CHECK (role IN ('admin', 'vendor', 'user')),
-    mobile TEXT,
-    company TEXT,
-    location TEXT,
-    status TEXT CHECK (status IN ('Pending', 'Verified', 'Rejected')),
-    verification_date TIMESTAMP WITH TIME ZONE,
-    verified_by TEXT,
-    products TEXT[], -- IDs of products they manage
-    services TEXT[], -- IDs of services they manage
-    logo_url TEXT,
-    is_first_login BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -311,10 +301,10 @@ END $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.users (id, full_name, email, role)
+  INSERT INTO public.users (id, name, email, role)
   VALUES (
     new.id,
-    new.raw_user_meta_data->>'full_name',
+    COALESCE(new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'full_name'),
     new.email,
     COALESCE(new.raw_user_meta_data->>'role', 'user')
   );

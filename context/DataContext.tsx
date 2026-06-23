@@ -341,27 +341,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryKey: ['users'],
     queryFn: async () => {
       if (!supabase) return [];
-      const { data, error } = await supabase.from('users').select('id, full_name, email, role, mobile, company, location, created_at, status, verification_date, verified_by, products, services, logo_url, is_first_login');
+      const { data, error } = await supabase.from('users').select('id, name, email, role, created_at');
       if (error) {
         console.error("Supabase Error (users):", error);
         throw error;
       }
       return (data || []).map((u: any) => ({
         id: u.id,
-        name: u.full_name || 'User',
+        name: u.name || 'User',
         email: u.email,
         role: u.role,
-        mobile: u.mobile,
-        company: u.company,
-        location: u.location,
-        joinedDate: u.created_at || u.joined_date,
-        status: u.status || 'Pending',
-        verificationDate: u.verification_date,
-        verifiedBy: u.verified_by,
-        products: u.products || [],
-        services: u.services || [],
-        logoUrl: u.logo_url,
-        isFirstLogin: u.is_first_login
+        joinedDate: u.created_at
       }));
     },
     enabled: !!supabase
@@ -371,7 +361,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryKey: ['vendor_registrations'],
     queryFn: async () => {
       if (!supabase) return [];
-      const { data, error } = await supabase.from('vendor_registrations').select('id, name, company_name, email, mobile, location, product_name, message, date').order('date', { ascending: false }).limit(50);
+      const { data, error } = await supabase.from('vendor_registrations').select('id, name, company_name, email, mobile, location, product_name, message, date, status').order('date', { ascending: false }).limit(50);
       if (error) {
         console.error("Supabase Error (vendor_registrations):", error);
         throw error;
@@ -379,7 +369,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return (data || []).map((v: any) => ({
         ...v, 
         companyName: v.company_name, 
-        productName: v.product_name 
+        productName: v.product_name,
+        status: v.status || 'Pending'
       }));
     },
     enabled: !!supabase
@@ -410,23 +401,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             const { data: userData } = await supabase
               .from('users')
-              .select('id, full_name, role, company, status, logo_url, is_first_login')
+              .select('id, name, role, created_at')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
 
             const meta = session.user.user_metadata || {};
             const role = session.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || meta.role || 'user');
 
             setCurrentUser({
               id: session.user.id,
-              name: userData?.full_name || meta.full_name || meta.name || 'User',
+              name: userData?.name || meta.full_name || meta.name || 'User',
               email: session.user.email || '',
               role: role as any,
-              joinedDate: session.user.created_at,
-              company: userData?.company || meta.company,
-              status: userData?.status || meta.status,
-              logoUrl: userData?.logo_url || meta.logo_url,
-              isFirstLogin: userData?.is_first_login ?? meta.is_first_login
+              joinedDate: userData?.created_at || session.user.created_at,
+              company: meta.company,
+              status: meta.status,
+              logoUrl: meta.logo_url,
+              isFirstLogin: meta.is_first_login
             });
           }
         } catch (err) {
@@ -896,11 +887,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUserRole = async (id: string, role: User['role']) => {
     if (supabase) {
-      await supabase.from('users').update({ role, status: role === 'vendor' ? 'Pending' : null }).eq('id', id);
+      await supabase.from('users').update({ role }).eq('id', id);
 
       if (role === 'vendor') {
         const user = users.find(u => u.id === id);
         if (user) {
+          const reg = vendorRegistrations.find(r => r.email === user.email);
           fetch('/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -910,7 +902,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               vendorId: user.id,
               data: {
                 vendorName: user.name,
-                companyName: user.company || 'Your Company'
+                companyName: reg?.companyName || 'Your Company'
               }
             })
           }).catch(err => console.error('Vendor welcome email error:', err));
@@ -922,16 +914,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateVendorStatus = async (id: string, status: User['status'], reason?: string) => {
     if (supabase) {
-      const updateData: any = { status };
-      if (status === 'Verified') {
-        updateData.verification_date = new Date().toISOString();
-        updateData.verified_by = ADMIN_EMAIL;
-      }
-
-      await supabase.from('users').update(updateData).eq('id', id);
-
+      // Find the user to get their email
       const user = users.find(u => u.id === id);
+
+      // Update the status in vendor_registrations (persistence layer)
       if (user) {
+        const reg = vendorRegistrations.find(r => r.email === user.email);
+        await supabase.from('vendor_registrations')
+          .update({ status })
+          .eq('email', user.email);
+
         if (status === 'Verified') {
           fetch('/api/send-email', {
             method: 'POST',
@@ -942,7 +934,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               vendorId: user.id,
               data: {
                 vendorName: user.name,
-                companyName: user.company || 'Your Company'
+                companyName: reg?.companyName || 'Your Company'
               }
             })
           }).catch(err => console.error('Vendor approval email error:', err));
@@ -956,7 +948,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               vendorId: user.id,
               data: {
                 vendorName: user.name,
-                companyName: user.company || 'Your Company',
+                companyName: reg?.companyName || 'Your Company',
                 reason: reason
               }
             })
