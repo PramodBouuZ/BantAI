@@ -585,7 +585,7 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {isLoading ? (
                 Array(8).fill(0).map((_, i) => <ProductSkeleton key={i} />)
-              ) : (
+              ) : filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
                   <ProductCard
                       key={product.id}
@@ -595,6 +595,10 @@ const Home: React.FC<HomeProps> = ({ isLoggedIn }) => {
                       isSelected={isProductSelected(product.id)}
                   />
                 ))
+              ) : (
+                <div className="col-span-full text-center py-12 bg-white rounded-3xl border border-gray-100">
+                  <p className="text-slate-500 font-medium">No products found in this category.</p>
+                </div>
               )}
            </div>
         </div>

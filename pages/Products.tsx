@@ -47,6 +47,8 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
     return matchesSearch && matchesCategory;
   });
 
+  const isSupabaseMissing = products.length === 0 && !isLoading;
+
   return (
     <div className="bg-white min-h-screen pb-24">
       <SEO 
@@ -163,9 +165,23 @@ const Products: React.FC<ProductsProps> = ({ isLoggedIn }) => {
           </div>
         ) : (
           <div className="text-center py-20 bg-slate-50 rounded-3xl">
-             <div className="text-6xl mb-4">🔍</div>
-             <h3 className="text-2xl font-bold text-slate-900">No results found</h3>
-             <p className="text-slate-500 mt-2">Try searching for CRM, ERP, Tally, or Microsoft license.</p>
+             <div className="text-6xl mb-4">{isSupabaseMissing ? '⚠️' : '🔍'}</div>
+             <h3 className="text-2xl font-bold text-slate-900">
+               {isSupabaseMissing ? 'Connection Error' : 'No results found'}
+             </h3>
+             <p className="text-slate-500 mt-2">
+               {isSupabaseMissing
+                 ? 'Unable to connect to the product database. Please try again later.'
+                 : 'Try searching for CRM, ERP, Tally, or Microsoft license.'}
+             </p>
+             {isSupabaseMissing && (
+               <button
+                 onClick={() => window.location.reload()}
+                 className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 transition"
+               >
+                 Retry Connection
+               </button>
+             )}
           </div>
         )}
       </div>
