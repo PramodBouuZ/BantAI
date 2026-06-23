@@ -22,14 +22,16 @@ const getIcon = (iconName: string) => {
 
 const ProductDetails: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { products, users } = useData();
+  const { products, users, vendorLogos } = useData();
   const navigate = useNavigate();
 
   // Find product by slug OR by ID for backward compatibility
   const product = products.find(p => p.slug === slug || p.id === slug);
 
   // Find actual vendor if exists
-  const vendor = users.find(u => u.company === product?.vendorName || u.name === product?.vendorName);
+  const vendor = users.find(u => u.name === product?.vendorName);
+  // Find logo from vendor_assets table (this is the correct source)
+  const vendorAsset = vendorLogos.find(v => v.name === product?.vendorName);
 
   if (!product) {
     return (
@@ -42,13 +44,13 @@ const ProductDetails: React.FC = () => {
 
   // Fallback Vendor Data (Used if admin hasn't specified one)
   const vendorInfo = {
-    name: vendor?.company || product.vendorName || 'Verified Partner',
+    name: product.vendorName || 'Verified Partner',
     verifiedSince: vendor?.joinedDate?.split('T')[0]?.split('-')[0] || '2024',
     responseTime: '< 2 hours',
     rating: product.rating || 5.0,
-    location: vendor?.location || 'India',
-    badge: vendor?.status === 'Verified' ? 'Verified Partner' : (product.vendorName ? 'Certified Partner' : 'Marketplace Partner'),
-    logo: vendor?.logoUrl
+    location: 'India',
+    badge: (product.vendorName ? 'Certified Partner' : 'Marketplace Partner'),
+    logo: vendorAsset?.logoUrl
   };
 
   const seoTitle = product.metaTitle || `${product.title} Pricing, Features & Reviews | BantConfirm India`;

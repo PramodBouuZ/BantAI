@@ -162,9 +162,9 @@ const AppContent: React.FC = () => {
           try {
             const { data: userData, error: userError } = await supabase
               .from('users')
-              .select('id, full_name, role, company, status, logo_url, is_first_login')
+              .select('id, name, role, created_at')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
 
             if (userError && userError.code !== 'PGRST116') {
               console.error("App: Auth change user fetch error:", userError);
@@ -176,14 +176,14 @@ const AppContent: React.FC = () => {
 
             setCurrentUser({
               id: session.user.id,
-              name: userData?.full_name || meta.full_name || meta.name || 'User',
+              name: userData?.name || meta.full_name || meta.name || 'User',
               email: session.user.email || '',
               role: role as any,
-              joinedDate: session.user.created_at,
-              company: userData?.company || meta.company,
-              status: userData?.status || meta.status,
-              logoUrl: userData?.logo_url || meta.logo_url,
-              isFirstLogin: userData?.is_first_login ?? meta.is_first_login
+              joinedDate: userData?.created_at || session.user.created_at,
+              company: meta.company,
+              status: meta.status,
+              logoUrl: meta.logo_url,
+              isFirstLogin: meta.is_first_login
             });
             console.log("App: User set after auth change:", role);
           } catch (err) {

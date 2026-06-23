@@ -606,11 +606,16 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                           className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-[11px] font-bold outline-none shadow-sm focus:ring-2 focus:ring-blue-100 transition-all"
                         >
                           <option value="">Unassigned...</option>
-                          {registeredVendors.map(v => (
-                            <option key={v.id} value={v.id} disabled={v.status !== 'Verified'}>
-                              {v.name} ({v.company || 'Partner'}) {v.status !== 'Verified' ? `[${v.status}]` : ''}
-                            </option>
-                          ))}
+                          {registeredVendors.map(v => {
+                            const reg = vendorRegistrations.find(r => r.email === v.email);
+                            const status = reg?.status || 'Pending';
+                            const company = reg?.company_name || 'Partner';
+                            return (
+                              <option key={v.id} value={v.id} disabled={status !== 'Verified'}>
+                                {v.name} ({company}) {status !== 'Verified' ? `[${status}]` : ''}
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     </div>
@@ -1009,16 +1014,23 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {users.filter(u => u.role === 'vendor').map(v => (
+                        {users.filter(u => u.role === 'vendor').map(v => {
+                          const reg = vendorRegistrations.find(r => r.email === v.email);
+                          const logo = vendorLogos.find(l => l.name === v.name || (reg && l.name === reg.companyName))?.logoUrl;
+                          const status = reg?.status || 'Pending';
+                          const company = reg?.companyName || 'Partner';
+                          const location = reg?.location || 'Pan India';
+
+                          return (
                           <tr key={v.id} className="hover:bg-slate-50/50 group transition-colors">
                             <td className="px-10 py-7">
                               <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                                  {v.logoUrl ? <img src={v.logoUrl} className="w-full h-full object-contain" alt="Logo" /> : <Building2 size={24} className="text-slate-300" />}
+                                  {logo ? <img src={logo} className="w-full h-full object-contain" alt="Logo" /> : <Building2 size={24} className="text-slate-300" />}
                                 </div>
                                 <div>
                                   <div className="font-black text-slate-900 text-lg flex items-center gap-2">
-                                    {v.name} {v.status === 'Verified' && <CheckCircle2 size={16} className="text-blue-500" />}
+                                    {v.name} {status === 'Verified' && <CheckCircle2 size={16} className="text-blue-500" />}
                                   </div>
                                   <div className="text-xs font-bold text-slate-400">{v.email}</div>
                                   <div className="text-[10px] font-black text-slate-300 uppercase tracking-tighter mt-1">Joined: {v.joinedDate?.split('T')[0]}</div>
@@ -1026,27 +1038,19 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                               </div>
                             </td>
                             <td className="px-10 py-7">
-                               <div className="text-sm font-black text-slate-700">{v.company || 'Not Specified'}</div>
-                               <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 mt-1"><MapPin size={12}/> {v.location || 'Pan India'}</div>
-                               <div className="flex flex-wrap gap-1 mt-3">
-                                  {v.products?.slice(0, 2).map(p => <span key={p} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[9px] font-black uppercase">{p}</span>)}
-                               </div>
+                               <div className="text-sm font-black text-slate-700">{company}</div>
+                               <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5 mt-1"><MapPin size={12}/> {location}</div>
                             </td>
                             <td className="px-10 py-7">
                                <div className="space-y-2">
                                  <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
-                                   v.status === 'Verified' ? 'bg-green-50 text-green-700 border-green-100' :
-                                   v.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                                   v.status === 'Suspended' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                   status === 'Verified' ? 'bg-green-50 text-green-700 border-green-100' :
+                                   status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+                                   status === 'Suspended' ? 'bg-orange-50 text-orange-700 border-orange-100' :
                                    'bg-red-50 text-red-700 border-red-100'
                                  }`}>
-                                   {v.status || 'Pending'}
+                                   {status}
                                  </span>
-                                 {v.verificationDate && (
-                                   <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                     Verified: {new Date(v.verificationDate).toLocaleDateString()}
-                                   </div>
-                                 )}
                                </div>
                             </td>
                             <td className="px-10 py-7">
@@ -1059,16 +1063,16 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                             </td>
                             <td className="px-10 py-7">
                                <div className="flex gap-2">
-                                  {v.status === 'Pending' && (
+                                  {status === 'Pending' && (
                                     <>
                                       <button onClick={() => updateVendorStatus(v.id, 'Verified')} className="p-2.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-sm" title="Verify Vendor"><CheckCircle2 size={18}/></button>
                                       <button onClick={() => { const reason = prompt('Reason for rejection:'); if(reason) updateVendorStatus(v.id, 'Rejected', reason); }} className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-all shadow-sm" title="Reject Vendor"><X size={18}/></button>
                                     </>
                                   )}
-                                  {v.status === 'Verified' && (
+                                  {status === 'Verified' && (
                                     <button onClick={() => updateVendorStatus(v.id, 'Suspended')} className="p-2.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-xl transition-all shadow-sm" title="Suspend Vendor"><Archive size={18}/></button>
                                   )}
-                                  {v.status === 'Suspended' && (
+                                  {status === 'Suspended' && (
                                     <button onClick={() => updateVendorStatus(v.id, 'Verified')} className="p-2.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-sm" title="Reactivate Vendor"><Zap size={18}/></button>
                                   )}
                                   <button onClick={() => setSelectedVendorForLeads(v)} className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-all shadow-sm" title="View Assigned Leads"><FileText size={18}/></button>
@@ -1077,7 +1081,8 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                                </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                         {users.filter(u => u.role === 'vendor').length === 0 && (
                           <tr><td colSpan={5} className="p-20 text-center font-bold text-slate-300">No vendors registered yet.</td></tr>
                         )}

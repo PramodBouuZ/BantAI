@@ -58,10 +58,12 @@ const ResetPassword: React.FC = () => {
 
       if (error) throw error;
 
-      // Update is_first_login in users table
+      // Update is_first_login in metadata
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('users').update({ is_first_login: false }).eq('id', user.id);
+        await supabase.auth.updateUser({
+          data: { is_first_login: false }
+        });
       }
 
       setSuccessMsg("Password updated successfully.");

@@ -74,9 +74,9 @@ const Login: React.FC = () => {
             console.log("Login: Session found for user:", session.user.email);
             const { data: userData, error: userError } = await supabase
               .from('users')
-              .select('id, full_name, role, company, status, logo_url, is_first_login')
+              .select('id, name, role, created_at')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
 
             const endTime = performance.now();
             console.log(`Login: Session and profile check took ${(endTime - startTime).toFixed(2)}ms`);
@@ -92,19 +92,19 @@ const Login: React.FC = () => {
             if (mounted) {
               setCurrentUser({
                 id: user.id,
-                name: userData?.full_name || meta.full_name || meta.name || 'User',
+                name: userData?.name || meta.full_name || meta.name || 'User',
                 email: user.email || '',
                 role: role as any,
-                joinedDate: user.created_at,
-                company: userData?.company,
-                status: userData?.status,
-                logoUrl: userData?.logo_url,
-                isFirstLogin: userData?.is_first_login
+                joinedDate: userData?.created_at || user.created_at,
+                company: meta.company,
+                status: meta.status,
+                logoUrl: meta.logo_url,
+                isFirstLogin: meta.is_first_login
               });
 
               console.log("Login: Redirecting to dashboard...");
               const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
-              if (userData?.is_first_login) {
+              if (meta.is_first_login) {
                 navigate('/reset-password?force=true');
               } else {
                 navigate(targetPath + search, { replace: true });
@@ -196,7 +196,8 @@ const Login: React.FC = () => {
              options: {
                data: {
                  full_name: formData.name,
-                   role: 'user', // Every new signup must be role = "user"
+                 name: formData.name,
+                 role: 'user', // Every new signup must be role = "user"
                  mobile: formData.mobile,
                  location: formData.location
                }
@@ -207,27 +208,27 @@ const Login: React.FC = () => {
            if (data.session) {
              const { data: userData } = await supabase
               .from('users')
-              .select('id, full_name, role, company, status, logo_url, is_first_login')
+              .select('id, name, role, created_at')
               .eq('id', data.user!.id)
-              .single();
+              .maybeSingle();
 
              const meta = data.user?.user_metadata || {};
              const role = data.user!.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
              setCurrentUser({
                 id: data.user!.id,
-                name: userData?.full_name || meta.full_name || formData.name || 'User',
+                name: userData?.name || meta.full_name || formData.name || 'User',
                 email: data.user!.email || formData.email,
                 role: role as any,
-                joinedDate: new Date().toISOString(),
-                company: userData?.company,
-                status: userData?.status,
-                logoUrl: userData?.logo_url,
-                isFirstLogin: userData?.is_first_login
+                joinedDate: userData?.created_at || new Date().toISOString(),
+                company: meta.company,
+                status: meta.status,
+                logoUrl: meta.logo_url,
+                isFirstLogin: meta.is_first_login
              });
              setSuccessMsg("Welcome! Your account is ready.");
 
              const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
-             if (userData?.is_first_login) {
+             if (meta.is_first_login) {
                 setTimeout(() => navigate('/reset-password?force=true'), 1000);
              } else {
                 setTimeout(() => navigate(targetPath + search), 1000);
@@ -244,26 +245,26 @@ const Login: React.FC = () => {
            if (data.user) {
              const { data: userData } = await supabase
               .from('users')
-              .select('id, full_name, role, company, status, logo_url, is_first_login')
+              .select('id, name, role, created_at')
               .eq('id', data.user.id)
-              .single();
+              .maybeSingle();
 
              const meta = data.user.user_metadata || {};
              const role = data.user.email === 'info.bouuz@gmail.com' ? 'admin' : (userData?.role || 'user');
              setCurrentUser({
                 id: data.user.id,
-                name: userData?.full_name || meta.full_name || 'User',
+                name: userData?.name || meta.full_name || 'User',
                 email: data.user.email || '',
                 role: role as any,
-                joinedDate: new Date().toISOString(),
-                company: userData?.company,
-                status: userData?.status,
-                logoUrl: userData?.logo_url,
-                isFirstLogin: userData?.is_first_login
+                joinedDate: userData?.created_at || new Date().toISOString(),
+                company: meta.company,
+                status: meta.status,
+                logoUrl: meta.logo_url,
+                isFirstLogin: meta.is_first_login
              });
 
              const targetPath = from || (role === 'admin' ? '/admin' : '/user/dashboard');
-             if (userData?.is_first_login) {
+             if (meta.is_first_login) {
                navigate('/reset-password?force=true');
              } else {
                navigate(targetPath + search);
