@@ -139,14 +139,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // React Query Fetchers
-  const { data: prodData, isLoading: prodLoading } = useQuery({
+  const { data: prodData, isLoading: prodLoading, error: prodError } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
       if (!supabase) return [];
       const start = performance.now();
       const { data, error } = await supabase.from('products').select('id, slug, title, description, category, price_range, features, icon, rating, image, vendor_name, technical_specs, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
-      console.log(`Query: products took ${(performance.now() - start).toFixed(2)}ms`);
-      if (error) throw error;
+
+      if (error) {
+        console.error("Supabase Error (products):", error);
+        throw error;
+      }
+
+      console.log(`Query: products took ${(performance.now() - start).toFixed(2)}ms. Count: ${data?.length || 0}`);
+
       return (data || []).map((p: any) => ({
         id: p.id,
         slug: p.slug || generateSlug(p.title || 'product'),
@@ -166,12 +172,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     enabled: !!supabase
   });
 
-  const { data: configData } = useQuery({
+  const { data: configData, error: configError } = useQuery({
     queryKey: ['site_config'],
     queryFn: async () => {
       if (!supabase) return defaultSiteConfig;
       const { data, error } = await supabase.from('site_config').select('site_name, banner_title, banner_subtitle, logo_url, favicon_url, whatsapp_number, admin_notification_email, social_links, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup').maybeSingle();
-      if (error) throw error;
+
+      if (error) {
+        console.error("Supabase Error (site_config):", error);
+        throw error;
+      }
+
       if (!data) return defaultSiteConfig;
       return {
         siteName: data.site_name || defaultSiteConfig.siteName,
@@ -193,7 +204,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       if (!supabase) return [];
       const { data, error } = await supabase.from('vendor_assets').select('id, name, logo_url');
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error (vendor_assets):", error);
+        throw error;
+      }
       return (data || []).map((v: any) => ({ id: v.id, name: v.name, logoUrl: v.logo_url }));
     },
     enabled: !!supabase
@@ -204,7 +218,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       if (!supabase) return [];
       const { data, error } = await supabase.from('categories').select('id, name, slug, description, icon, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error (categories):", error);
+        throw error;
+      }
       return (data || []).map((c: any) => ({
         id: c.id,
         name: c.name,
@@ -217,14 +234,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     enabled: !!supabase
   });
 
-  const { data: leadData } = useQuery({
+  const { data: leadData, isLoading: leadLoading, error: leadError } = useQuery({
     queryKey: ['leads'],
     queryFn: async () => {
       if (!supabase) return [];
       const start = performance.now();
       const { data, error } = await supabase.from('leads').select('id, name, email, mobile, company, location, service, budget, requirement, authority, timing, status, date, remarks, assigned_to').order('date', { ascending: false }).limit(50);
-      console.log(`Query: leads took ${(performance.now() - start).toFixed(2)}ms`);
-      if (error) throw error;
+
+      if (error) {
+        console.error("Supabase Error (leads):", error);
+        throw error;
+      }
+
+      console.log(`Query: leads took ${(performance.now() - start).toFixed(2)}ms. Count: ${data?.length || 0}`);
+
       return (data || []).map((l: any) => ({
         id: l.id,
         name: l.name,
@@ -246,14 +269,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     enabled: !!supabase
   });
 
-  const { data: blogData } = useQuery({
+  const { data: blogData, isLoading: blogLoading, error: blogError } = useQuery({
     queryKey: ['blogs'],
     queryFn: async () => {
       if (!supabase) return [];
       const start = performance.now();
       const { data, error } = await supabase.from('blogs').select('id, slug, title, content, category, image, author, date, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup').order('date', { ascending: false });
-      console.log(`Query: blogs took ${(performance.now() - start).toFixed(2)}ms`);
-      if (error) throw error;
+
+      if (error) {
+        console.error("Supabase Error (blogs):", error);
+        throw error;
+      }
+
+      console.log(`Query: blogs took ${(performance.now() - start).toFixed(2)}ms. Count: ${data?.length || 0}`);
+
       return (data || []).map((b: any) => ({
         id: b.id,
         slug: b.slug,
@@ -274,7 +303,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       if (!supabase) return [];
       const { data, error } = await supabase.from('cities').select('id, name, slug, state_id, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error (cities):", error);
+        throw error;
+      }
       return (data || []).map((c: any) => ({
         id: c.id,
         name: c.name,
@@ -291,7 +323,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       if (!supabase) return [];
       const { data, error } = await supabase.from('states').select('id, name, slug, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, twitter_title, twitter_description, twitter_image, focus_keywords, seo_score, schema_markup');
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error (states):", error);
+        throw error;
+      }
       return (data || []).map((s: any) => ({
         id: s.id,
         name: s.name,
@@ -307,7 +342,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       if (!supabase) return [];
       const { data, error } = await supabase.from('users').select('id, full_name, email, role, mobile, company, location, created_at, status, verification_date, verified_by, products, services, logo_url, is_first_login');
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error (users):", error);
+        throw error;
+      }
       return (data || []).map((u: any) => ({
         id: u.id,
         name: u.full_name || 'User',
@@ -334,7 +372,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryFn: async () => {
       if (!supabase) return [];
       const { data, error } = await supabase.from('vendor_registrations').select('id, name, company_name, email, mobile, location, product_name, message, date').order('date', { ascending: false }).limit(50);
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error (vendor_registrations):", error);
+        throw error;
+      }
       return (data || []).map((v: any) => ({
         ...v, 
         companyName: v.company_name, 
@@ -356,7 +397,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const vendorRegistrations = vRegData || [];
   const blogs = blogData || [];
   const users = userData || [];
-  const isLoading = prodLoading || leadData === undefined || blogData === undefined;
+
+  // Robust loading state: Only true if Supabase exists AND queries are actually pending
+  // If Supabase is missing, we shouldn't be "loading" forever
+  const isLoading = !!supabase && (prodLoading || leadLoading || blogLoading);
 
   useEffect(() => {
     const checkUser = async () => {
