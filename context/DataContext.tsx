@@ -153,21 +153,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log(`Query: products took ${(performance.now() - start).toFixed(2)}ms. Count: ${data?.length || 0}`);
 
-      return (data || []).map((p: any) => ({
-        id: p.id,
-        slug: p.slug || generateSlug(p.title || 'product'),
-        title: p.title || 'Untitled Product',
-        description: p.description || '',
-        category: p.category || 'Uncategorized',
-        priceRange: p.price_range || '',
-        features: Array.isArray(p.features) ? p.features : [],
-        icon: p.icon || 'globe',
-        rating: Number(p.rating || 5),
-        image: p.image || '',
-        vendorName: p.vendor_name || '',
-        technicalSpecs: Array.isArray(p.technical_specs) ? p.technical_specs : [],
-        ...mapSEOToCamel(p)
-      }));
+      return (data || []).map((p: any) => {
+        const specs = Array.isArray(p.technical_specs)
+          ? p.technical_specs.map((s: string) => {
+              const [label, ...rest] = s.split(':');
+              return { label: label?.trim() || '', value: rest.join(':')?.trim() || '' };
+            })
+          : [];
+
+        return {
+          id: p.id,
+          slug: p.slug || generateSlug(p.title || 'product'),
+          title: p.title || 'Untitled Product',
+          description: p.description || '',
+          category: p.category || 'Uncategorized',
+          priceRange: p.price_range || '',
+          features: Array.isArray(p.features) ? p.features : [],
+          icon: p.icon || 'globe',
+          rating: Number(p.rating || 5),
+          image: p.image || '',
+          vendorName: p.vendor_name || '',
+          technicalSpecs: specs,
+          ...mapSEOToCamel(p)
+        };
+      });
     },
     enabled: !!supabase
   });
@@ -496,7 +505,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          rating: product.rating,
          image: product.image,
          vendor_name: product.vendorName,
-         technical_specs: product.technicalSpecs,
+         technical_specs: product.technicalSpecs ? product.technicalSpecs.map(s => `${s.label}: ${s.value}`) : [],
          ...mapSEOToSnake(product)
       });
       if (error) addNotification(error.message, 'error');
@@ -524,7 +533,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          rating: updatedProduct.rating,
          image: updatedProduct.image,
          vendor_name: updatedProduct.vendorName,
-         technical_specs: updatedProduct.technicalSpecs,
+         technical_specs: updatedProduct.technicalSpecs ? updatedProduct.technicalSpecs.map(s => `${s.label}: ${s.value}`) : [],
          ...mapSEOToSnake(updatedProduct)
       }).eq('id', id);
       if (error) addNotification(error.message, 'error');
@@ -778,11 +787,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     if (supabase) {
-      await supabase.from('categories').insert({
+      const { error } = await supabase.from('categories').insert({
         name: category,
         slug: generateSlug(category)
       });
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      if (error) addNotification(error.message, 'error');
+      else {
+        addNotification('Category defined!', 'success');
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+      }
     }
   };
 
@@ -810,8 +823,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     if (supabase) {
-      await supabase.from('categories').delete().eq('name', category);
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      const { error } = await supabase.from('categories').delete().eq('name', category);
+      if (error) addNotification(error.message, 'error');
+      else {
+        addNotification('Category removed.', 'info');
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+      }
     }
   };
 

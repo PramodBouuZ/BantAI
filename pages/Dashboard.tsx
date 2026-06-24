@@ -31,6 +31,8 @@ const ImageUploadZone: React.FC<{
     loading?: boolean;
   }> = ({ label, value, onUpload, onClear, className = "", aspectRatio = "aspect-video", loading = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -39,20 +41,26 @@ const ImageUploadZone: React.FC<{
         return;
       }
       const reader = new FileReader();
-      reader.onloadend = () => onUpload(reader.result as string);
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setLocalPreview(base64);
+        onUpload(base64);
+      };
       reader.readAsDataURL(file);
     }
   };
+
+  const displayValue = value || localPreview;
   return (
     <div className={`space-y-2 ${className}`}>
       <label className="block text-xs font-black uppercase text-slate-400 tracking-widest">{label}</label>
-      <div onClick={() => !value && fileInputRef.current?.click()} className={`relative border-2 border-dashed rounded-2xl transition-all flex flex-col items-center justify-center overflow-hidden group ${value ? 'border-indigo-100 bg-white' : 'border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer'} ${aspectRatio}`}>
-        {value ? (
+      <div onClick={() => !displayValue && fileInputRef.current?.click()} className={`relative border-2 border-dashed rounded-2xl transition-all flex flex-col items-center justify-center overflow-hidden group ${displayValue ? 'border-indigo-100 bg-white' : 'border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer'} ${aspectRatio}`}>
+        {displayValue ? (
           <div className="relative w-full h-full animate-fade-in">
-            <img src={value} alt="Preview" className="w-full h-full object-contain p-2" />
+            <img src={displayValue} alt="Preview" className="w-full h-full object-contain p-2" />
             <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
               <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="p-2 bg-white text-blue-600 rounded-xl hover:scale-110 transition shadow-lg"><Edit2 size={20} /></button>
-              <button onClick={(e) => { e.stopPropagation(); onClear(); }} className="p-2 bg-white text-red-600 rounded-xl hover:scale-110 transition shadow-lg"><Trash2 size={20} /></button>
+              <button onClick={(e) => { e.stopPropagation(); setLocalPreview(null); onClear(); }} className="p-2 bg-white text-red-600 rounded-xl hover:scale-110 transition shadow-lg"><Trash2 size={20} /></button>
             </div>
           </div>
         ) : (
@@ -398,14 +406,18 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
       slug: locForm.slug || generateSlug(locForm.name!),
       ...locForm
     };
-    if (locType === 'city') {
-      if (editingLoc) await updateCity(editingLoc.id, lData as City);
-      else await addCity(lData as City);
-    } else {
-      if (editingLoc) await updateState(editingLoc.id, lData as State);
-      else await addState(lData as State);
+    try {
+      if (locType === 'city') {
+        if (editingLoc) await updateCity(editingLoc.id, lData as City);
+        else await addCity(lData as City);
+      } else {
+        if (editingLoc) await updateState(editingLoc.id, lData as State);
+        else await addState(lData as State);
+      }
+      setIsLocModalOpen(false); setEditingLoc(null);
+    } catch (err: any) {
+      addNotification(`Error saving location: ${err.message}`, 'error');
     }
-    setIsLocModalOpen(false); setEditingLoc(null);
   };
 
   const renderSidebar = () => (
